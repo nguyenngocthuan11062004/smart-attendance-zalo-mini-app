@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Page, Box, Text, Button, Header } from "zmp-ui";
 import { useParams } from "react-router-dom";
-import { getSessionAttendance, teacherOverride } from "@/services/attendance.service";
+import { mockAttendanceRecords } from "@/utils/mock-data";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import type { AttendanceDoc } from "@/types";
 
@@ -11,14 +11,13 @@ export default function TeacherReview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!sessionId) return;
-    getSessionAttendance(sessionId)
-      .then((recs) => setRecords(recs.sort((a, b) => a.peerCount - b.peerCount)))
-      .finally(() => setLoading(false));
+    setTimeout(() => {
+      setRecords(mockAttendanceRecords.sort((a, b) => a.peerCount - b.peerCount));
+      setLoading(false);
+    }, 300);
   }, [sessionId]);
 
-  const handleOverride = async (attendanceId: string, decision: "present" | "absent") => {
-    await teacherOverride(attendanceId, decision);
+  const handleOverride = (attendanceId: string, decision: "present" | "absent") => {
     setRecords((prev) =>
       prev.map((r) =>
         r.id === attendanceId
@@ -31,16 +30,15 @@ export default function TeacherReview() {
   const borderlineCases = records.filter(
     (r) => r.trustScore === "review" && !r.teacherOverride
   );
-  const allRecords = records;
 
   return (
     <Page className="page">
-      <Header title="Xem xét điểm danh" />
+      <Header title="Xem xet diem danh" />
 
       {borderlineCases.length > 0 && (
         <>
           <Text bold size="large" className="mb-3">
-            Cần xem xét ({borderlineCases.length})
+            Can xem xet ({borderlineCases.length})
           </Text>
           {borderlineCases.map((r) => (
             <ReviewCard key={r.id} record={r} onOverride={handleOverride} />
@@ -50,16 +48,16 @@ export default function TeacherReview() {
       )}
 
       <Text bold size="large" className="mb-3">
-        Tất cả ({allRecords.length})
+        Tat ca ({records.length})
       </Text>
       {loading ? (
-        <Text className="text-center text-gray-500">Đang tải...</Text>
-      ) : allRecords.length === 0 ? (
+        <Text className="text-center text-gray-500">Dang tai...</Text>
+      ) : records.length === 0 ? (
         <Box className="text-center py-8">
-          <Text className="text-gray-500">Không có dữ liệu</Text>
+          <Text className="text-gray-500">Khong co du lieu</Text>
         </Box>
       ) : (
-        allRecords.map((r) => (
+        records.map((r) => (
           <Box
             key={r.id}
             className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm mb-2"
@@ -95,7 +93,7 @@ function ReviewCard({
         <TrustBadge score="review" size="small" />
       </div>
       <Text size="xSmall" className="text-gray-600 mb-3">
-        {record.peerCount} xác minh ngang hàng | Check-in:{" "}
+        {record.peerCount} xac minh ngang hang | Check-in:{" "}
         {new Date(record.checkedInAt).toLocaleTimeString("vi-VN")}
       </Text>
       <div className="flex space-x-2">
@@ -105,7 +103,7 @@ function ReviewCard({
           className="flex-1"
           onClick={() => onOverride(record.id, "present")}
         >
-          Có mặt
+          Co mat
         </Button>
         <Button
           size="small"
@@ -114,7 +112,7 @@ function ReviewCard({
           type="danger"
           onClick={() => onOverride(record.id, "absent")}
         >
-          Vắng
+          Vang
         </Button>
       </div>
     </Box>

@@ -1,61 +1,60 @@
 import React, { useEffect, useState } from "react";
 import { Page, Box, Button, Text, Input, Modal, Header } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
-import { useAtomValue } from "jotai";
-import { currentUserAtom } from "@/store/auth";
-import { getTeacherClasses, createClass } from "@/services/class.service";
+import { mockClasses } from "@/utils/mock-data";
 import ClassCard from "@/components/class/ClassCard";
 import type { ClassDoc } from "@/types";
 
 export default function TeacherClasses() {
   const navigate = useNavigate();
-  const user = useAtomValue(currentUserAtom);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [createModal, setCreateModal] = useState(false);
   const [className, setClassName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const loadClasses = async () => {
-    if (!user) return;
-    setLoading(true);
-    const result = await getTeacherClasses(user.id);
-    setClasses(result);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    loadClasses();
-  }, [user?.id]);
+    setTimeout(() => {
+      setClasses(mockClasses);
+      setLoading(false);
+    }, 300);
+  }, []);
 
-  const handleCreateClass = async () => {
-    if (!user || !className.trim()) return;
+  const handleCreateClass = () => {
+    if (!className.trim()) return;
     setCreating(true);
-    try {
-      await createClass(user.id, user.name, className.trim());
+    setTimeout(() => {
+      const newClass: ClassDoc = {
+        id: `class_${Date.now()}`,
+        name: className.trim(),
+        code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        teacherId: "teacher_001",
+        teacherName: "Tran Thi B",
+        studentIds: [],
+        createdAt: Date.now(),
+      };
+      setClasses((prev) => [newClass, ...prev]);
       setCreateModal(false);
       setClassName("");
-      loadClasses();
-    } finally {
       setCreating(false);
-    }
+    }, 500);
   };
 
   return (
     <Page className="page">
-      <Header title="Quản lý lớp học" showBackIcon={false} />
+      <Header title="Quan ly lop hoc" showBackIcon={false} />
 
       <Box className="mb-4">
         <Button fullWidth variant="primary" onClick={() => setCreateModal(true)}>
-          Tạo lớp mới
+          Tao lop moi
         </Button>
       </Box>
 
       {loading ? (
-        <Text className="text-center text-gray-500">Đang tải...</Text>
+        <Text className="text-center text-gray-500">Dang tai...</Text>
       ) : classes.length === 0 ? (
         <Box className="text-center py-8">
-          <Text className="text-gray-500">Chưa có lớp học nào</Text>
+          <Text className="text-gray-500">Chua co lop hoc nao</Text>
         </Box>
       ) : (
         classes.map((c) => (
@@ -68,16 +67,16 @@ export default function TeacherClasses() {
         ))
       )}
 
-      <Modal visible={createModal} onClose={() => setCreateModal(false)} title="Tạo lớp mới">
+      <Modal visible={createModal} onClose={() => setCreateModal(false)} title="Tao lop moi">
         <Box className="space-y-3 p-4">
           <Input
-            label="Tên lớp"
+            label="Ten lop"
             placeholder="VD: CNTT K68..."
             value={className}
             onChange={(e) => setClassName(e.target.value)}
           />
           <Button fullWidth variant="primary" loading={creating} onClick={handleCreateClass}>
-            Tạo lớp
+            Tao lop
           </Button>
         </Box>
       </Modal>

@@ -1,139 +1,106 @@
 import React, { useEffect, useState } from "react";
 import { Page, Box, Text, Button, Header } from "zmp-ui";
 import { useParams } from "react-router-dom";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { activeSessionAtom } from "@/store/session";
 import { attendanceStepAtom, type AttendanceStep } from "@/store/attendance";
-import { useAttendance } from "@/hooks/useAttendance";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
-import { useQRScanner } from "@/hooks/useQRScanner";
-import { useSessionSubscription } from "@/hooks/useSession";
-import { getSession } from "@/services/session.service";
-import { getMyAttendance, addBidirectionalPeerVerification } from "@/services/attendance.service";
-import { validateTeacherQR, validatePeerQR, parseQRContent } from "@/utils/validation";
+import { mockSession, mockAttendanceRecords } from "@/utils/mock-data";
 import QRDisplay from "@/components/qr/QRDisplay";
 import QRScanner from "@/components/qr/QRScanner";
 import PeerCounter from "@/components/attendance/PeerCounter";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import StepIndicator from "@/components/attendance/StepIndicator";
-import type { SessionDoc, QRPayload } from "@/types";
+import type { AttendanceDoc } from "@/types";
 
 export default function StudentAttendance() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const user = useAtomValue(currentUserAtom);
-  const session = useAtomValue(activeSessionAtom);
-  const setSession = useSetAtom(activeSessionAtom);
-  const { myAttendance, step, setStep, checkIn, addPeer } = useAttendance(sessionId, user?.id);
-  const { scan, scanning, error: scanError } = useQRScanner();
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [session, setSession] = useAtom(activeSessionAtom);
+  const [step, setStep] = useAtom(attendanceStepAtom);
+  const [myAttendance, setMyAttendance] = useState<AttendanceDoc | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
-  useSessionSubscription(sessionId);
-
+  // Initialize mock session
   useEffect(() => {
-    if (!sessionId) return;
-    getSession(sessionId).then((s) => {
-      if (s) setSession(s);
-    });
-  }, [sessionId]);
+    if (!session) setSession(mockSession);
+    setStep("scan-teacher");
+  }, []);
 
-  useEffect(() => {
-    if (!sessionId || !user) return;
-    getMyAttendance(sessionId, user.id).then((att) => {
-      if (att) {
-        if (att.peerCount >= 3) setStep("done");
-        else setStep("show-qr");
-      } else {
-        setStep("scan-teacher");
-      }
-    });
-  }, [sessionId, user?.id]);
+  const activeSession = session || mockSession;
 
   const qrOptions =
     step === "show-qr" || step === "scan-peers"
       ? {
           type: "peer" as const,
-          sessionId: sessionId || "",
-          userId: user?.id || "",
-          secret: session?.hmacSecret || "",
+          sessionId: sessionId || "session_001",
+          userId: user?.id || "student_001",
+          secret: activeSession.hmacSecret,
           refreshIntervalMs: 30000,
         }
       : null;
 
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(qrOptions);
 
-  const handleScanTeacher = async () => {
-    setLocalError(null);
-    const payload = await scan();
-    if (!payload) return;
-
-    if (!session) {
-      setLocalError("Không tìm thấy phiên điểm danh");
-      return;
-    }
-
-    const validation = validateTeacherQR(payload, session.hmacSecret);
-    if (!validation.valid) {
-      setLocalError(validation.error || "QR không hợp lệ");
-      return;
-    }
-
-    if (payload.sessionId !== sessionId) {
-      setLocalError("QR không thuộc phiên điểm danh này");
-      return;
-    }
-
-    await checkIn(session.classId, user?.name || "");
+  const handleScanTeacher = () => {
+    setScanning(true);
+    setScanError(null);
+    // Mock: simulate scanning teacher QR
+    setTimeout(() => {
+      setScanning(false);
+      // Create attendance record
+      setMyAttendance({
+        id: "att_mock",
+        sessionId: sessionId || "session_001",
+        classId: activeSession.classId,
+        studentId: user?.id || "student_001",
+        studentName: user?.name || "Nguyen Van A",
+        checkedInAt: Date.now(),
+        peerVerifications: [],
+        peerCount: 0,
+        trustScore: "absent",
+      });
+      setStep("show-qr");
+    }, 1000);
   };
 
-  const handleScanPeer = async () => {
-    setLocalError(null);
-    const payload = await scan();
-    if (!payload) return;
+  const handleScanPeer = () => {
+    setScanning(true);
+    setScanError(null);
+    // Mock: simulate scanning peer QR
+    setTimeout(() => {
+      setScanning(false);
+      if (!myAttendance) return;
 
-    if (!session || !myAttendance || !user) return;
+      const peerNames = ["Le Van C", "Pham Thi D", "Hoang Van E", "Vo Thi F"];
+      const newCount = myAttendance.peerCount + 1;
+      const peerName = peerNames[myAttendance.peerCount] || `Peer ${newCount}`;
 
-    const validation = validatePeerQR(
-      payload,
-      user.id,
-      myAttendance.peerVerifications,
-      session.hmacSecret
-    );
-    if (!validation.valid) {
-      setLocalError(validation.error || "QR không hợp lệ");
-      return;
-    }
+      const updated: AttendanceDoc = {
+        ...myAttendance,
+        peerCount: newCount,
+        peerVerifications: [
+          ...myAttendance.peerVerifications,
+          { peerId: `peer_${newCount}`, peerName, verifiedAt: Date.now(), qrNonce: `n${newCount}` },
+        ],
+        trustScore: newCount >= 3 ? "present" : newCount >= 1 ? "review" : "absent",
+      };
+      setMyAttendance(updated);
 
-    // Bidirectional: both scanner and peer get verification credit
-    await addBidirectionalPeerVerification(
-      sessionId!,
-      user.id,
-      user.name,
-      payload.userId,
-      "",
-      payload.nonce
-    );
+      if (newCount >= 3) {
+        setStep("done");
+      }
+    }, 800);
   };
 
-  if (!session) {
+  if (activeSession.status === "ended") {
     return (
       <Page className="page">
-        <Header title="Điểm danh" />
-        <Box className="text-center py-8">
-          <Text className="text-gray-500">Đang tải phiên điểm danh...</Text>
-        </Box>
-      </Page>
-    );
-  }
-
-  if (session.status === "ended") {
-    return (
-      <Page className="page">
-        <Header title="Điểm danh" />
+        <Header title="Diem danh" />
         <Box className="text-center py-8 space-y-3">
-          <Text bold size="large">
-            Phiên điểm danh đã kết thúc
-          </Text>
+          <Text bold size="large">Phien diem danh da ket thuc</Text>
           {myAttendance && (
             <>
               <TrustBadge score={myAttendance.trustScore} />
@@ -147,24 +114,22 @@ export default function StudentAttendance() {
 
   return (
     <Page className="page">
-      <Header title={`Điểm danh - ${session.className}`} />
+      <Header title={`Diem danh - ${activeSession.className}`} />
 
       <StepIndicator currentStep={step} />
 
       {/* Step 1: Scan teacher QR */}
       {step === "scan-teacher" && (
         <Box className="flex flex-col items-center space-y-4 py-8">
-          <Text bold size="large">
-            Bước 1: Quét QR giảng viên
-          </Text>
+          <Text bold size="large">Buoc 1: Quet QR giang vien</Text>
           <Text className="text-gray-500 text-center">
-            Quét mã QR trên màn hình của giảng viên để bắt đầu điểm danh
+            Quet ma QR tren man hinh cua giang vien de bat dau diem danh
           </Text>
           <QRScanner
             onScan={handleScanTeacher}
             scanning={scanning}
-            label="Quét QR giảng viên"
-            error={localError || scanError}
+            label="Quet QR giang vien"
+            error={scanError}
           />
         </Box>
       )}
@@ -173,11 +138,9 @@ export default function StudentAttendance() {
       {(step === "show-qr" || step === "scan-peers") && (
         <Box className="space-y-4">
           <Box className="text-center">
-            <Text bold size="large">
-              Bước 2: Xác minh ngang hàng
-            </Text>
+            <Text bold size="large">Buoc 2: Xac minh ngang hang</Text>
             <Text size="small" className="text-gray-500">
-              Cho bạn bè quét QR của bạn và quét lại QR của họ
+              Cho ban be quet QR cua ban va quet lai QR cua ho
             </Text>
           </Box>
 
@@ -187,20 +150,20 @@ export default function StudentAttendance() {
             qrDataURL={qrDataURL}
             secondsLeft={secondsLeft}
             totalSeconds={refreshSeconds}
-            label="QR của bạn"
+            label="QR cua ban"
           />
 
           <QRScanner
             onScan={handleScanPeer}
             scanning={scanning}
-            label="Quét QR bạn bè"
-            error={localError || scanError}
+            label="Quet QR ban be"
+            error={scanError}
           />
 
           {myAttendance && myAttendance.peerCount >= 3 && (
             <Box className="text-center py-2">
               <Button variant="primary" onClick={() => setStep("done")}>
-                Hoàn tất
+                Hoan tat
               </Button>
             </Box>
           )}
@@ -210,13 +173,14 @@ export default function StudentAttendance() {
       {/* Done */}
       {step === "done" && myAttendance && (
         <Box className="flex flex-col items-center space-y-4 py-8">
-          <Text bold size="xLarge">
-            Hoàn tất!
-          </Text>
+          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-2">
+            <Text size="xLarge" className="text-green-600">&#10003;</Text>
+          </div>
+          <Text bold size="xLarge">Hoan tat!</Text>
           <TrustBadge score={myAttendance.trustScore} />
           <PeerCounter current={myAttendance.peerCount} />
           <Text className="text-gray-500 text-center">
-            Kết quả điểm danh sẽ được giảng viên xác nhận sau
+            Ket qua diem danh se duoc giang vien xac nhan sau
           </Text>
         </Box>
       )}
