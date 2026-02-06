@@ -1,0 +1,78 @@
+.page {
+  padding: 16px 16px 96px 16px;
+}
+
+.section-container {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.zaui-list-item {
+  cursor: pointer;
+}
+
+// QR Display
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+
+// Trust badge colors
+.trust-present {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.trust-review {
+  background-color: #fef9c3;
+  color: #a16207;
+}
+
+.trust-absent {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+// Attendance step indicators
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  .step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d1d5db;
+    transition: all 0.3s;
+
+    &.active {
+      background: #3b82f6;
+      transform: scale(1.2);
+    }
+
+    &.completed {
+      background: #22c55e;
+    }
+  }
+}
+
+// Dashboard cards
+.dashboard-card {
+  transition: transform 0.1s;
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// Stat cards grid
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
