@@ -58,6 +58,10 @@ export async function addPeerVerification(
   if (!snap.exists()) return;
 
   const data = snap.data() as Omit<AttendanceDoc, "id">;
+
+  // Skip if already verified this peer
+  if (data.peerVerifications.some((v) => v.peerId === peer.peerId)) return;
+
   const newCount = data.peerCount + 1;
 
   await updateDoc(ref, {
@@ -65,6 +69,55 @@ export async function addPeerVerification(
     peerCount: newCount,
     trustScore: computeTrustScore(newCount),
   });
+}
+
+/**
+ * Bidirectional peer verification:
+ * When A scans B's QR, both A and B get verification credit.
+ * - A's record gets B as a verified peer
+ * - B's record gets A as a verified peer
+ */
+export async function addBidirectionalPeerVerification(
+  sessionId: string,
+  scannerId: string,
+  scannerName: string,
+  peerId: string,
+  peerName: string,
+  qrNonce: string
+): Promise<{ scannerUpdated: boolean; peerUpdated: boolean }> {
+  const result = { scannerUpdated: false, peerUpdated: false };
+
+  // Find scanner's attendance record
+  const scannerAtt = await getMyAttendance(sessionId, scannerId);
+  if (scannerAtt) {
+    const alreadyHasPeer = scannerAtt.peerVerifications.some((v) => v.peerId === peerId);
+    if (!alreadyHasPeer) {
+      await addPeerVerification(scannerAtt.id, {
+        peerId,
+        peerName,
+        verifiedAt: Date.now(),
+        qrNonce,
+      });
+      result.scannerUpdated = true;
+    }
+  }
+
+  // Find peer's attendance record and add scanner as verified peer
+  const peerAtt = await getMyAttendance(sessionId, peerId);
+  if (peerAtt) {
+    const alreadyHasScanner = peerAtt.peerVerifications.some((v) => v.peerId === scannerId);
+    if (!alreadyHasScanner) {
+      await addPeerVerification(peerAtt.id, {
+        peerId: scannerId,
+        peerName: scannerName,
+        verifiedAt: Date.now(),
+        qrNonce,
+      });
+      result.peerUpdated = true;
+    }
+  }
+
+  return result;
 }
 
 export async function getMyAttendance(

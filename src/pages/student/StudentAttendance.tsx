@@ -10,12 +10,13 @@ import { useQRGenerator } from "@/hooks/useQRGenerator";
 import { useQRScanner } from "@/hooks/useQRScanner";
 import { useSessionSubscription } from "@/hooks/useSession";
 import { getSession } from "@/services/session.service";
-import { getMyAttendance, addPeerVerification } from "@/services/attendance.service";
+import { getMyAttendance, addBidirectionalPeerVerification } from "@/services/attendance.service";
 import { validateTeacherQR, validatePeerQR, parseQRContent } from "@/utils/validation";
 import QRDisplay from "@/components/qr/QRDisplay";
 import QRScanner from "@/components/qr/QRScanner";
 import PeerCounter from "@/components/attendance/PeerCounter";
 import TrustBadge from "@/components/attendance/TrustBadge";
+import StepIndicator from "@/components/attendance/StepIndicator";
 import type { SessionDoc, QRPayload } from "@/types";
 
 export default function StudentAttendance() {
@@ -103,12 +104,15 @@ export default function StudentAttendance() {
       return;
     }
 
-    await addPeer({
-      peerId: payload.userId,
-      peerName: "",
-      verifiedAt: Date.now(),
-      qrNonce: payload.nonce,
-    });
+    // Bidirectional: both scanner and peer get verification credit
+    await addBidirectionalPeerVerification(
+      sessionId!,
+      user.id,
+      user.name,
+      payload.userId,
+      "",
+      payload.nonce
+    );
   };
 
   if (!session) {
@@ -144,6 +148,8 @@ export default function StudentAttendance() {
   return (
     <Page className="page">
       <Header title={`Điểm danh - ${session.className}`} />
+
+      <StepIndicator currentStep={step} />
 
       {/* Step 1: Scan teacher QR */}
       {step === "scan-teacher" && (

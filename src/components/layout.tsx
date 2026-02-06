@@ -26,6 +26,8 @@ import TeacherReview from "@/pages/teacher/TeacherReview";
 import AuthGuard from "@/components/guards/AuthGuard";
 import RoleGuard from "@/components/guards/RoleGuard";
 import AppBottomNav from "@/components/navigation/AppBottomNav";
+import GlobalLoading from "@/components/ui/GlobalLoading";
+import ErrorToast from "@/components/ui/ErrorToast";
 
 const Layout = () => {
   return (
@@ -126,6 +128,8 @@ const Layout = () => {
               />
             </AnimationRoutes>
             <AppBottomNav />
+            <GlobalLoading />
+            <ErrorToast />
           </ZMPRouter>
         </SnackbarProvider>
       </App>

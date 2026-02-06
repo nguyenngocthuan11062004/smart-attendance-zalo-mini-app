@@ -3,19 +3,105 @@ import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
+const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
+
 interface SuspiciousPattern {
-  type: "always_same_peers" | "rapid_verification" | "low_peer_count";
+  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "ai_detected";
   studentIds: string[];
   description: string;
   severity: "low" | "medium" | "high";
 }
 
+interface AttendanceStats {
+  studentId: string;
+  studentName: string;
+  totalSessions: number;
+  attendedSessions: number;
+  avgPeerCount: number;
+  uniquePeers: string[];
+  peerFrequency: Record<string, number>;
+}
+
+async function callClaudeAPI(prompt: string): Promise<string | null> {
+  const apiKey = functions.config().claude?.api_key;
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch(CLAUDE_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-5-20250929",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.content && data.content[0]?.text) {
+      return data.content[0].text;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function buildAnalysisPrompt(stats: AttendanceStats[], className: string): string {
+  const statsText = stats.map((s) => {
+    const topPeers = Object.entries(s.peerFrequency)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([id, count]) => `${id}:${count}`)
+      .join(", ");
+
+    return `- ${s.studentName} (${s.studentId}): attended ${s.attendedSessions}/${s.totalSessions}, avg peers: ${s.avgPeerCount.toFixed(1)}, unique peers: ${s.uniquePeers.length}, top peers: [${topPeers}]`;
+  }).join("\n");
+
+  return `Bạn là chuyên gia phân tích gian lận điểm danh tại trường đại học Việt Nam.
+
+Lớp: ${className}
+Dữ liệu điểm danh:
+${statsText}
+
+Hãy phân tích và trả về JSON (KHÔNG có text khác):
+{
+  "patterns": [
+    {
+      "type": "ai_detected",
+      "studentIds": ["id1", "id2"],
+      "description": "Mô tả bằng tiếng Việt",
+      "severity": "low|medium|high"
+    }
+  ],
+  "summary": "Tóm tắt bằng tiếng Việt cho giảng viên"
+}
+
+Tìm các mẫu:
+1. Nhóm sinh viên luôn xác minh cho nhau (clique)
+2. Sinh viên có ít peer đa dạng bất thường
+3. Tốc độ xác minh bất thường (quá nhanh)
+4. Sinh viên đi điểm danh nhưng peer count thấp liên tục`;
+}
+
 export const analyzeFraud = functions.region("asia-southeast1").https.onCall(
   async (data) => {
-    const { classId, startDate, endDate } = data;
+    const { classId } = data;
     if (!classId) {
       throw new functions.https.HttpsError("invalid-argument", "Missing classId");
     }
+
+    const classDoc = await db.collection("classes").doc(classId).get();
+    const className = classDoc.exists ? classDoc.data()?.name || "" : "";
 
     const sessions = await db.collection("sessions")
       .where("classId", "==", classId)
@@ -27,10 +113,8 @@ export const analyzeFraud = functions.region("asia-southeast1").https.onCall(
       return { patterns: [], summary: "Không có dữ liệu để phân tích" };
     }
 
-    const patterns: SuspiciousPattern[] = [];
-
-    // Analyze peer verification patterns across sessions
-    const peerMap = new Map<string, Map<string, number>>();
+    // Build per-student statistics
+    const statsMap = new Map<string, AttendanceStats>();
 
     for (const sid of sessionIds) {
       const attendance = await db.collection("attendance")
@@ -40,70 +124,133 @@ export const analyzeFraud = functions.region("asia-southeast1").https.onCall(
       attendance.forEach((doc) => {
         const record = doc.data();
         const studentId = record.studentId;
-        const verifications = record.peerVerifications || [];
 
-        if (!peerMap.has(studentId)) {
-          peerMap.set(studentId, new Map());
+        if (!statsMap.has(studentId)) {
+          statsMap.set(studentId, {
+            studentId,
+            studentName: record.studentName || studentId,
+            totalSessions: sessionIds.length,
+            attendedSessions: 0,
+            avgPeerCount: 0,
+            uniquePeers: [],
+            peerFrequency: {},
+          });
         }
-        const studentPeers = peerMap.get(studentId)!;
 
+        const stats = statsMap.get(studentId)!;
+        stats.attendedSessions++;
+        stats.avgPeerCount += record.peerCount || 0;
+
+        const verifications = record.peerVerifications || [];
         verifications.forEach((v: any) => {
-          const current = studentPeers.get(v.peerId) || 0;
-          studentPeers.set(v.peerId, current + 1);
+          if (!stats.uniquePeers.includes(v.peerId)) {
+            stats.uniquePeers.push(v.peerId);
+          }
+          stats.peerFrequency[v.peerId] = (stats.peerFrequency[v.peerId] || 0) + 1;
         });
       });
     }
 
-    // Detect always_same_peers pattern
+    // Finalize averages
+    const allStats = Array.from(statsMap.values()).map((s) => ({
+      ...s,
+      avgPeerCount: s.attendedSessions > 0 ? s.avgPeerCount / s.attendedSessions : 0,
+    }));
+
+    // Rule-based detection
+    const patterns: SuspiciousPattern[] = [];
     const totalSessions = sessionIds.length;
-    peerMap.forEach((peers, studentId) => {
-      peers.forEach((count, peerId) => {
+
+    // Detect always_same_peers
+    const checkedPairs = new Set<string>();
+    allStats.forEach((s) => {
+      Object.entries(s.peerFrequency).forEach(([peerId, count]) => {
+        const pairKey = [s.studentId, peerId].sort().join(":");
+        if (checkedPairs.has(pairKey)) return;
+        checkedPairs.add(pairKey);
+
         if (count >= totalSessions * 0.8 && totalSessions >= 3) {
-          const existing = patterns.find(
-            (p) => p.type === "always_same_peers" && p.studentIds.includes(studentId) && p.studentIds.includes(peerId)
-          );
-          if (!existing) {
-            patterns.push({
-              type: "always_same_peers",
-              studentIds: [studentId, peerId],
-              description: `Sinh viên ${studentId} và ${peerId} luôn xác minh cho nhau (${count}/${totalSessions} buổi)`,
-              severity: count === totalSessions ? "high" : "medium",
-            });
-          }
+          patterns.push({
+            type: "always_same_peers",
+            studentIds: [s.studentId, peerId],
+            description: `${s.studentName} và ${peerId} luôn xác minh cho nhau (${count}/${totalSessions} buổi)`,
+            severity: count === totalSessions ? "high" : "medium",
+          });
         }
       });
     });
 
-    // Detect low_peer_count pattern
-    const lowPeerStudents: string[] = [];
-    peerMap.forEach((peers, studentId) => {
-      if (peers.size <= 1 && totalSessions >= 3) {
-        lowPeerStudents.push(studentId);
-      }
-    });
-
+    // Detect low_peer_count
+    const lowPeerStudents = allStats.filter(
+      (s) => s.uniquePeers.length <= 1 && totalSessions >= 3
+    );
     if (lowPeerStudents.length > 0) {
       patterns.push({
         type: "low_peer_count",
-        studentIds: lowPeerStudents,
+        studentIds: lowPeerStudents.map((s) => s.studentId),
         description: `${lowPeerStudents.length} sinh viên chỉ có 0-1 peer xác minh qua nhiều buổi`,
         severity: "medium",
       });
     }
 
-    const summary = patterns.length === 0
-      ? "Không phát hiện mẫu gian lận đáng ngờ"
-      : `Phát hiện ${patterns.length} mẫu đáng ngờ cần xem xét`;
+    // AI-powered analysis (if Claude API key configured)
+    let aiSummary = "";
+    try {
+      const aiResponse = await callClaudeAPI(buildAnalysisPrompt(allStats, className));
+      if (aiResponse) {
+        const aiResult = JSON.parse(aiResponse);
+        if (aiResult.patterns) {
+          patterns.push(...aiResult.patterns);
+        }
+        aiSummary = aiResult.summary || "";
+      }
+    } catch {
+      // AI analysis failed, continue with rule-based only
+    }
+
+    const summary = aiSummary || (
+      patterns.length === 0
+        ? "Không phát hiện mẫu gian lận đáng ngờ"
+        : `Phát hiện ${patterns.length} mẫu đáng ngờ cần xem xét`
+    );
 
     // Save report
     const reportRef = db.collection("fraud_reports").doc();
     await reportRef.set({
       classId,
+      className,
       generatedAt: Date.now(),
       suspiciousPatterns: patterns,
       summary,
+      studentStats: allStats,
+      aiEnabled: !!aiSummary,
     });
 
     return { patterns, summary, reportId: reportRef.id };
   }
 );
+
+// Scheduled weekly analysis for all active classes
+export const weeklyFraudAnalysis = functions.region("asia-southeast1")
+  .pubsub.schedule("every monday 08:00")
+  .timeZone("Asia/Ho_Chi_Minh")
+  .onRun(async () => {
+    const classes = await db.collection("classes").get();
+
+    for (const classDoc of classes.docs) {
+      try {
+        const classId = classDoc.id;
+        const sessions = await db.collection("sessions")
+          .where("classId", "==", classId)
+          .where("status", "==", "ended")
+          .get();
+
+        if (sessions.size >= 3) {
+          // Trigger analysis for classes with enough data
+          await analyzeFraud.run({ classId }, {} as any);
+        }
+      } catch {
+        // Continue with next class
+      }
+    }
+  });

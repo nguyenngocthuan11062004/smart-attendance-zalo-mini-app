@@ -105,6 +105,8 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
     }
     const att = attSnap.data()!;
 
+    // --- Bidirectional verification ---
+    // 1) Update scanner's record (A scans B → A gets B as peer)
     const alreadyVerified = att.peerVerifications?.some(
       (v: any) => v.peerId === qrPayload.userId
     );
@@ -126,7 +128,36 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
       trustScore,
     });
 
-    return { peerCount: newCount, trustScore };
+    // 2) Update peer's record (A scans B → B also gets A as peer)
+    const peerAttQuery = await db.collection("attendance")
+      .where("sessionId", "==", sessionId)
+      .where("studentId", "==", qrPayload.userId)
+      .get();
+
+    let peerTrustScore = "";
+    if (!peerAttQuery.empty) {
+      const peerDoc = peerAttQuery.docs[0];
+      const peerData = peerDoc.data();
+      const peerAlreadyHas = peerData.peerVerifications?.some(
+        (v: any) => v.peerId === userId
+      );
+      if (!peerAlreadyHas) {
+        const peerNewCount = (peerData.peerCount || 0) + 1;
+        peerTrustScore = peerNewCount >= 3 ? "present" : peerNewCount >= 1 ? "review" : "absent";
+        await peerDoc.ref.update({
+          peerVerifications: admin.firestore.FieldValue.arrayUnion({
+            peerId: userId,
+            peerName: "",
+            verifiedAt: Date.now(),
+            qrNonce: qrPayload.nonce,
+          }),
+          peerCount: peerNewCount,
+          trustScore: peerTrustScore,
+        });
+      }
+    }
+
+    return { peerCount: newCount, trustScore, bidirectional: true };
   })
 );
 
