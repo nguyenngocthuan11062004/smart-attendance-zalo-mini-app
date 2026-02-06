@@ -1,6 +1,6 @@
 import React from "react";
 import { Page, Box, Text, Avatar, Button, Icon } from "zmp-ui";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,8 +11,13 @@ export default function HomePage() {
   const role = useAtomValue(userRoleAtom);
   const { logout } = useAuth();
 
-  if (!user || !role) {
+  if (!user) {
     return null;
+  }
+
+  // User logged in but hasn't selected a role yet → send to login for role selection
+  if (!role) {
+    return <Navigate to="/login" replace />;
   }
 
   return (

@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { Page, Box, Text, Header } from "zmp-ui";
-import { mockStudentHistory } from "@/utils/mock-data";
+import { useAtomValue } from "jotai";
+import { currentUserAtom } from "@/store/auth";
+import { getStudentHistory } from "@/services/attendance.service";
 import AttendanceCard from "@/components/attendance/AttendanceCard";
 import type { AttendanceDoc } from "@/types";
 
 export default function StudentHistory() {
+  const user = useAtomValue(currentUserAtom);
   const [records, setRecords] = useState<AttendanceDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      setRecords(mockStudentHistory.sort((a, b) => b.checkedInAt - a.checkedInAt));
-      setLoading(false);
-    }, 300);
-  }, []);
+    if (!user?.id) return;
+    getStudentHistory(user.id)
+      .then((data) => {
+        setRecords(data.sort((a, b) => b.checkedInAt - a.checkedInAt));
+      })
+      .finally(() => setLoading(false));
+  }, [user?.id]);
 
   const presentCount = records.filter((r) => r.trustScore === "present").length;
   const totalCount = records.length;

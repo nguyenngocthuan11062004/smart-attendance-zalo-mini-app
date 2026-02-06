@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Page, Box, Text, Button, Header } from "zmp-ui";
 import { useParams } from "react-router-dom";
-import { mockAttendanceRecords } from "@/utils/mock-data";
+import { getSessionAttendance, teacherOverride } from "@/services/attendance.service";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import type { AttendanceDoc } from "@/types";
 
@@ -11,13 +11,16 @@ export default function TeacherReview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      setRecords(mockAttendanceRecords.sort((a, b) => a.peerCount - b.peerCount));
-      setLoading(false);
-    }, 300);
+    if (!sessionId) return;
+    getSessionAttendance(sessionId)
+      .then((data) => {
+        setRecords(data.sort((a, b) => a.peerCount - b.peerCount));
+      })
+      .finally(() => setLoading(false));
   }, [sessionId]);
 
-  const handleOverride = (attendanceId: string, decision: "present" | "absent") => {
+  const handleOverride = async (attendanceId: string, decision: "present" | "absent") => {
+    // Optimistic update
     setRecords((prev) =>
       prev.map((r) =>
         r.id === attendanceId
@@ -25,6 +28,7 @@ export default function TeacherReview() {
           : r
       )
     );
+    await teacherOverride(attendanceId, decision);
   };
 
   const borderlineCases = records.filter(

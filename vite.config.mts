@@ -8,6 +8,11 @@ export default () => {
     root: "./src",
     base: "",
     plugins: [zaloMiniApp(), react()],
+    server: {
+      headers: {
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      },
+    },
     build: {
       assetsInlineLimit: 0,
     },

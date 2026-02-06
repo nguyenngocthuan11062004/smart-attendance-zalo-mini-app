@@ -2,7 +2,8 @@ export type UserRole = "student" | "teacher";
 
 export interface UserDoc {
   id: string;
-  zaloId: string;
+  zaloId?: string;
+  email?: string;
   name: string;
   avatar: string;
   role: UserRole;

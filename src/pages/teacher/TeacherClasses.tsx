@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Page, Box, Button, Text, Input, Modal, Header } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
-import { mockClasses } from "@/utils/mock-data";
+import { useAtomValue } from "jotai";
+import { currentUserAtom } from "@/store/auth";
+import { getTeacherClasses, createClass } from "@/services/class.service";
 import ClassCard from "@/components/class/ClassCard";
 import type { ClassDoc } from "@/types";
 
 export default function TeacherClasses() {
   const navigate = useNavigate();
+  const user = useAtomValue(currentUserAtom);
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [createModal, setCreateModal] = useState(false);
@@ -14,30 +17,23 @@ export default function TeacherClasses() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => {
-      setClasses(mockClasses);
-      setLoading(false);
-    }, 300);
-  }, []);
+    if (!user?.id) return;
+    getTeacherClasses(user.id)
+      .then(setClasses)
+      .finally(() => setLoading(false));
+  }, [user?.id]);
 
-  const handleCreateClass = () => {
-    if (!className.trim()) return;
+  const handleCreateClass = async () => {
+    if (!className.trim() || !user) return;
     setCreating(true);
-    setTimeout(() => {
-      const newClass: ClassDoc = {
-        id: `class_${Date.now()}`,
-        name: className.trim(),
-        code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        teacherId: "teacher_001",
-        teacherName: "Tran Thi B",
-        studentIds: [],
-        createdAt: Date.now(),
-      };
+    try {
+      const newClass = await createClass(user.id, user.name, className.trim());
       setClasses((prev) => [newClass, ...prev]);
       setCreateModal(false);
       setClassName("");
+    } finally {
       setCreating(false);
-    }, 500);
+    }
   };
 
   return (

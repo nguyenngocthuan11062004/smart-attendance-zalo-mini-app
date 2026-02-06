@@ -3,7 +3,8 @@ import { Page, Box, Button, Text, Input, Modal, Header } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
-import { mockClasses } from "@/utils/mock-data";
+import { getStudentClasses, getClassByCode, joinClass } from "@/services/class.service";
+import { getActiveSessionForClass } from "@/services/session.service";
 import ClassCard from "@/components/class/ClassCard";
 import type { ClassDoc } from "@/types";
 
@@ -18,36 +19,43 @@ export default function StudentClasses() {
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    // Mock: filter classes where student is enrolled
-    setTimeout(() => {
-      const userId = user?.id || "student_001";
-      setClasses(mockClasses.filter((c) => c.studentIds.includes(userId)));
-      setLoading(false);
-    }, 300);
+    if (!user?.id) return;
+    getStudentClasses(user.id)
+      .then(setClasses)
+      .finally(() => setLoading(false));
   }, [user?.id]);
 
   const handleJoinClass = async () => {
-    if (!classCode.trim()) return;
+    if (!classCode.trim() || !user) return;
     setJoining(true);
     setJoinError("");
-    setTimeout(() => {
-      const found = mockClasses.find((c) => c.code === classCode.trim().toUpperCase());
+    try {
+      const found = await getClassByCode(classCode.trim());
       if (!found) {
         setJoinError("Khong tim thay lop voi ma nay");
-      } else if (classes.some((c) => c.id === found.id)) {
-        setJoinError("Ban da tham gia lop nay roi");
-      } else {
-        setClasses((prev) => [...prev, found]);
-        setJoinModal(false);
-        setClassCode("");
+        return;
       }
+      if (classes.some((c) => c.id === found.id)) {
+        setJoinError("Ban da tham gia lop nay roi");
+        return;
+      }
+      await joinClass(found.id, user.id);
+      setClasses((prev) => [...prev, { ...found, studentIds: [...found.studentIds, user.id] }]);
+      setJoinModal(false);
+      setClassCode("");
+    } finally {
       setJoining(false);
-    }, 500);
+    }
   };
 
-  const handleClassClick = (classDoc: ClassDoc) => {
-    // Mock: go to attendance with mock session
-    navigate(`/student/attendance/session_001`);
+  const handleClassClick = async (classDoc: ClassDoc) => {
+    const session = await getActiveSessionForClass(classDoc.id);
+    if (session) {
+      navigate(`/student/attendance/${session.id}`);
+    } else {
+      // No active session - could show a snackbar/toast here
+      alert("Chua co phien diem danh nao dang hoat dong");
+    }
   };
 
   return (

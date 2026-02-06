@@ -3,7 +3,7 @@ import { Page, Box, Text, Header } from "zmp-ui";
 import { useParams } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { activeSessionAtom } from "@/store/session";
-import { mockAttendanceRecords } from "@/utils/mock-data";
+import { subscribeToSessionAttendance } from "@/services/attendance.service";
 import AttendanceCard from "@/components/attendance/AttendanceCard";
 import type { AttendanceDoc } from "@/types";
 
@@ -13,10 +13,11 @@ export default function TeacherMonitor() {
   const [records, setRecords] = useState<AttendanceDoc[]>([]);
 
   useEffect(() => {
-    // Mock: load attendance records
-    setTimeout(() => {
-      setRecords(mockAttendanceRecords.sort((a, b) => b.checkedInAt - a.checkedInAt));
-    }, 300);
+    if (!sessionId) return;
+    const unsubscribe = subscribeToSessionAttendance(sessionId, (data) => {
+      setRecords(data.sort((a, b) => b.checkedInAt - a.checkedInAt));
+    });
+    return () => unsubscribe();
   }, [sessionId]);
 
   const present = records.filter((r) => r.trustScore === "present").length;

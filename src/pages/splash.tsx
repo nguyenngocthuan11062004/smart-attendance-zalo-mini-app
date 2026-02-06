@@ -1,33 +1,34 @@
 import React, { useEffect } from "react";
 import { Page, Box } from "zmp-ui";
 import { useNavigate } from "zmp-ui";
-import { useAuth } from "@/hooks/useAuth";
+import { useAtomValue } from "jotai";
+import { isAuthenticatedAtom, authInitializedAtom } from "@/store/auth";
 import logo from "@/static/icon_inhust.png";
-
-const SPLASH_DURATION_MS = 900;
 
 export default function SplashPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const isAuthenticated = useAtomValue(isAuthenticatedAtom);
+  const authInitialized = useAtomValue(authInitializedAtom);
 
   useEffect(() => {
-    const timerId = window.setTimeout(async () => {
-      try {
-        const user = await login();
-        if (user && user.role) {
-          navigate("/home", { replace: true });
-        } else if (user) {
-          navigate("/login", { replace: true });
-        } else {
-          navigate("/login", { replace: true });
-        }
-      } catch {
+    if (!authInitialized) return; // Wait for auth state to be determined
+
+    if (isAuthenticated) {
+      navigate("/home", { replace: true });
+    } else {
+      navigate("/login", { replace: true });
+    }
+  }, [authInitialized, isAuthenticated, navigate]);
+
+  // Fallback timeout — if auth init takes too long, go to login
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!authInitialized) {
         navigate("/login", { replace: true });
       }
-    }, SPLASH_DURATION_MS);
-
-    return () => window.clearTimeout(timerId);
-  }, [navigate, login]);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [authInitialized, navigate]);
 
   return (
     <Page

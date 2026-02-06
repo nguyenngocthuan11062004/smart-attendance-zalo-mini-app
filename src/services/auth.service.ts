@@ -1,127 +1,106 @@
-import { getUserID, getUserInfo, getAccessToken } from "zmp-sdk";
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  type User,
+  type Unsubscribe,
+} from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { auth, db } from "@/config/firebase";
 import type { UserDoc, UserRole } from "@/types";
 
-// Dev mode fallback when running outside Zalo
-const DEV_MODE = !window.location.href.includes("zalo");
+const googleProvider = new GoogleAuthProvider();
 
-function generateDevId(): string {
-  let id = localStorage.getItem("dev_user_id");
-  if (!id) {
-    id = "dev_" + Math.random().toString(36).substring(2, 10);
-    localStorage.setItem("dev_user_id", id);
-  }
-  return id;
+// --- Timeout helper: prevents hanging when Firestore is blocked ---
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    ),
+  ]);
 }
 
-export async function getZaloUser(): Promise<{ id: string; name: string; avatar: string }> {
-  if (DEV_MODE) {
-    const id = generateDevId();
-    return { id, name: "Dev User", avatar: "" };
-  }
-  try {
-    const { userInfo } = await getUserInfo({});
-    const id = userInfo.id || (await getUserID({})).toString();
-    return {
-      id,
-      name: userInfo.name || "Zalo User",
-      avatar: userInfo.avatar || "",
-    };
-  } catch {
-    const id = generateDevId();
-    return { id, name: "Zalo User", avatar: "" };
-  }
+// --- Auth actions ---
+
+export async function signInWithGoogle(): Promise<User> {
+  const result = await signInWithPopup(auth, googleProvider);
+  return result.user;
 }
 
-export async function getZaloAccessToken(): Promise<string> {
-  if (DEV_MODE) return "dev_token";
-  try {
-    const result = await getAccessToken({});
-    return result as unknown as string;
-  } catch {
-    return "";
-  }
+export async function signOutUser(): Promise<void> {
+  await signOut(auth);
+  localStorage.removeItem("user_doc");
 }
+
+export function listenAuthState(
+  callback: (user: User | null) => void
+): Unsubscribe {
+  return onAuthStateChanged(auth, callback);
+}
+
+// --- Firestore user doc ---
 
 export async function getUserDoc(userId: string): Promise<UserDoc | null> {
   try {
-    const snap = await getDoc(doc(db, "users", userId));
+    const snap = await withTimeout(getDoc(doc(db, "users", userId)), 5000);
     if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() } as UserDoc;
+    const userDoc = { id: snap.id, ...snap.data() } as UserDoc;
+    localStorage.setItem("user_doc", JSON.stringify(userDoc));
+    return userDoc;
   } catch {
-    // Firestore not configured - return from localStorage
-    const stored = localStorage.getItem("user_doc");
-    if (stored) {
-      const parsed = JSON.parse(stored) as UserDoc;
-      if (parsed.id === userId) return parsed;
-    }
-    return null;
+    return _getLocalUserDoc(userId);
   }
 }
 
 export async function createOrUpdateUser(
-  zaloId: string,
+  uid: string,
   name: string,
   avatar: string,
-  role?: UserRole
+  role?: UserRole,
+  email?: string
 ): Promise<UserDoc> {
-  const newUser: UserDoc = {
-    id: zaloId,
-    zaloId,
-    name,
-    avatar,
-    role: role || ("" as any),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-
   try {
-    const ref = doc(db, "users", zaloId);
-    const existing = await getDoc(ref);
+    const ref = doc(db, "users", uid);
+    const existing = await withTimeout(getDoc(ref), 5000);
 
     if (existing.exists()) {
       const data = existing.data() as Omit<UserDoc, "id">;
-      await setDoc(ref, { ...data, name, avatar, updatedAt: Date.now() }, { merge: true });
-      const merged = { id: zaloId, ...data, name, avatar, updatedAt: Date.now() } as UserDoc;
+      const updates: Record<string, any> = { name, avatar, updatedAt: Date.now() };
+      if (email) updates.email = email;
+      await withTimeout(setDoc(ref, updates, { merge: true }), 5000);
+      const merged = { id: uid, ...data, ...updates } as UserDoc;
       localStorage.setItem("user_doc", JSON.stringify(merged));
       return merged;
     }
 
     const userDoc: Omit<UserDoc, "id"> = {
-      zaloId,
+      email,
       name,
       avatar,
       role: role || ("" as any),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    await setDoc(ref, userDoc);
-    const result = { id: zaloId, ...userDoc };
+    await withTimeout(setDoc(ref, userDoc), 5000);
+    const result = { id: uid, ...userDoc } as UserDoc;
     localStorage.setItem("user_doc", JSON.stringify(result));
     return result;
   } catch {
-    // Firestore unavailable - use localStorage
-    const stored = localStorage.getItem("user_doc");
-    if (stored) {
-      const parsed = JSON.parse(stored) as UserDoc;
-      if (parsed.id === zaloId) {
-        const updated = { ...parsed, name, avatar, updatedAt: Date.now() };
-        if (role) updated.role = role;
-        localStorage.setItem("user_doc", JSON.stringify(updated));
-        return updated;
-      }
-    }
-    localStorage.setItem("user_doc", JSON.stringify(newUser));
-    return newUser;
+    // Firestore blocked/unavailable — use localStorage
+    return _createLocalUser(uid, name, avatar, role, email);
   }
 }
 
 export async function updateUserRole(userId: string, role: UserRole): Promise<void> {
   try {
-    await setDoc(doc(db, "users", userId), { role, updatedAt: Date.now() }, { merge: true });
+    await withTimeout(
+      setDoc(doc(db, "users", userId), { role, updatedAt: Date.now() }, { merge: true }),
+      5000
+    );
   } catch {
-    // Firestore unavailable - update localStorage
+    // Firestore unavailable
   }
   const stored = localStorage.getItem("user_doc");
   if (stored) {
@@ -132,4 +111,59 @@ export async function updateUserRole(userId: string, role: UserRole): Promise<vo
       localStorage.setItem("user_doc", JSON.stringify(parsed));
     }
   }
+}
+
+// --- Load or build UserDoc from Firebase User ---
+
+export async function loadOrCreateUserDoc(firebaseUser: User): Promise<UserDoc> {
+  const existing = await getUserDoc(firebaseUser.uid);
+  if (existing) return existing;
+
+  return await createOrUpdateUser(
+    firebaseUser.uid,
+    firebaseUser.displayName || "Google User",
+    firebaseUser.photoURL || "",
+    undefined,
+    firebaseUser.email || undefined
+  );
+}
+
+// --- localStorage helpers ---
+
+function _getLocalUserDoc(userId: string): UserDoc | null {
+  const stored = localStorage.getItem("user_doc");
+  if (!stored) return null;
+  const parsed = JSON.parse(stored) as UserDoc;
+  return parsed.id === userId ? parsed : null;
+}
+
+function _createLocalUser(
+  uid: string,
+  name: string,
+  avatar: string,
+  role?: UserRole,
+  email?: string
+): UserDoc {
+  const stored = localStorage.getItem("user_doc");
+  if (stored) {
+    const parsed = JSON.parse(stored) as UserDoc;
+    if (parsed.id === uid) {
+      const updated = { ...parsed, name, avatar, updatedAt: Date.now() };
+      if (role) updated.role = role;
+      if (email) updated.email = email;
+      localStorage.setItem("user_doc", JSON.stringify(updated));
+      return updated;
+    }
+  }
+  const newUser: UserDoc = {
+    id: uid,
+    email,
+    name,
+    avatar,
+    role: role || ("" as any),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  localStorage.setItem("user_doc", JSON.stringify(newUser));
+  return newUser;
 }

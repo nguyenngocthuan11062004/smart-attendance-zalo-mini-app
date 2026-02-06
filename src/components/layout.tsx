@@ -27,46 +27,60 @@ import TeacherReview from "@/pages/teacher/TeacherReview";
 import AppBottomNav from "@/components/navigation/AppBottomNav";
 import GlobalLoading from "@/components/ui/GlobalLoading";
 import ErrorToast from "@/components/ui/ErrorToast";
+import AuthGuard from "@/components/guards/AuthGuard";
+import RoleGuard from "@/components/guards/RoleGuard";
+import { useAuthInit } from "@/hooks/useAuthInit";
 
+/** Outer shell: provides Jotai context */
 const Layout = () => {
   return (
     <JotaiProvider>
-      <App theme={getSystemInfo().zaloTheme as AppProps["theme"]}>
-        {/* @ts-ignore - zmp-ui SnackbarProvider type issue */}
-        <SnackbarProvider>
-          <ZMPRouter>
-            <AnimationRoutes>
-              {/* Dev mode: start at /dev for testing */}
-              <Route path="/" element={<Navigate to="/dev" replace />} />
-              <Route path="/dev" element={<DevPage />} />
-
-              {/* Public routes */}
-              <Route path="/splash" element={<SplashPage />} />
-              <Route path="/welcome" element={<WelcomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-
-              {/* All routes open - no guards for dev testing */}
-              <Route path="/home" element={<HomePage />} />
-
-              {/* Student routes */}
-              <Route path="/student/classes" element={<StudentClasses />} />
-              <Route path="/student/attendance/:sessionId" element={<StudentAttendance />} />
-              <Route path="/student/history" element={<StudentHistory />} />
-
-              {/* Teacher routes */}
-              <Route path="/teacher/classes" element={<TeacherClasses />} />
-              <Route path="/teacher/session/:classId" element={<TeacherSession />} />
-              <Route path="/teacher/monitor/:sessionId" element={<TeacherMonitor />} />
-              <Route path="/teacher/review/:sessionId" element={<TeacherReview />} />
-            </AnimationRoutes>
-            <AppBottomNav />
-            <GlobalLoading />
-            <ErrorToast />
-          </ZMPRouter>
-        </SnackbarProvider>
-      </App>
+      <AppShell />
     </JotaiProvider>
   );
 };
+
+/** Inner shell: runs inside JotaiProvider so hooks work */
+function AppShell() {
+  // Initialize auth listeners at the root – runs once, sets currentUserAtom & authInitializedAtom
+  useAuthInit();
+
+  return (
+    <App theme={getSystemInfo().zaloTheme as AppProps["theme"]}>
+      {/* @ts-ignore - zmp-ui SnackbarProvider type issue */}
+      <SnackbarProvider>
+        <ZMPRouter>
+          <AnimationRoutes>
+            {/* Default: redirect to splash */}
+            <Route path="/" element={<Navigate to="/splash" replace />} />
+            <Route path="/dev" element={<DevPage />} />
+
+            {/* Public routes */}
+            <Route path="/splash" element={<SplashPage />} />
+            <Route path="/welcome" element={<WelcomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Protected: requires auth */}
+            <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
+
+            {/* Student routes: auth + student role */}
+            <Route path="/student/classes" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentClasses /></RoleGuard></AuthGuard>} />
+            <Route path="/student/attendance/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentAttendance /></RoleGuard></AuthGuard>} />
+            <Route path="/student/history" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentHistory /></RoleGuard></AuthGuard>} />
+
+            {/* Teacher routes: auth + teacher role */}
+            <Route path="/teacher/classes" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClasses /></RoleGuard></AuthGuard>} />
+            <Route path="/teacher/session/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherSession /></RoleGuard></AuthGuard>} />
+            <Route path="/teacher/monitor/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherMonitor /></RoleGuard></AuthGuard>} />
+            <Route path="/teacher/review/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherReview /></RoleGuard></AuthGuard>} />
+          </AnimationRoutes>
+          <AppBottomNav />
+          <GlobalLoading />
+          <ErrorToast />
+        </ZMPRouter>
+      </SnackbarProvider>
+    </App>
+  );
+}
 
 export default Layout;

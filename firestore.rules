@@ -1,39 +1,35 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users: anyone can read their own doc, only owner can write
+    // Users collection
     match /users/{userId} {
-      allow read: if request.auth != null || true; // Zalo auth handled at app level
-      allow create: if true;
-      allow update: if true; // Validated server-side via Cloud Functions
+      allow read: if true;
+      allow write: if true;
     }
 
-    // Classes: teacher can create/update, students can read enrolled classes
+    // Classes collection
     match /classes/{classId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow write: if true;
     }
 
-    // Sessions: teacher creates, students read active sessions
+    // Sessions collection
     match /sessions/{sessionId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow write: if true;
     }
 
-    // Attendance: students create their own, read own records
+    // Attendance collection
     match /attendance/{attendanceId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow write: if true;
     }
 
-    // Fraud reports: only teachers/admins
-    match /fraud_reports/{reportId} {
+    // Fraud reports collection
+    match /fraudReports/{reportId} {
       allow read: if true;
-      allow create: if true;
+      allow write: if true;
     }
   }
 }

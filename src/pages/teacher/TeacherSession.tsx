@@ -5,7 +5,9 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { activeSessionAtom } from "@/store/session";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
-import { mockClasses, mockSession } from "@/utils/mock-data";
+import { getClassById } from "@/services/class.service";
+import { getActiveSessionForClass } from "@/services/session.service";
+import { startSession, endSession } from "@/services/session.service";
 import QRDisplay from "@/components/qr/QRDisplay";
 import type { ClassDoc, SessionDoc } from "@/types";
 
@@ -19,15 +21,23 @@ export default function TeacherSession() {
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
-    const found = mockClasses.find((c) => c.id === classId);
-    setClassDoc(found || mockClasses[0]);
+    if (!classId) return;
+    getClassById(classId).then((cls) => {
+      if (cls) setClassDoc(cls);
+    });
+    getActiveSessionForClass(classId).then((sess) => {
+      if (sess) {
+        setSession(sess);
+        setActiveSession(sess);
+      }
+    });
   }, [classId]);
 
   const qrOptions = session?.status === "active"
     ? {
         type: "teacher" as const,
         sessionId: session.id,
-        userId: user?.id || "teacher_001",
+        userId: user?.id || "",
         secret: session.hmacSecret,
         refreshIntervalMs: session.qrRefreshInterval * 1000,
       }
@@ -35,27 +45,24 @@ export default function TeacherSession() {
 
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(qrOptions);
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    if (!classDoc || !user) return;
     setStarting(true);
-    setTimeout(() => {
-      const newSession: SessionDoc = {
-        ...mockSession,
-        id: `session_${Date.now()}`,
-        classId: classDoc?.id || "class_001",
-        className: classDoc?.name || "",
-        startedAt: Date.now(),
-      };
+    try {
+      const newSession = await startSession(classDoc.id, classDoc.name, user.id);
       setSession(newSession);
       setActiveSession(newSession);
+    } finally {
       setStarting(false);
-    }, 500);
+    }
   };
 
-  const handleEnd = () => {
-    if (session) {
-      setSession({ ...session, status: "ended", endedAt: Date.now() });
-      navigate(`/teacher/review/${session.id}`);
-    }
+  const handleEnd = async () => {
+    if (!session) return;
+    await endSession(session.id);
+    setSession({ ...session, status: "ended", endedAt: Date.now() });
+    setActiveSession(null);
+    navigate(`/teacher/review/${session.id}`);
   };
 
   if (!classDoc) {

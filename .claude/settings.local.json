@@ -10,7 +10,14 @@
       "Bash(gh repo create:*)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__firebase__firebase_update_environment",
+      "mcp__firebase__firebase_init",
+      "mcp__firebase__firebase_get_environment",
+      "Bash(gcloud --version:*)",
+      "Bash(firebase --version:*)",
+      "Bash(open \"https://console.firebase.google.com/project/inhust-788e7/authentication/providers\")",
+      "Bash(npx vite:*)"
     ]
   }
 }
