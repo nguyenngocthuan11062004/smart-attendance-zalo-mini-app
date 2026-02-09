@@ -1,16 +1,55 @@
+// Base page: padding-top accounts for fixed zmp-ui Header (safe-area + 44px)
 .page {
-  padding: 16px 16px 96px 16px;
+  padding: calc(var(--zaui-safe-area-inset-top, 0px) + 44px) 16px 96px 16px;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
-.section-container {
-  padding: 16px;
-  background: #ffffff;
-  border-radius: 8px;
-  margin-bottom: 24px;
+// Pages without zmp-ui <Header>: only need safe-area clearance
+.page-no-header {
+  padding-top: calc(var(--zaui-safe-area-inset-top, 0px) + 12px);
 }
 
-.zaui-list-item {
-  cursor: pointer;
+// Cards
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform 0.1s, box-shadow 0.15s;
+  &:active {
+    transform: scale(0.985);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+}
+
+.card-flat {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+// Section labels
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+// Gradient headers
+.gradient-blue {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+.gradient-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+.gradient-red {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+.gradient-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 // QR Display
@@ -22,20 +61,9 @@
 }
 
 // Trust badge colors
-.trust-present {
-  background-color: #dcfce7;
-  color: #15803d;
-}
-
-.trust-review {
-  background-color: #fef9c3;
-  color: #a16207;
-}
-
-.trust-absent {
-  background-color: #fee2e2;
-  color: #b91c1c;
-}
+.trust-present { background-color: #dcfce7; color: #15803d; }
+.trust-review { background-color: #fef9c3; color: #a16207; }
+.trust-absent { background-color: #fee2e2; color: #b91c1c; }
 
 // Attendance step indicators
 .step-indicator {
@@ -45,34 +73,101 @@
   margin-bottom: 16px;
 
   .step-dot {
-    width: 10px;
-    height: 10px;
+    width: 10px; height: 10px;
     border-radius: 50%;
     background: #d1d5db;
     transition: all 0.3s;
-
-    &.active {
-      background: #3b82f6;
-      transform: scale(1.2);
-    }
-
-    &.completed {
-      background: #22c55e;
-    }
+    &.active { background: #ef4444; transform: scale(1.2); }
+    &.completed { background: #22c55e; }
   }
+}
+
+// Shimmer loading
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+// Stat card
+.stat-card {
+  border-radius: 16px;
+  padding: 14px 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 40px;
+    border-radius: 0 16px 0 40px;
+    opacity: 0.15;
+    background: currentColor;
+  }
+}
+
+// Progress bar animated
+.progress-fill {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 999px;
+}
+
+// Filter chip
+.filter-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s;
+  border: 1.5px solid transparent;
+  &.active {
+    background: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
+  }
+  &:not(.active) {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #e2e8f0;
+  }
+}
+
+// Avatar circle
+.avatar-circle {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+// Empty state
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
 }
 
 // Dashboard cards
 .dashboard-card {
   transition: transform 0.1s;
-  &:active {
-    transform: scale(0.98);
-  }
+  &:active { transform: scale(0.98); }
 }
 
-// Stat cards grid
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+// Badge dot
+.badge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
 }

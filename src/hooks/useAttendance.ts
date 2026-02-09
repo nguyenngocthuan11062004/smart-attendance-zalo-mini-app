@@ -4,10 +4,11 @@ import { myAttendanceAtom, attendanceStepAtom } from "@/store/attendance";
 import {
   checkInStudent,
   addPeerVerification,
+  updateFaceVerification,
   subscribeToMyAttendance,
   getMyAttendance,
 } from "@/services/attendance.service";
-import type { PeerVerification } from "@/types";
+import type { FaceVerificationResult, PeerVerification } from "@/types";
 
 export function useAttendance(sessionId: string | undefined, studentId: string | undefined) {
   const [myAttendance, setMyAttendance] = useAtom(myAttendanceAtom);
@@ -26,10 +27,19 @@ export function useAttendance(sessionId: string | undefined, studentId: string |
       if (!sessionId || !studentId) return null;
       const record = await checkInStudent(sessionId, classId, studentId, studentName);
       setMyAttendance(record);
-      setStep("show-qr");
+      setStep("face-verify");
       return record;
     },
     [sessionId, studentId, setMyAttendance, setStep]
+  );
+
+  const completeFaceVerification = useCallback(
+    async (result: FaceVerificationResult) => {
+      if (!myAttendance) return;
+      await updateFaceVerification(myAttendance.id, result);
+      setStep("show-qr");
+    },
+    [myAttendance, setStep]
   );
 
   const addPeer = useCallback(
@@ -40,5 +50,5 @@ export function useAttendance(sessionId: string | undefined, studentId: string |
     [myAttendance]
   );
 
-  return { myAttendance, step, setStep, checkIn, addPeer };
+  return { myAttendance, step, setStep, checkIn, completeFaceVerification, addPeer };
 }

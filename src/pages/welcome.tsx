@@ -11,7 +11,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <Page className="p-6">
+    <Page className="page page-no-header">
       <Box className="space-y-4">
         <Text.Title size="xLarge">Xin chào!</Text.Title>
         <Text>

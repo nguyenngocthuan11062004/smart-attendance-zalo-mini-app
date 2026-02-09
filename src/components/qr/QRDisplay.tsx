@@ -11,24 +11,22 @@ interface QRDisplayProps {
 
 export default function QRDisplay({ qrDataURL, secondsLeft, totalSeconds, label }: QRDisplayProps) {
   return (
-    <Box className="flex flex-col items-center p-4">
+    <div className="flex flex-col items-center">
       {label && (
-        <Text size="large" bold className="mb-3 text-center">
-          {label}
-        </Text>
+        <p className="text-sm font-semibold text-gray-500 mb-3">{label}</p>
       )}
-      <div className="bg-white rounded-2xl p-4 shadow-lg">
+      <div className="card-flat p-5">
         {qrDataURL ? (
-          <img src={qrDataURL} alt="QR Code" className="w-64 h-64" />
+          <img src={qrDataURL} alt="QR Code" className="w-56 h-56" />
         ) : (
-          <div className="w-64 h-64 flex items-center justify-center">
+          <div className="w-56 h-56 flex items-center justify-center">
             <Spinner visible />
           </div>
         )}
       </div>
-      <div className="mt-4">
+      <div className="mt-3">
         <QRCountdown secondsLeft={secondsLeft} totalSeconds={totalSeconds} />
       </div>
-    </Box>
+    </div>
   );
 }

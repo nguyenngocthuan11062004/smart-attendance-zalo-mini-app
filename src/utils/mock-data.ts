@@ -1,4 +1,4 @@
-import type { UserDoc, ClassDoc, SessionDoc, AttendanceDoc } from "@/types";
+import type { UserDoc, ClassDoc, SessionDoc, AttendanceDoc, FaceVerificationResult } from "@/types";
 
 export const mockStudent: UserDoc = {
   id: "student_001",
@@ -6,8 +6,32 @@ export const mockStudent: UserDoc = {
   name: "Nguyen Van A",
   avatar: "",
   role: "student",
+  mssv: "20210001",
+  faceRegistered: false,
   createdAt: Date.now(),
   updatedAt: Date.now(),
+};
+
+export const mockFaceOk: FaceVerificationResult = {
+  matched: true,
+  confidence: 0.92,
+  selfieImagePath: "faces/student_001/sessions/session_001.jpg",
+  verifiedAt: Date.now() - 230000,
+};
+
+export const mockFaceFailed: FaceVerificationResult = {
+  matched: false,
+  confidence: 0.35,
+  selfieImagePath: "faces/student_003/sessions/session_001.jpg",
+  verifiedAt: Date.now() - 210000,
+};
+
+export const mockFaceSkipped: FaceVerificationResult = {
+  matched: false,
+  confidence: 0,
+  selfieImagePath: "",
+  verifiedAt: Date.now() - 220000,
+  skipped: true,
 };
 
 export const mockTeacher: UserDoc = {
@@ -83,6 +107,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
     ],
     peerCount: 3,
     trustScore: "present",
+    faceVerification: mockFaceOk,
   },
   {
     id: "att_002",
@@ -97,6 +122,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
     ],
     peerCount: 2,
     trustScore: "review",
+    faceVerification: mockFaceSkipped,
   },
   {
     id: "att_003",
@@ -110,6 +136,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
     ],
     peerCount: 1,
     trustScore: "review",
+    faceVerification: mockFaceFailed,
   },
   {
     id: "att_004",

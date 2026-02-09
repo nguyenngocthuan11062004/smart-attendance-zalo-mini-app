@@ -22,8 +22,15 @@ export const calculateTrustScores = functions.region("asia-southeast1").https.on
       if (record.teacherOverride) return;
 
       const peerCount = record.peerCount || 0;
+      const face = record.faceVerification;
+      const faceOk = face?.matched === true && (face?.confidence ?? 0) >= 0.7;
+      const faceSkipped = face?.skipped === true;
+      const faceAttempted = !!face && !faceSkipped;
+
       let trustScore: string;
-      if (peerCount >= 3) trustScore = "present";
+      if (peerCount >= 3 && (faceOk || faceSkipped || !faceAttempted)) trustScore = "present";
+      else if (peerCount >= 3 && faceAttempted && !faceOk) trustScore = "review";
+      else if (peerCount >= 1 && faceOk) trustScore = "review";
       else if (peerCount >= 1) trustScore = "review";
       else trustScore = "absent";
 

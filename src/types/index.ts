@@ -3,10 +3,11 @@ export type UserRole = "student" | "teacher";
 export interface UserDoc {
   id: string;
   zaloId?: string;
-  email?: string;
   name: string;
   avatar: string;
   role: UserRole;
+  mssv?: string;
+  faceRegistered?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -33,6 +34,15 @@ export interface SessionDoc {
   endedAt?: number;
 }
 
+export interface FaceVerificationResult {
+  matched: boolean;
+  confidence: number; // 0.0 - 1.0
+  selfieImagePath: string;
+  verifiedAt: number;
+  error?: string;
+  skipped?: boolean;
+}
+
 export interface AttendanceDoc {
   id: string;
   sessionId: string;
@@ -44,6 +54,7 @@ export interface AttendanceDoc {
   peerCount: number;
   trustScore: TrustScore;
   teacherOverride?: "present" | "absent";
+  faceVerification?: FaceVerificationResult;
 }
 
 export interface PeerVerification {
@@ -74,14 +85,35 @@ export interface FraudReport {
 }
 
 export interface SuspiciousPattern {
-  type: "always_same_peers" | "rapid_verification" | "low_peer_count";
+  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "face_mismatch";
   studentIds: string[];
   description: string;
   severity: "low" | "medium" | "high";
 }
 
-export function computeTrustScore(peerCount: number): TrustScore {
-  if (peerCount >= 3) return "present";
+export interface FaceRegistrationDoc {
+  id: string;
+  studentId: string;
+  referenceImagePath: string;
+  ekycImageId: string;
+  sanityCheckPassed: boolean;
+  registeredAt: number;
+  updatedAt: number;
+}
+
+export function computeTrustScore(
+  peerCount: number,
+  faceVerification?: FaceVerificationResult
+): TrustScore {
+  const peerOk = peerCount >= 3;
+  const faceOk =
+    faceVerification?.matched === true && (faceVerification.confidence ?? 0) >= 0.7;
+  const faceSkipped = faceVerification?.skipped === true;
+  const faceAttempted = !!faceVerification && !faceSkipped;
+
+  if (peerOk && (faceOk || faceSkipped || !faceAttempted)) return "present";
+  if (peerOk && faceAttempted && !faceOk) return "review";
+  if (peerCount >= 1 && faceOk) return "review";
   if (peerCount >= 1) return "review";
   return "absent";
 }

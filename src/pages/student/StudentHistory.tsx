@@ -28,11 +28,11 @@ export default function StudentHistory() {
       <Header title="Lich su diem danh" showBackIcon={false} />
 
       {totalCount > 0 && (
-        <Box className="bg-blue-50 rounded-xl p-4 mb-4">
-          <Text size="xSmall" className="text-blue-600">
+        <Box className="bg-red-50 rounded-xl p-4 mb-4">
+          <Text size="xSmall" className="text-red-600">
             Tong ket
           </Text>
-          <Text bold size="large" className="text-blue-800">
+          <Text bold size="large" className="text-red-800">
             {presentCount}/{totalCount} buoi co mat
           </Text>
         </Box>

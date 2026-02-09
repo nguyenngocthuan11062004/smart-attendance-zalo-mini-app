@@ -1,13 +1,11 @@
 import { useEffect } from "react";
 import { useSetAtom } from "jotai";
 import { currentUserAtom, authInitializedAtom } from "@/store/auth";
-import {
-  listenAuthState,
-  loadOrCreateUserDoc,
-} from "@/services/auth.service";
+import { initAuthState } from "@/services/auth.service";
 
 /**
- * Initializes Firebase Auth state at the app root level.
+ * Initializes auth state at the app root level.
+ * Restores from localStorage or auto sign-in with Zalo SDK.
  * Must be called inside JotaiProvider, only once (in layout).
  */
 export function useAuthInit() {
@@ -17,19 +15,10 @@ export function useAuthInit() {
   useEffect(() => {
     let mounted = true;
 
-    // Listen to Firebase Auth state (handles page reload / persistence)
-    const unsubscribe = listenAuthState(async (firebaseUser) => {
+    const unsubscribe = initAuthState((userDoc, initialized) => {
       if (!mounted) return;
-      if (firebaseUser) {
-        const userDoc = await loadOrCreateUserDoc(firebaseUser);
-        if (mounted) {
-          setCurrentUser(userDoc);
-          setAuthInitialized(true);
-        }
-      } else {
-        setCurrentUser(null);
-        setAuthInitialized(true);
-      }
+      setCurrentUser(userDoc);
+      if (initialized) setAuthInitialized(true);
     });
 
     return () => {

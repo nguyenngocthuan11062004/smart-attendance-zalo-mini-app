@@ -26,6 +26,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Face registrations collection
+    match /face_registrations/{regId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Fraud reports collection
     match /fraudReports/{reportId} {
       allow read: if true;

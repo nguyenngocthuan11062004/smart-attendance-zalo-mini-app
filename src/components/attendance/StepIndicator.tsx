@@ -1,5 +1,4 @@
 import React from "react";
-import { Text } from "zmp-ui";
 import type { AttendanceStep } from "@/store/attendance";
 
 interface StepIndicatorProps {
@@ -7,46 +6,54 @@ interface StepIndicatorProps {
 }
 
 const steps: { key: AttendanceStep; label: string }[] = [
-  { key: "scan-teacher", label: "Quét GV" },
-  { key: "show-qr", label: "Xác minh" },
-  { key: "done", label: "Hoàn tất" },
+  { key: "scan-teacher", label: "Quet GV" },
+  { key: "face-verify", label: "Khuon mat" },
+  { key: "show-qr", label: "Xac minh" },
+  { key: "done", label: "Hoan tat" },
 ];
 
 export default function StepIndicator({ currentStep }: StepIndicatorProps) {
   const currentIndex = steps.findIndex((s) => s.key === currentStep);
-  const effectiveIndex = currentStep === "scan-peers" ? 1 : currentIndex;
+  const effectiveIndex = currentStep === "scan-peers" ? 2 : currentIndex;
 
   return (
-    <div className="flex items-center justify-center space-x-2 mb-4">
+    <div className="flex items-center justify-center space-x-1 mb-5 px-2">
       {steps.map((s, i) => {
         const isCompleted = i < effectiveIndex;
         const isActive = i === effectiveIndex;
 
         return (
           <React.Fragment key={s.key}>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center" style={{ minWidth: 52 }}>
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   isCompleted
-                    ? "bg-green-500 text-white"
+                    ? "bg-emerald-500 text-white"
                     : isActive
-                    ? "bg-blue-500 text-white scale-110"
-                    : "bg-gray-200 text-gray-500"
+                    ? "bg-red-500 text-white shadow-md shadow-red-200 scale-110"
+                    : "bg-gray-100 text-gray-400"
                 }`}
               >
-                {isCompleted ? "✓" : i + 1}
+                {isCompleted ? (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M3 7l3 3 5-5" />
+                  </svg>
+                ) : (
+                  i + 1
+                )}
               </div>
-              <Text
-                size="xxSmall"
-                className={`mt-1 ${isActive ? "text-blue-600 font-bold" : "text-gray-400"}`}
+              <p
+                className={`text-[10px] mt-1 font-medium ${
+                  isActive ? "text-red-600" : isCompleted ? "text-emerald-600" : "text-gray-400"
+                }`}
               >
                 {s.label}
-              </Text>
+              </p>
             </div>
             {i < steps.length - 1 && (
               <div
-                className={`w-8 h-0.5 mb-4 ${
-                  i < effectiveIndex ? "bg-green-500" : "bg-gray-200"
+                className={`flex-1 h-0.5 mb-4 rounded-full ${
+                  i < effectiveIndex ? "bg-emerald-400" : "bg-gray-200"
                 }`}
               />
             )}

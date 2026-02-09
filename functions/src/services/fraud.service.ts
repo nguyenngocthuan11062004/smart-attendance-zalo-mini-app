@@ -6,7 +6,7 @@ const db = admin.firestore();
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 
 interface SuspiciousPattern {
-  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "ai_detected";
+  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "face_mismatch" | "ai_detected";
   studentIds: string[];
   description: string;
   severity: "low" | "medium" | "high";
@@ -190,6 +190,26 @@ export const analyzeFraud = functions.region("asia-southeast1").https.onCall(
         studentIds: lowPeerStudents.map((s) => s.studentId),
         description: `${lowPeerStudents.length} sinh viên chỉ có 0-1 peer xác minh qua nhiều buổi`,
         severity: "medium",
+      });
+    }
+
+    // Detect face_mismatch: students who failed face verification
+    for (const sid of sessionIds) {
+      const attendance = await db.collection("attendance")
+        .where("sessionId", "==", sid)
+        .get();
+
+      attendance.forEach((doc) => {
+        const record = doc.data();
+        const face = record.faceVerification;
+        if (face && !face.skipped && face.matched === false) {
+          patterns.push({
+            type: "face_mismatch",
+            studentIds: [record.studentId],
+            description: `${record.studentName || record.studentId} khong khop khuon mat (confidence: ${Math.round((face.confidence || 0) * 100)}%)`,
+            severity: (face.confidence || 0) < 0.3 ? "high" : "medium",
+          });
+        }
       });
     }
 

@@ -6,18 +6,19 @@ interface TrustBadgeProps {
   size?: "small" | "medium";
 }
 
-const config: Record<TrustScore, { label: string; bg: string; text: string }> = {
-  present: { label: "Có mặt", bg: "bg-green-100", text: "text-green-700" },
-  review: { label: "Cần xem xét", bg: "bg-yellow-100", text: "text-yellow-700" },
-  absent: { label: "Vắng", bg: "bg-red-100", text: "text-red-700" },
+const config: Record<TrustScore, { label: string; bg: string; text: string; dot: string }> = {
+  present: { label: "Co mat", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+  review: { label: "Xem xet", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  absent: { label: "Vang", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
 };
 
 export default function TrustBadge({ score, size = "medium" }: TrustBadgeProps) {
-  const { label, bg, text } = config[score];
+  const { label, bg, text, dot } = config[score];
   const sizeClass = size === "small" ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm";
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium ${bg} ${text} ${sizeClass}`}>
+    <span className={`inline-flex items-center rounded-full font-semibold ${bg} ${text} ${sizeClass}`}>
+      <span className={`badge-dot ${dot}`} />
       {label}
     </span>
   );

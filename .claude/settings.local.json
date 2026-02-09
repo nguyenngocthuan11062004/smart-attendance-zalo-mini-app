@@ -17,7 +17,21 @@
       "Bash(gcloud --version:*)",
       "Bash(firebase --version:*)",
       "Bash(open \"https://console.firebase.google.com/project/inhust-788e7/authentication/providers\")",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "WebFetch(domain:mini.zalo.me)",
+      "WebFetch(domain:miniapp.zaloplatforms.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl:*)",
+      "Bash(npx firebase:*)",
+      "Bash(npx:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase use:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(echo:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }

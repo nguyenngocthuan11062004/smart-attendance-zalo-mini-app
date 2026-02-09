@@ -12,7 +12,9 @@ import QRScanner from "@/components/qr/QRScanner";
 import PeerCounter from "@/components/attendance/PeerCounter";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import StepIndicator from "@/components/attendance/StepIndicator";
-import type { AttendanceDoc } from "@/types";
+import FaceVerification from "@/components/face/FaceVerification";
+import FaceStatusBadge from "@/components/face/FaceStatusBadge";
+import type { AttendanceDoc, FaceVerificationResult } from "@/types";
 
 export default function StudentAttendance() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -23,7 +25,6 @@ export default function StudentAttendance() {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  // Initialize mock session
   useEffect(() => {
     if (!session) setSession(mockSession);
     setStep("scan-teacher");
@@ -47,10 +48,8 @@ export default function StudentAttendance() {
   const handleScanTeacher = () => {
     setScanning(true);
     setScanError(null);
-    // Mock: simulate scanning teacher QR
     setTimeout(() => {
       setScanning(false);
-      // Create attendance record
       setMyAttendance({
         id: "att_mock",
         sessionId: sessionId || "session_001",
@@ -62,14 +61,24 @@ export default function StudentAttendance() {
         peerCount: 0,
         trustScore: "absent",
       });
-      setStep("show-qr");
+      setStep("face-verify");
     }, 1000);
+  };
+
+  const handleFaceComplete = (result: FaceVerificationResult) => {
+    if (myAttendance) {
+      setMyAttendance({ ...myAttendance, faceVerification: result });
+    }
+    setStep("show-qr");
+  };
+
+  const handleFaceSkip = () => {
+    setStep("show-qr");
   };
 
   const handleScanPeer = () => {
     setScanning(true);
     setScanError(null);
-    // Mock: simulate scanning peer QR
     setTimeout(() => {
       setScanning(false);
       if (!myAttendance) return;
@@ -99,15 +108,21 @@ export default function StudentAttendance() {
     return (
       <Page className="page">
         <Header title="Diem danh" />
-        <Box className="text-center py-8 space-y-3">
-          <Text bold size="large">Phien diem danh da ket thuc</Text>
+        <div className="empty-state py-10">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 3" />
+            </svg>
+          </div>
+          <Text bold size="large" className="text-gray-600 mb-2">Phien da ket thuc</Text>
           {myAttendance && (
-            <>
+            <div className="space-y-2">
               <TrustBadge score={myAttendance.trustScore} />
               <PeerCounter current={myAttendance.peerCount} />
-            </>
+            </div>
           )}
-        </Box>
+        </div>
       </Page>
     );
   }
@@ -120,10 +135,16 @@ export default function StudentAttendance() {
 
       {/* Step 1: Scan teacher QR */}
       {step === "scan-teacher" && (
-        <Box className="flex flex-col items-center space-y-4 py-8">
-          <Text bold size="large">Buoc 1: Quet QR giang vien</Text>
-          <Text className="text-gray-500 text-center">
-            Quet ma QR tren man hinh cua giang vien de bat dau diem danh
+        <div className="empty-state py-8">
+          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-4">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+              <rect x="7" y="7" width="10" height="10" rx="1" />
+            </svg>
+          </div>
+          <Text bold size="large" className="text-gray-700 mb-1">Quet QR giang vien</Text>
+          <Text size="small" className="text-gray-400 mb-5">
+            Quet ma QR tren man hinh cua giang vien
           </Text>
           <QRScanner
             onScan={handleScanTeacher}
@@ -131,18 +152,30 @@ export default function StudentAttendance() {
             label="Quet QR giang vien"
             error={scanError}
           />
-        </Box>
+        </div>
       )}
 
-      {/* Step 2: Show QR + Scan peers */}
+      {/* Step 2: Face verification */}
+      {step === "face-verify" && myAttendance && (
+        <div className="py-4">
+          <FaceVerification
+            sessionId={sessionId || "session_001"}
+            attendanceId={myAttendance.id}
+            onComplete={handleFaceComplete}
+            onSkip={handleFaceSkip}
+          />
+        </div>
+      )}
+
+      {/* Step 3: Show QR + Scan peers */}
       {(step === "show-qr" || step === "scan-peers") && (
-        <Box className="space-y-4">
-          <Box className="text-center">
-            <Text bold size="large">Buoc 2: Xac minh ngang hang</Text>
-            <Text size="small" className="text-gray-500">
+        <div className="space-y-4">
+          <div className="text-center">
+            <Text bold size="large" className="text-gray-700">Xac minh ngang hang</Text>
+            <Text size="small" className="text-gray-400 mt-0.5">
               Cho ban be quet QR cua ban va quet lai QR cua ho
             </Text>
-          </Box>
+          </div>
 
           {myAttendance && <PeerCounter current={myAttendance.peerCount} />}
 
@@ -161,28 +194,33 @@ export default function StudentAttendance() {
           />
 
           {myAttendance && myAttendance.peerCount >= 3 && (
-            <Box className="text-center py-2">
+            <div className="text-center py-2">
               <Button variant="primary" onClick={() => setStep("done")}>
                 Hoan tat
               </Button>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Done */}
       {step === "done" && myAttendance && (
-        <Box className="flex flex-col items-center space-y-4 py-8">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-2">
-            <Text size="xLarge" className="text-green-600">&#10003;</Text>
+        <div className="empty-state py-8">
+          <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-          <Text bold size="xLarge">Hoan tat!</Text>
-          <TrustBadge score={myAttendance.trustScore} />
-          <PeerCounter current={myAttendance.peerCount} />
-          <Text className="text-gray-500 text-center">
+          <Text bold size="xLarge" className="text-gray-700 mb-3">Hoan tat!</Text>
+          <div className="space-y-2 mb-4">
+            <TrustBadge score={myAttendance.trustScore} />
+            <PeerCounter current={myAttendance.peerCount} />
+            <FaceStatusBadge faceVerification={myAttendance.faceVerification} />
+          </div>
+          <Text size="small" className="text-gray-400">
             Ket qua diem danh se duoc giang vien xac nhan sau
           </Text>
-        </Box>
+        </div>
       )}
     </Page>
   );
