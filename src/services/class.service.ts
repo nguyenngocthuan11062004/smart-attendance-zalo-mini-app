@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { isMockMode, mockDb } from "@/utils/mock-db";
+import { cacheGet, cacheSet, cacheRemove } from "@/utils/cache";
 import type { ClassDoc } from "@/types";
 
 const CLASSES = "classes";
@@ -58,19 +59,27 @@ export async function getClassByCode(code: string): Promise<ClassDoc | null> {
 
 export async function getTeacherClasses(teacherId: string): Promise<ClassDoc[]> {
   if (isMockMode()) return mockDb.getTeacherClasses(teacherId);
+  const cached = cacheGet<ClassDoc[]>(`teacher_classes_${teacherId}`);
+  if (cached) return cached;
   const q = query(collection(db, CLASSES), where("teacherId", "==", teacherId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  const result = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  cacheSet(`teacher_classes_${teacherId}`, result, 2 * 60 * 1000);
+  return result;
 }
 
 export async function getStudentClasses(studentId: string): Promise<ClassDoc[]> {
   if (isMockMode()) return mockDb.getStudentClasses(studentId);
+  const cached = cacheGet<ClassDoc[]>(`student_classes_${studentId}`);
+  if (cached) return cached;
   const q = query(
     collection(db, CLASSES),
     where("studentIds", "array-contains", studentId)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  const result = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  cacheSet(`student_classes_${studentId}`, result, 2 * 60 * 1000);
+  return result;
 }
 
 export async function joinClass(classId: string, studentId: string): Promise<void> {
@@ -78,6 +87,7 @@ export async function joinClass(classId: string, studentId: string): Promise<voi
   await updateDoc(doc(db, CLASSES, classId), {
     studentIds: arrayUnion(studentId),
   });
+  cacheRemove(`student_classes_${studentId}`);
 }
 
 export async function getClassStudents(

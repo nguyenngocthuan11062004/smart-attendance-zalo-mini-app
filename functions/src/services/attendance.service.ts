@@ -6,6 +6,40 @@ import { checkRateLimit } from "../middleware/rateLimit";
 
 const db = admin.firestore();
 
+// --- Nonce tracking to prevent QR replay attacks ---
+// In-memory Map with TTL 120s (longer than QR expiry 60s).
+// Upgrade path: use Firestore subcollection `used_nonces` if horizontal scaling needed.
+const usedNonces = new Map<string, number>();
+const NONCE_TTL_MS = 120_000;
+
+function checkAndRecordNonce(nonce: string): boolean {
+  // Clean expired nonces
+  const now = Date.now();
+  for (const [key, expiry] of usedNonces) {
+    if (now > expiry) usedNonces.delete(key);
+  }
+  if (usedNonces.has(nonce)) return false;
+  usedNonces.set(nonce, now + NONCE_TTL_MS);
+  return true;
+}
+
+/**
+ * Haversine formula: calculate distance (meters) between two GPS coordinates.
+ */
+function haversineDistance(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number
+): number {
+  const R = 6371000; // Earth radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function verifyHMAC(payload: any, secret: string): boolean {
   const message = `${payload.type}:${payload.sessionId}:${payload.userId}:${payload.timestamp}:${payload.nonce}`;
   const expected = CryptoJS.HmacSHA256(message, secret).toString();
@@ -39,6 +73,26 @@ export const scanTeacher = functions.region("asia-southeast1").https.onCall(
 
     if (Date.now() - qrPayload.timestamp > 60_000) {
       throw new functions.https.HttpsError("invalid-argument", "QR expired");
+    }
+
+    // Nonce replay check
+    if (!checkAndRecordNonce(qrPayload.nonce)) {
+      throw new functions.https.HttpsError("invalid-argument", "QR already used");
+    }
+
+    // GPS geofencing check (optional — only if session has location set)
+    if (session.location && data.studentLocation) {
+      const dist = haversineDistance(
+        session.location.latitude, session.location.longitude,
+        data.studentLocation.latitude, data.studentLocation.longitude
+      );
+      const radius = session.geoFenceRadius || 200;
+      if (dist > radius) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          `Bạn ở quá xa lớp học (${Math.round(dist)}m, giới hạn ${radius}m)`
+        );
+      }
     }
 
     const existing = await db.collection("attendance")
@@ -98,66 +152,77 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
       throw new functions.https.HttpsError("invalid-argument", "QR expired");
     }
 
-    const attRef = db.collection("attendance").doc(attendanceId);
-    const attSnap = await attRef.get();
-    if (!attSnap.exists) {
-      throw new functions.https.HttpsError("not-found", "Attendance record not found");
-    }
-    const att = attSnap.data()!;
-
-    // --- Bidirectional verification ---
-    // 1) Update scanner's record (A scans B → A gets B as peer)
-    const alreadyVerified = att.peerVerifications?.some(
-      (v: any) => v.peerId === qrPayload.userId
-    );
-    if (alreadyVerified) {
-      throw new functions.https.HttpsError("already-exists", "Already verified this peer");
+    // Nonce replay check
+    if (!checkAndRecordNonce(qrPayload.nonce)) {
+      throw new functions.https.HttpsError("invalid-argument", "QR already used");
     }
 
-    const newCount = (att.peerCount || 0) + 1;
-    const trustScore = newCount >= 3 ? "present" : newCount >= 1 ? "review" : "absent";
+    // Use a Firestore transaction to prevent race conditions
+    // when two students scan each other simultaneously
+    const result = await db.runTransaction(async (transaction) => {
+      const attRef = db.collection("attendance").doc(attendanceId);
+      const attSnap = await transaction.get(attRef);
+      if (!attSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "Attendance record not found");
+      }
+      const att = attSnap.data()!;
 
-    await attRef.update({
-      peerVerifications: admin.firestore.FieldValue.arrayUnion({
-        peerId: qrPayload.userId,
-        peerName: "",
-        verifiedAt: Date.now(),
-        qrNonce: qrPayload.nonce,
-      }),
-      peerCount: newCount,
-      trustScore,
+      // 1) Update scanner's record (A scans B → A gets B as peer)
+      const alreadyVerified = att.peerVerifications?.some(
+        (v: any) => v.peerId === qrPayload.userId
+      );
+      if (alreadyVerified) {
+        throw new functions.https.HttpsError("already-exists", "Already verified this peer");
+      }
+
+      const newCount = (att.peerCount || 0) + 1;
+      const trustScore = newCount >= 3 ? "present" : newCount >= 1 ? "review" : "absent";
+      const now = Date.now();
+
+      transaction.update(attRef, {
+        peerVerifications: admin.firestore.FieldValue.arrayUnion({
+          peerId: qrPayload.userId,
+          peerName: "",
+          verifiedAt: now,
+          qrNonce: qrPayload.nonce,
+        }),
+        peerCount: newCount,
+        trustScore,
+      });
+
+      // 2) Update peer's record (A scans B → B also gets A as peer)
+      const peerAttQuery = await db.collection("attendance")
+        .where("sessionId", "==", sessionId)
+        .where("studentId", "==", qrPayload.userId)
+        .get();
+
+      if (!peerAttQuery.empty) {
+        const peerDocRef = peerAttQuery.docs[0].ref;
+        const peerSnap = await transaction.get(peerDocRef);
+        const peerData = peerSnap.data()!;
+        const peerAlreadyHas = peerData.peerVerifications?.some(
+          (v: any) => v.peerId === userId
+        );
+        if (!peerAlreadyHas) {
+          const peerNewCount = (peerData.peerCount || 0) + 1;
+          const peerTrustScore = peerNewCount >= 3 ? "present" : peerNewCount >= 1 ? "review" : "absent";
+          transaction.update(peerDocRef, {
+            peerVerifications: admin.firestore.FieldValue.arrayUnion({
+              peerId: userId,
+              peerName: "",
+              verifiedAt: now,
+              qrNonce: qrPayload.nonce,
+            }),
+            peerCount: peerNewCount,
+            trustScore: peerTrustScore,
+          });
+        }
+      }
+
+      return { peerCount: newCount, trustScore, bidirectional: true };
     });
 
-    // 2) Update peer's record (A scans B → B also gets A as peer)
-    const peerAttQuery = await db.collection("attendance")
-      .where("sessionId", "==", sessionId)
-      .where("studentId", "==", qrPayload.userId)
-      .get();
-
-    let peerTrustScore = "";
-    if (!peerAttQuery.empty) {
-      const peerDoc = peerAttQuery.docs[0];
-      const peerData = peerDoc.data();
-      const peerAlreadyHas = peerData.peerVerifications?.some(
-        (v: any) => v.peerId === userId
-      );
-      if (!peerAlreadyHas) {
-        const peerNewCount = (peerData.peerCount || 0) + 1;
-        peerTrustScore = peerNewCount >= 3 ? "present" : peerNewCount >= 1 ? "review" : "absent";
-        await peerDoc.ref.update({
-          peerVerifications: admin.firestore.FieldValue.arrayUnion({
-            peerId: userId,
-            peerName: "",
-            verifiedAt: Date.now(),
-            qrNonce: qrPayload.nonce,
-          }),
-          peerCount: peerNewCount,
-          trustScore: peerTrustScore,
-        });
-      }
-    }
-
-    return { peerCount: newCount, trustScore, bidirectional: true };
+    return result;
   })
 );
 

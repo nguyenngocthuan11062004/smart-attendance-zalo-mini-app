@@ -1,7 +1,20 @@
-import { getUserID, getUserInfo } from "zmp-sdk";
+import { getUserID, getUserInfo, getAccessToken as zmpGetAccessToken } from "zmp-sdk";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import type { UserDoc, UserRole } from "@/types";
+
+/**
+ * Get Zalo access token for Cloud Function authentication.
+ * Returns empty string in dev mode or if token retrieval fails.
+ */
+export async function getAccessToken(): Promise<string> {
+  try {
+    const token = await zmpGetAccessToken({});
+    return token || "";
+  } catch {
+    return "";
+  }
+}
 
 // --- Timeout helper ---
 

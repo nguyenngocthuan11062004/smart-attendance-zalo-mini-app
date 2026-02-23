@@ -7,7 +7,18 @@ export interface UserDoc {
   avatar: string;
   role: UserRole;
   mssv?: string;
+  phone?: string;
+  email?: string;
+  birthdate?: string;
+  department?: string;
+  program?: string;
+  className?: string;
   faceRegistered?: boolean;
+  microsoftEmail?: string;
+  hustVerified?: boolean;
+  hustStudentId?: string;
+  microsoftLinkedAt?: number;
+  microsoftDisplayName?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -22,6 +33,12 @@ export interface ClassDoc {
   createdAt: number;
 }
 
+export interface GeoLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
+
 export interface SessionDoc {
   id: string;
   classId: string;
@@ -32,6 +49,8 @@ export interface SessionDoc {
   qrRefreshInterval: number;
   startedAt: number;
   endedAt?: number;
+  location?: GeoLocation;
+  geoFenceRadius?: number; // meters, default 200
 }
 
 export interface FaceVerificationResult {
@@ -41,6 +60,7 @@ export interface FaceVerificationResult {
   verifiedAt: number;
   error?: string;
   skipped?: boolean;
+  livenessChecked?: boolean;
 }
 
 export interface AttendanceDoc {
@@ -85,7 +105,7 @@ export interface FraudReport {
 }
 
 export interface SuspiciousPattern {
-  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "face_mismatch";
+  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "face_mismatch" | "ai_detected";
   studentIds: string[];
   description: string;
   severity: "low" | "medium" | "high";

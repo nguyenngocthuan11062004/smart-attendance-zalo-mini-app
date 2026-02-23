@@ -4,12 +4,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { activeSessionAtom } from "@/store/session";
-import { generateQRDataURL } from "@/services/qr.service";
+import { globalErrorAtom } from "@/store/ui";
+import { useQRGenerator } from "@/hooks/useQRGenerator";
+import QRDisplay from "@/components/qr/QRDisplay";
 import { getClassById } from "@/services/class.service";
 import { getActiveSessionForClass, getClassSessions } from "@/services/session.service";
 import { startSession, endSession } from "@/services/session.service";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "@/config/firebase";
+import { updateSessionLocation } from "@/services/session.service";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import type { ClassDoc, SessionDoc } from "@/types";
 
 export default function TeacherSession() {
@@ -17,21 +21,27 @@ export default function TeacherSession() {
   const navigate = useNavigate();
   const user = useAtomValue(currentUserAtom);
   const setActiveSession = useSetAtom(activeSessionAtom);
+  const setError = useSetAtom(globalErrorAtom);
   const [classDoc, setClassDoc] = useState<ClassDoc | null>(null);
   const [session, setSession] = useState<SessionDoc | null>(null);
   const [pastSessions, setPastSessions] = useState<SessionDoc[]>([]);
   const [starting, setStarting] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
-  const [qrDataURL, setQrDataURL] = useState("");
+  const { location: gpsLocation, loading: gpsLoading, requestLocation } = useGeolocation();
+  const [locationSet, setLocationSet] = useState(false);
 
-  // Generate static QR for active session
-  useEffect(() => {
-    if (session?.status === "active") {
-      const content = JSON.stringify({ type: "teacher", sessionId: session.id });
-      generateQRDataURL(content).then(setQrDataURL);
-    }
-  }, [session?.id, session?.status]);
+  const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(
+    session?.status === "active" && user
+      ? {
+          type: "teacher",
+          sessionId: session.id,
+          userId: user.id,
+          secret: session.hmacSecret,
+          refreshIntervalMs: session.qrRefreshInterval * 1000,
+        }
+      : null
+  );
 
   useEffect(() => {
     if (!classId) return;
@@ -56,6 +66,8 @@ export default function TeacherSession() {
       const newSession = await startSession(classDoc.id, classDoc.name, user.id);
       setSession(newSession);
       setActiveSession(newSession);
+    } catch {
+      setError("Không thể bắt đầu phiên điểm danh");
     } finally {
       setStarting(false);
     }
@@ -74,6 +86,8 @@ export default function TeacherSession() {
       setPastSessions((prev) => [endedSession, ...prev]);
       setShowEndConfirm(false);
       navigate(`/teacher/review/${session.id}`);
+    } catch {
+      setError("Không thể kết thúc phiên. Vui lòng thử lại.");
     } finally {
       setEnding(false);
     }
@@ -82,7 +96,7 @@ export default function TeacherSession() {
   if (!classDoc) {
     return (
       <Page className="page">
-        <Header title="Phien diem danh" />
+        <Header title="Phiên điểm danh" />
         <div className="space-y-3">
           <div className="skeleton h-[60px] rounded-2xl" />
           <div className="skeleton h-[300px] rounded-2xl" />
@@ -100,7 +114,7 @@ export default function TeacherSession() {
         <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-100 text-xs text-gray-500 font-mono font-semibold">
           {classDoc.code}
         </span>
-        <span className="text-xs text-gray-400">{classDoc.studentIds.length} sinh vien</span>
+        <span className="text-xs text-gray-400">{classDoc.studentIds.length} sinh viên</span>
       </div>
 
       {!session || session.status === "ended" ? (
@@ -115,12 +129,12 @@ export default function TeacherSession() {
               </circle>
             </svg>
           </div>
-          <Text bold size="large" className="text-gray-700 mb-1">San sang diem danh</Text>
+          <Text bold size="large" className="text-gray-700 mb-1">Sẵn sàng điểm danh</Text>
           <Text size="small" className="text-gray-400 mb-5">
-            Bat dau phien de tao ma QR cho sinh vien
+            Bắt đầu phiên để tạo mã QR cho sinh viên
           </Text>
           <Button variant="primary" size="large" loading={starting} onClick={handleStart}>
-            Bat dau diem danh
+            Bắt đầu điểm danh
           </Button>
         </div>
       ) : (
@@ -129,23 +143,57 @@ export default function TeacherSession() {
           <div className="gradient-green rounded-2xl p-3 text-center text-white">
             <div className="flex items-center justify-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-sm font-semibold">Phien dang hoat dong</span>
+              <span className="text-sm font-semibold">Phiên đang hoạt động</span>
             </div>
           </div>
 
-          {/* Static QR */}
-          <div className="flex flex-col items-center">
-            <p className="text-sm font-semibold text-gray-500 mb-3">QR Giang vien</p>
-            <div className="card-flat p-5">
-              {qrDataURL ? (
-                <img src={qrDataURL} alt="QR Code" className="w-56 h-56" />
-              ) : (
-                <div className="w-56 h-56 flex items-center justify-center">
-                  <div className="skeleton w-56 h-56" />
+          {/* Rotating HMAC QR */}
+          <QRDisplay
+            qrDataURL={qrDataURL}
+            secondsLeft={secondsLeft}
+            totalSeconds={refreshSeconds}
+            label="QR Giảng viên"
+          />
+          <p className="text-xs text-gray-400 text-center">Sinh viên quét mã này để điểm danh</p>
+
+          {/* GPS Location setting */}
+          <div className="card-flat p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={locationSet ? "#10b981" : "#94a3b8"} strokeWidth="2" strokeLinecap="round">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                  <circle cx="12" cy="9" r="2.5" />
+                </svg>
+                <div>
+                  <Text size="small" bold className={locationSet ? "text-emerald-600" : "text-gray-600"}>
+                    {locationSet ? "Đã set vị trí" : "Vị trí lớp (tùy chọn)"}
+                  </Text>
+                  {locationSet && gpsLocation && (
+                    <Text size="xxSmall" className="text-gray-400">
+                      {gpsLocation.latitude.toFixed(5)}, {gpsLocation.longitude.toFixed(5)}
+                    </Text>
+                  )}
                 </div>
-              )}
+              </div>
+              <button
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                  locationSet
+                    ? "bg-gray-100 text-gray-500"
+                    : "bg-red-50 text-red-500 active:bg-red-100"
+                }`}
+                disabled={gpsLoading}
+                onClick={async () => {
+                  const loc = await requestLocation();
+                  if (loc && session) {
+                    await updateSessionLocation(session.id, loc);
+                    setLocationSet(true);
+                    setSession({ ...session, location: loc, geoFenceRadius: 200 });
+                  }
+                }}
+              >
+                {gpsLoading ? "Đang lấy..." : locationSet ? "Đã set" : "Set vị trí"}
+              </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">Sinh vien quet ma nay de diem danh</p>
           </div>
 
           <div className="flex space-x-3">
@@ -154,13 +202,13 @@ export default function TeacherSession() {
               variant="secondary"
               onClick={() => navigate(`/teacher/monitor/${session.id}`)}
             >
-              Theo doi
+              Theo dõi
             </Button>
             <button
               className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm active:bg-red-600"
               onClick={() => setShowEndConfirm(true)}
             >
-              Ket thuc
+              Kết thúc
             </button>
           </div>
         </div>
@@ -169,7 +217,7 @@ export default function TeacherSession() {
       {/* Past sessions */}
       {(!session || session.status !== "active") && pastSessions.length > 0 && (
         <div className="mt-6">
-          <p className="section-label">Phien truoc ({pastSessions.length})</p>
+          <p className="section-label">Phiên trước ({pastSessions.length})</p>
           {pastSessions.map((s) => (
             <div
               key={s.id}
@@ -213,12 +261,12 @@ export default function TeacherSession() {
       <Modal
         visible={showEndConfirm}
         onClose={() => setShowEndConfirm(false)}
-        title="Ket thuc phien?"
+        title="Kết thúc phiên?"
       >
         <Box className="p-4">
           <div className="bg-amber-50 rounded-xl p-3 mb-4">
             <Text size="small" className="text-amber-800">
-              Sau khi ket thuc, he thong se tu dong tinh diem tin cay cho tat ca sinh vien.
+              Sau khi kết thúc, hệ thống sẽ tự động tính điểm tin cậy cho tất cả sinh viên.
             </Text>
           </div>
           <div className="flex space-x-3">
@@ -227,13 +275,13 @@ export default function TeacherSession() {
               variant="secondary"
               onClick={() => setShowEndConfirm(false)}
             >
-              Huy
+              Hủy
             </Button>
             <button
               className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm active:bg-red-600"
               onClick={handleEnd}
             >
-              {ending ? "Dang ket thuc..." : "Ket thuc"}
+              {ending ? "Đang kết thúc..." : "Kết thúc"}
             </button>
           </div>
         </Box>

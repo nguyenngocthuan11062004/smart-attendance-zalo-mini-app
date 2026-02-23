@@ -7,3 +7,4 @@ export { scanTeacher, scanPeer, reviewAttendance } from "./services/attendance.s
 export { calculateTrustScores } from "./services/trust.service";
 export { analyzeFraud, weeklyFraudAnalysis } from "./services/fraud.service";
 export { registerFace, verifyFace } from "./services/face.service";
+export { initMicrosoftOAuth, microsoftOAuthCallback } from "./services/microsoft-oauth.service";

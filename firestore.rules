@@ -2,40 +2,99 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection
+
+    // ── Helper functions ──────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isTeacher() {
+      return isAuthenticated() && getUserRole() == 'teacher';
+    }
+
+    function isStudent() {
+      return isAuthenticated() && getUserRole() == 'student';
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────
+    // - Authenticated users can read their own document
+    // - Users can update themselves but cannot change their role
+    // - Creation is allowed for any authenticated user (initial profile)
     match /users/{userId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isOwner(userId);
+      allow create: if isAuthenticated();
+      allow update: if isOwner(userId)
+                    && !('role' in request.resource.data
+                         && request.resource.data.role != resource.data.role)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['hustVerified', 'microsoftEmail', 'hustStudentId', 'microsoftLinkedAt', 'microsoftDisplayName']);
     }
 
-    // Classes collection
+    // ── Classes ───────────────────────────────────────────────────────
+    // - Any authenticated user can read (needed for joining by code)
+    // - Teachers create classes where teacherId matches their uid
+    // - Teachers update/delete only their own classes
     match /classes/{classId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAuthenticated();
+      allow create: if isTeacher()
+                    && request.resource.data.teacherId == request.auth.uid;
+      allow update: if isTeacher()
+                    && resource.data.teacherId == request.auth.uid;
+      allow delete: if isTeacher()
+                    && resource.data.teacherId == request.auth.uid;
     }
 
-    // Sessions collection
+    // ── Sessions ──────────────────────────────────────────────────────
+    // - Any authenticated user can read sessions
+    // - Only teachers can create or update sessions
     match /sessions/{sessionId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAuthenticated();
+      allow create: if isTeacher();
+      allow update: if isTeacher();
     }
 
-    // Attendance collection
+    // ── Attendance ────────────────────────────────────────────────────
+    // With Cloud Functions handling check-in and peer verification (using
+    // admin SDK which bypasses these rules), client-side writes are restricted:
+    // - Create: still allowed for client fallback when CF is unavailable
+    // - Update: only teachers (for overrides). Peer verification updates
+    //   go through Cloud Functions (scanPeer) which use admin SDK.
+    // TODO: When Cloud Functions are confirmed stable, tighten create to
+    //   only allow from CF by setting: allow create: if false;
     match /attendance/{attendanceId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+                    && request.resource.data.studentId == request.auth.uid;
+      allow update: if isTeacher();
     }
 
-    // Face registrations collection
-    match /face_registrations/{regId} {
-      allow read: if true;
-      allow write: if true;
+    // ── Face registrations ────────────────────────────────────────────
+    // - Only the owner can read or write their own face registration
+    match /face_registrations/{userId} {
+      allow read, write: if isOwner(userId);
     }
 
-    // Fraud reports collection
-    match /fraudReports/{reportId} {
-      allow read: if true;
-      allow write: if true;
+    // ── OAuth states ─────────────────────────────────────────────────
+    // - Only Cloud Functions (admin SDK) can read/write; client access denied
+    match /oauth_states/{stateId} {
+      allow read, write: if false;
+    }
+
+    // ── Fraud reports ─────────────────────────────────────────────────
+    // - Teachers can read fraud reports
+    // - Only Cloud Functions (admin SDK) can write; client writes denied
+    match /fraud_reports/{reportId} {
+      allow read: if isTeacher();
+      allow write: if false;
     }
   }
 }

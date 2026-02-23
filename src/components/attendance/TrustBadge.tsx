@@ -7,9 +7,9 @@ interface TrustBadgeProps {
 }
 
 const config: Record<TrustScore, { label: string; bg: string; text: string; dot: string }> = {
-  present: { label: "Co mat", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
-  review: { label: "Xem xet", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
-  absent: { label: "Vang", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
+  present: { label: "Có mặt", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+  review: { label: "Xem xét", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  absent: { label: "Vắng", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
 };
 
 export default function TrustBadge({ score, size = "medium" }: TrustBadgeProps) {

@@ -14,7 +14,7 @@ import {
 import { db } from "@/config/firebase";
 import { generateNonce } from "@/utils/crypto";
 import { isMockMode, mockDb } from "@/utils/mock-db";
-import type { SessionDoc } from "@/types";
+import type { SessionDoc, GeoLocation } from "@/types";
 
 const SESSIONS = "sessions";
 
@@ -81,6 +81,22 @@ export function subscribeToSession(
     if (!snap.exists()) { callback(null); return; }
     callback({ id: snap.id, ...snap.data() } as SessionDoc);
   });
+}
+
+export async function updateSessionLocation(
+  sessionId: string,
+  location: GeoLocation,
+  geoFenceRadius: number = 200
+): Promise<void> {
+  if (isMockMode()) {
+    const s = mockDb.getSession(sessionId);
+    if (s) {
+      (s as any).location = location;
+      (s as any).geoFenceRadius = geoFenceRadius;
+    }
+    return;
+  }
+  await updateDoc(doc(db, SESSIONS, sessionId), { location, geoFenceRadius });
 }
 
 export async function getClassSessions(classId: string): Promise<SessionDoc[]> {

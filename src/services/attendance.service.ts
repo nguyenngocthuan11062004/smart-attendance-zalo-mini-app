@@ -14,15 +14,24 @@ import {
 import { db } from "@/config/firebase";
 import { computeTrustScore } from "@/types";
 import { isMockMode, mockDb } from "@/utils/mock-db";
-import type { AttendanceDoc, FaceVerificationResult, PeerVerification, TrustScore } from "@/types";
+import { withRetry } from "@/utils/retry";
+import { callWithFallback } from "@/utils/cloudFallback";
+import { getAccessToken } from "@/services/auth.service";
+import { enqueueOperation, registerQueueHandler } from "@/utils/offlineQueue";
+import type { AttendanceDoc, FaceVerificationResult, PeerVerification, QRPayload, TrustScore } from "@/types";
 
 const ATTENDANCE = "attendance";
 
+/**
+ * Check in student via Cloud Function (server validates QR).
+ * Falls back to direct Firestore write if CF unavailable.
+ */
 export async function checkInStudent(
   sessionId: string,
   classId: string,
   studentId: string,
-  studentName: string
+  studentName: string,
+  qrPayload?: QRPayload
 ): Promise<AttendanceDoc> {
   if (isMockMode()) {
     const existing = mockDb.getMyAttendance(sessionId, studentId);
@@ -33,24 +42,39 @@ export async function checkInStudent(
     });
   }
 
-  const q = query(
-    collection(db, ATTENDANCE),
-    where("sessionId", "==", sessionId),
-    where("studentId", "==", studentId)
-  );
-  const existing = await getDocs(q);
-  if (!existing.empty) {
-    const d = existing.docs[0];
-    return { id: d.id, ...d.data() } as AttendanceDoc;
-  }
+  const accessToken = await getAccessToken();
 
-  const ref = doc(collection(db, ATTENDANCE));
-  const record: Omit<AttendanceDoc, "id"> = {
-    sessionId, classId, studentId, studentName,
-    checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
-  };
-  await setDoc(ref, record);
-  return { id: ref.id, ...record };
+  return callWithFallback(
+    "scanTeacher",
+    { qrPayload, sessionId, accessToken },
+    async () => {
+      // Fallback: direct Firestore write (client-side validation already done)
+      const q = query(
+        collection(db, ATTENDANCE),
+        where("sessionId", "==", sessionId),
+        where("studentId", "==", studentId)
+      );
+      const existing = await getDocs(q);
+      if (!existing.empty) {
+        const d = existing.docs[0];
+        return { id: d.id, ...d.data() } as AttendanceDoc;
+      }
+
+      const ref = doc(collection(db, ATTENDANCE));
+      const record: Omit<AttendanceDoc, "id"> = {
+        sessionId, classId, studentId, studentName,
+        checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
+      };
+      try {
+        await setDoc(ref, record);
+      } catch {
+        // Both CF and Firestore failed — enqueue for later
+        enqueueOperation("checkIn", { sessionId, classId, studentId, studentName });
+        return { id: ref.id, ...record };
+      }
+      return { id: ref.id, ...record };
+    }
+  );
 }
 
 export async function addPeerVerification(
@@ -80,35 +104,75 @@ export async function addPeerVerification(
   });
 }
 
+/**
+ * Bidirectional peer verification via Cloud Function.
+ * Falls back to direct Firestore writes if CF unavailable.
+ */
 export async function addBidirectionalPeerVerification(
   sessionId: string,
   scannerId: string,
   scannerName: string,
   peerId: string,
   peerName: string,
-  qrNonce: string
+  qrNonce: string,
+  qrPayload?: QRPayload,
+  attendanceId?: string
 ): Promise<{ scannerUpdated: boolean; peerUpdated: boolean }> {
-  const result = { scannerUpdated: false, peerUpdated: false };
-
-  const scannerAtt = await getMyAttendance(sessionId, scannerId);
-  if (scannerAtt) {
-    const alreadyHasPeer = scannerAtt.peerVerifications.some((v) => v.peerId === peerId);
-    if (!alreadyHasPeer) {
-      await addPeerVerification(scannerAtt.id, { peerId, peerName, verifiedAt: Date.now(), qrNonce });
+  if (isMockMode()) {
+    const result = { scannerUpdated: false, peerUpdated: false };
+    const scannerAtt = mockDb.getMyAttendance(sessionId, scannerId);
+    if (scannerAtt && !scannerAtt.peerVerifications.some((v) => v.peerId === peerId)) {
+      scannerAtt.peerVerifications.push({ peerId, peerName, verifiedAt: Date.now(), qrNonce });
+      scannerAtt.peerCount++;
+      scannerAtt.trustScore = computeTrustScore(scannerAtt.peerCount, scannerAtt.faceVerification);
       result.scannerUpdated = true;
     }
-  }
-
-  const peerAtt = await getMyAttendance(sessionId, peerId);
-  if (peerAtt) {
-    const alreadyHasScanner = peerAtt.peerVerifications.some((v) => v.peerId === scannerId);
-    if (!alreadyHasScanner) {
-      await addPeerVerification(peerAtt.id, { peerId: scannerId, peerName: scannerName, verifiedAt: Date.now(), qrNonce });
+    const peerAtt = mockDb.getMyAttendance(sessionId, peerId);
+    if (peerAtt && !peerAtt.peerVerifications.some((v) => v.peerId === scannerId)) {
+      peerAtt.peerVerifications.push({ peerId: scannerId, peerName: scannerName, verifiedAt: Date.now(), qrNonce });
+      peerAtt.peerCount++;
+      peerAtt.trustScore = computeTrustScore(peerAtt.peerCount, peerAtt.faceVerification);
       result.peerUpdated = true;
     }
+    return result;
   }
 
-  return result;
+  const accessToken = await getAccessToken();
+
+  return callWithFallback(
+    "scanPeer",
+    { qrPayload, sessionId, attendanceId, accessToken },
+    async () => {
+      // Fallback: direct Firestore writes
+      const result = { scannerUpdated: false, peerUpdated: false };
+
+      const scannerAtt = await getMyAttendance(sessionId, scannerId);
+      if (scannerAtt) {
+        const alreadyHasPeer = scannerAtt.peerVerifications.some((v) => v.peerId === peerId);
+        if (!alreadyHasPeer) {
+          await withRetry(
+            () => addPeerVerification(scannerAtt.id, { peerId, peerName, verifiedAt: Date.now(), qrNonce }),
+            { maxRetries: 3, baseDelay: 500 }
+          );
+          result.scannerUpdated = true;
+        }
+      }
+
+      const peerAtt = await getMyAttendance(sessionId, peerId);
+      if (peerAtt) {
+        const alreadyHasScanner = peerAtt.peerVerifications.some((v) => v.peerId === scannerId);
+        if (!alreadyHasScanner) {
+          await withRetry(
+            () => addPeerVerification(peerAtt.id, { peerId: scannerId, peerName: scannerName, verifiedAt: Date.now(), qrNonce }),
+            { maxRetries: 3, baseDelay: 500 }
+          );
+          result.peerUpdated = true;
+        }
+      }
+
+      return result;
+    }
+  );
 }
 
 export async function getMyAttendance(
@@ -213,3 +277,24 @@ export async function teacherOverride(
     trustScore: decision === "present" ? "present" : "absent",
   });
 }
+
+// --- Offline queue handler registration ---
+// Re-process queued check-ins when network restores
+registerQueueHandler("checkIn", async (payload) => {
+  const { sessionId, classId, studentId, studentName } = payload as {
+    sessionId: string; classId: string; studentId: string; studentName: string;
+  };
+  const q = query(
+    collection(db, ATTENDANCE),
+    where("sessionId", "==", sessionId),
+    where("studentId", "==", studentId)
+  );
+  const existing = await getDocs(q);
+  if (!existing.empty) return; // Already checked in
+
+  const ref = doc(collection(db, ATTENDANCE));
+  await setDoc(ref, {
+    sessionId, classId, studentId, studentName,
+    checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
+  });
+});

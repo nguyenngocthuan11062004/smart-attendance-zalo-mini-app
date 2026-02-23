@@ -6,10 +6,10 @@ interface StepIndicatorProps {
 }
 
 const steps: { key: AttendanceStep; label: string }[] = [
-  { key: "scan-teacher", label: "Quet GV" },
-  { key: "face-verify", label: "Khuon mat" },
-  { key: "show-qr", label: "Xac minh" },
-  { key: "done", label: "Hoan tat" },
+  { key: "scan-teacher", label: "Quét GV" },
+  { key: "face-verify", label: "Khuôn mặt" },
+  { key: "show-qr", label: "Xác minh" },
+  { key: "done", label: "Hoàn tất" },
 ];
 
 export default function StepIndicator({ currentStep }: StepIndicatorProps) {

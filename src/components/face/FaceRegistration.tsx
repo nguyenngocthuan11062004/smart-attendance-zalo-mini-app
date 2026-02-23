@@ -24,7 +24,7 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
       const result = await registerFace(imageBase64);
 
       if (!result.sanityPassed) {
-        setIssues(result.issues || ["Anh khong hop le"]);
+        setIssues(result.issues || ["Ảnh không hợp lệ"]);
         setState("error");
         return;
       }
@@ -33,11 +33,11 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
         setState("success");
         setTimeout(onComplete, 1500);
       } else {
-        setErrorMsg("Dang ky that bai. Vui long thu lai.");
+        setErrorMsg("Đăng ký thất bại. Vui lòng thử lại.");
         setState("error");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Loi he thong");
+      setErrorMsg(err.message || "Lỗi hệ thống");
       setState("error");
     }
   };
@@ -46,7 +46,7 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
     return (
       <Box className="flex flex-col items-center space-y-4 py-8">
         <Spinner />
-        <Text className="text-gray-500">Dang xu ly khuon mat...</Text>
+        <Text className="text-gray-500">Đang xử lý khuôn mặt...</Text>
       </Box>
     );
   }
@@ -57,8 +57,8 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
         <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
           <Text size="xLarge" className="text-green-600">&#10003;</Text>
         </div>
-        <Text bold size="large">Dang ky thanh cong!</Text>
-        <Text className="text-gray-500">Khuon mat da duoc luu lai</Text>
+        <Text bold size="large">Đăng ký thành công!</Text>
+        <Text className="text-gray-500">Khuôn mặt đã được lưu lại</Text>
       </Box>
     );
   }
@@ -80,10 +80,10 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
           </Box>
         )}
         <Text size="xSmall" className="text-gray-400 text-center">
-          Dam bao du sang, khuon mat ro rang, khong doi kinh ram
+          Đảm bảo đủ sáng, khuôn mặt rõ ràng, không đội kính râm
         </Text>
         <Button variant="primary" onClick={() => setState("capture")}>
-          Chup lai
+          Chụp lại
         </Button>
       </Box>
     );
@@ -92,9 +92,9 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
   return (
     <Box className="space-y-4">
       <Box className="text-center">
-        <Text bold size="large">Dang ky khuon mat</Text>
+        <Text bold size="large">Đăng ký khuôn mặt</Text>
         <Text size="small" className="text-gray-500">
-          Chup mot tam anh ro mat de dang ky nhan dien
+          Chụp một tấm ảnh rõ mặt để đăng ký nhận diện
         </Text>
       </Box>
 
@@ -103,7 +103,7 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
       {onSkip && (
         <Box className="text-center">
           <Button size="small" variant="tertiary" onClick={onSkip}>
-            Bo qua
+            Bỏ qua
           </Button>
         </Box>
       )}

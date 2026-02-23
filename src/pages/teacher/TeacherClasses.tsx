@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Page, Box, Button, Text, Input, Modal, Header } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { getTeacherClasses, createClass } from "@/services/class.service";
 import ClassCard from "@/components/class/ClassCard";
+import PullToRefresh from "@/components/ui/PullToRefresh";
 import type { ClassDoc } from "@/types";
 
 export default function TeacherClasses() {
@@ -16,12 +17,19 @@ export default function TeacherClasses() {
   const [className, setClassName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
+  const loadClasses = useCallback(async () => {
     if (!user?.id) return;
-    getTeacherClasses(user.id)
-      .then(setClasses)
-      .finally(() => setLoading(false));
+    try {
+      const classList = await getTeacherClasses(user.id);
+      setClasses(classList);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
+
+  useEffect(() => {
+    loadClasses();
+  }, [loadClasses]);
 
   const handleCreateClass = async () => {
     if (!className.trim() || !user) return;
@@ -38,13 +46,14 @@ export default function TeacherClasses() {
 
   return (
     <Page className="page">
-      <Header title="Quan ly lop hoc" showBackIcon={false} />
+      <Header title="Quản lý lớp học" showBackIcon={false} />
 
+      <PullToRefresh onRefresh={async () => { setLoading(true); await loadClasses(); }}>
       {/* Header card with gradient */}
       <div className="gradient-blue rounded-2xl p-4 mb-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white/70 text-xs font-medium">Tong so lop</p>
+            <p className="text-white/70 text-xs font-medium">Tổng số lớp</p>
             <p className="text-3xl font-bold mt-0.5">{loading ? "..." : classes.length}</p>
           </div>
           <button
@@ -58,7 +67,7 @@ export default function TeacherClasses() {
         </div>
       </div>
 
-      <p className="section-label">Danh sach lop hoc</p>
+      <p className="section-label">Danh sách lớp học</p>
 
       {loading ? (
         <div className="space-y-3">
@@ -74,10 +83,10 @@ export default function TeacherClasses() {
               <path d="M9 6V4a2 2 0 012-2h6a2 2 0 012 2v2" />
             </svg>
           </div>
-          <Text bold className="text-gray-600 mb-1">Chua co lop hoc</Text>
-          <Text size="xSmall" className="text-gray-400 mb-4">Tao lop hoc dau tien de bat dau</Text>
+          <Text bold className="text-gray-600 mb-1">Chưa có lớp học</Text>
+          <Text size="xSmall" className="text-gray-400 mb-4">Tạo lớp học đầu tiên để bắt đầu</Text>
           <Button size="small" variant="primary" onClick={() => setCreateModal(true)}>
-            Tao lop moi
+            Tạo lớp mới
           </Button>
         </div>
       ) : (
@@ -90,18 +99,19 @@ export default function TeacherClasses() {
           />
         ))
       )}
+      </PullToRefresh>
 
-      <Modal visible={createModal} onClose={() => setCreateModal(false)} title="Tao lop moi">
+      <Modal visible={createModal} onClose={() => setCreateModal(false)} title="Tạo lớp mới">
         <Box className="p-4">
           <Input
-            label="Ten lop"
+            label="Tên lớp"
             placeholder="VD: CNTT K68..."
             value={className}
             onChange={(e) => setClassName(e.target.value)}
           />
           <div className="mt-4">
             <Button fullWidth variant="primary" loading={creating} onClick={handleCreateClass}>
-              Tao lop
+              Tạo lớp
             </Button>
           </div>
         </Box>

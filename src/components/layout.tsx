@@ -26,12 +26,15 @@ import TeacherMonitor from "@/pages/teacher/TeacherMonitor";
 import TeacherReview from "@/pages/teacher/TeacherReview";
 import TeacherClassDetail from "@/pages/teacher/TeacherClassDetail";
 import TeacherFraudReport from "@/pages/teacher/TeacherFraudReport";
+import TeacherAnalytics from "@/pages/teacher/TeacherAnalytics";
 import ProfilePage from "@/pages/profile";
 import SearchPage from "@/pages/search";
 
 import AppBottomNav from "@/components/navigation/AppBottomNav";
 import GlobalLoading from "@/components/ui/GlobalLoading";
 import ErrorToast from "@/components/ui/ErrorToast";
+import OfflineBanner from "@/components/ui/OfflineBanner";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import AuthGuard from "@/components/guards/AuthGuard";
 import RoleGuard from "@/components/guards/RoleGuard";
 import { useAuthInit } from "@/hooks/useAuthInit";
@@ -55,38 +58,42 @@ function AppShell() {
       {/* @ts-ignore - zmp-ui SnackbarProvider type issue */}
       <SnackbarProvider>
         <ZMPRouter>
-          <AnimationRoutes>
-            {/* Default: redirect to splash */}
-            <Route path="/" element={<Navigate to="/splash" replace />} />
-            <Route path="/dev" element={<DevPage />} />
+          <ErrorBoundary>
+            <AnimationRoutes>
+              {/* Default: redirect to splash */}
+              <Route path="/" element={<Navigate to="/splash" replace />} />
+              <Route path="/dev" element={<DevPage />} />
 
-            {/* Public routes */}
-            <Route path="/splash" element={<SplashPage />} />
-            <Route path="/welcome" element={<WelcomePage />} />
-            <Route path="/login" element={<LoginPage />} />
+              {/* Public routes */}
+              <Route path="/splash" element={<SplashPage />} />
+              <Route path="/welcome" element={<WelcomePage />} />
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected: requires auth */}
-            <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
-            <Route path="/search" element={<AuthGuard><SearchPage /></AuthGuard>} />
-            <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+              {/* Protected: requires auth */}
+              <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
+              <Route path="/search" element={<AuthGuard><SearchPage /></AuthGuard>} />
+              <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
 
-            {/* Student routes: auth + student role */}
-            <Route path="/student/classes" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentClasses /></RoleGuard></AuthGuard>} />
-            <Route path="/student/attendance/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentAttendance /></RoleGuard></AuthGuard>} />
-            <Route path="/student/history" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentHistory /></RoleGuard></AuthGuard>} />
-            <Route path="/student/face-register" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><FaceRegister /></RoleGuard></AuthGuard>} />
+              {/* Student routes: auth + student role */}
+              <Route path="/student/classes" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentClasses /></RoleGuard></AuthGuard>} />
+              <Route path="/student/attendance/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentAttendance /></RoleGuard></AuthGuard>} />
+              <Route path="/student/history" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentHistory /></RoleGuard></AuthGuard>} />
+              <Route path="/student/face-register" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><FaceRegister /></RoleGuard></AuthGuard>} />
 
-            {/* Teacher routes: auth + teacher role */}
-            <Route path="/teacher/classes" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClasses /></RoleGuard></AuthGuard>} />
-            <Route path="/teacher/session/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherSession /></RoleGuard></AuthGuard>} />
-            <Route path="/teacher/monitor/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherMonitor /></RoleGuard></AuthGuard>} />
-            <Route path="/teacher/review/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherReview /></RoleGuard></AuthGuard>} />
-            <Route path="/teacher/class/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClassDetail /></RoleGuard></AuthGuard>} />
-            <Route path="/teacher/fraud/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherFraudReport /></RoleGuard></AuthGuard>} />
-          </AnimationRoutes>
-          <AppBottomNav />
-          <GlobalLoading />
-          <ErrorToast />
+              {/* Teacher routes: auth + teacher role */}
+              <Route path="/teacher/classes" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClasses /></RoleGuard></AuthGuard>} />
+              <Route path="/teacher/session/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherSession /></RoleGuard></AuthGuard>} />
+              <Route path="/teacher/monitor/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherMonitor /></RoleGuard></AuthGuard>} />
+              <Route path="/teacher/review/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherReview /></RoleGuard></AuthGuard>} />
+              <Route path="/teacher/class/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClassDetail /></RoleGuard></AuthGuard>} />
+              <Route path="/teacher/fraud/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherFraudReport /></RoleGuard></AuthGuard>} />
+              <Route path="/teacher/analytics/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherAnalytics /></RoleGuard></AuthGuard>} />
+            </AnimationRoutes>
+            <AppBottomNav />
+            <GlobalLoading />
+            <ErrorToast />
+            <OfflineBanner />
+          </ErrorBoundary>
         </ZMPRouter>
       </SnackbarProvider>
     </App>

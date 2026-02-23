@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as CryptoJS from "crypto-js";
 import { requireAuth } from "../middleware/auth";
+import { notifySessionStarted } from "./notification.service";
 
 const db = admin.firestore();
 
@@ -41,6 +42,10 @@ export const startSession = functions.region("asia-southeast1").https.onCall(
     };
 
     await ref.set(session);
+
+    // Fire-and-forget: notify students (don't block session start)
+    notifySessionStarted(classId, className, ref.id).catch(() => {});
+
     return { id: ref.id, ...session };
   })
 );

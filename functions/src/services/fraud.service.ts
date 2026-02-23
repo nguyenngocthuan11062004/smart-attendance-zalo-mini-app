@@ -26,6 +26,9 @@ async function callClaudeAPI(prompt: string): Promise<string | null> {
   const apiKey = functions.config().claude?.api_key;
   if (!apiKey) return null;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
   try {
     const response = await fetch(CLAUDE_API_URL, {
       method: "POST",
@@ -44,14 +47,49 @@ async function callClaudeAPI(prompt: string): Promise<string | null> {
           },
         ],
       }),
+      signal: controller.signal,
     });
+
+    if (!response.ok) {
+      console.error(`Claude API error: ${response.status} ${response.statusText}`);
+      return null;
+    }
 
     const data = await response.json();
     if (data.content && data.content[0]?.text) {
       return data.content[0].text;
     }
     return null;
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      console.error("Claude API timeout after 30s");
+    } else {
+      console.error("Claude API call failed:", err.message);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Parse JSON from Claude response, handling markdown-wrapped JSON
+ * (e.g., ```json\n{...}\n```)
+ */
+function parseClaudeJSON(text: string): any | null {
+  // Try direct parse first
+  try {
+    return JSON.parse(text);
   } catch {
+    // Try extracting from markdown code block
+    const match = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (match) {
+      try {
+        return JSON.parse(match[1].trim());
+      } catch {
+        return null;
+      }
+    }
     return null;
   }
 }
@@ -218,14 +256,25 @@ export const analyzeFraud = functions.region("asia-southeast1").https.onCall(
     try {
       const aiResponse = await callClaudeAPI(buildAnalysisPrompt(allStats, className));
       if (aiResponse) {
-        const aiResult = JSON.parse(aiResponse);
-        if (aiResult.patterns) {
-          patterns.push(...aiResult.patterns);
+        const aiResult = parseClaudeJSON(aiResponse);
+        if (aiResult?.patterns && Array.isArray(aiResult.patterns)) {
+          // Validate and sanitize AI patterns before adding
+          for (const p of aiResult.patterns) {
+            if (p.type && p.studentIds && p.description && p.severity) {
+              patterns.push({
+                type: "ai_detected",
+                studentIds: Array.isArray(p.studentIds) ? p.studentIds : [],
+                description: String(p.description),
+                severity: ["low", "medium", "high"].includes(p.severity) ? p.severity : "low",
+              });
+            }
+          }
         }
-        aiSummary = aiResult.summary || "";
+        aiSummary = typeof aiResult?.summary === "string" ? aiResult.summary : "";
       }
-    } catch {
-      // AI analysis failed, continue with rule-based only
+    } catch (err: any) {
+      console.error("AI fraud analysis failed:", err.message);
+      // Continue with rule-based only
     }
 
     const summary = aiSummary || (

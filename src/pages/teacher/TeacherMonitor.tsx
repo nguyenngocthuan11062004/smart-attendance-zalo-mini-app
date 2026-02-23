@@ -3,6 +3,7 @@ import { Page, Box, Text, Button, Modal, Header } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeSessionAtom } from "@/store/session";
+import { globalErrorAtom } from "@/store/ui";
 import { subscribeToSessionAttendance } from "@/services/attendance.service";
 import { getSession, endSession } from "@/services/session.service";
 import { getClassById } from "@/services/class.service";
@@ -18,6 +19,7 @@ export default function TeacherMonitor() {
   const navigate = useNavigate();
   const session = useAtomValue(activeSessionAtom);
   const setActiveSession = useSetAtom(activeSessionAtom);
+  const setError = useSetAtom(globalErrorAtom);
   const [records, setRecords] = useState<AttendanceDoc[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -64,6 +66,8 @@ export default function TeacherMonitor() {
       await calculateTrustScores({ sessionId }).catch(() => {});
       setActiveSession(null);
       navigate(`/teacher/review/${sessionId}`);
+    } catch {
+      setError("Không thể kết thúc phiên. Vui lòng thử lại.");
     } finally {
       setEnding(false);
       setShowEndConfirm(false);
@@ -71,15 +75,15 @@ export default function TeacherMonitor() {
   };
 
   const filterButtons: { key: FilterType; label: string; count: number }[] = [
-    { key: "all", label: "Tat ca", count: checkedIn },
-    { key: "present", label: "Co mat", count: present },
-    { key: "review", label: "Xem xet", count: review },
-    { key: "absent", label: "Vang", count: records.filter((r) => r.trustScore === "absent").length },
+    { key: "all", label: "Tất cả", count: checkedIn },
+    { key: "present", label: "Có mặt", count: present },
+    { key: "review", label: "Xem xét", count: review },
+    { key: "absent", label: "Vắng", count: records.filter((r) => r.trustScore === "absent").length },
   ];
 
   return (
     <Page className="page">
-      <Header title="Theo doi diem danh" />
+      <Header title="Theo dõi điểm danh" />
 
       {/* Progress section */}
       {totalStudents > 0 && (
@@ -87,7 +91,7 @@ export default function TeacherMonitor() {
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center space-x-2">
               <Text bold size="normal">{checkedIn}</Text>
-              <Text size="xSmall" className="text-gray-400">/ {totalStudents} sinh vien</Text>
+              <Text size="xSmall" className="text-gray-400">/ {totalStudents} sinh viên</Text>
             </div>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600">
               {progressPercent}%
@@ -106,15 +110,15 @@ export default function TeacherMonitor() {
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="stat-card bg-emerald-50 text-emerald-600">
           <p className="text-2xl font-bold">{present}</p>
-          <p className="text-[11px] text-emerald-500 mt-0.5 font-medium">Co mat</p>
+          <p className="text-[11px] text-emerald-500 mt-0.5 font-medium">Có mặt</p>
         </div>
         <div className="stat-card bg-amber-50 text-amber-600">
           <p className="text-2xl font-bold">{review}</p>
-          <p className="text-[11px] text-amber-500 mt-0.5 font-medium">Xem xet</p>
+          <p className="text-[11px] text-amber-500 mt-0.5 font-medium">Xem xét</p>
         </div>
         <div className="stat-card bg-red-50 text-red-600">
           <p className="text-2xl font-bold">{absentCount}</p>
-          <p className="text-[11px] text-red-500 mt-0.5 font-medium">Vang</p>
+          <p className="text-[11px] text-red-500 mt-0.5 font-medium">Vắng</p>
         </div>
       </div>
 
@@ -133,7 +137,7 @@ export default function TeacherMonitor() {
 
       {/* List header */}
       <div className="flex justify-between items-center mb-3">
-        <Text bold size="normal">Danh sach ({filteredRecords.length})</Text>
+        <Text bold size="normal">Danh sách ({filteredRecords.length})</Text>
         {session?.status === "active" && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
@@ -146,7 +150,7 @@ export default function TeacherMonitor() {
       {filteredRecords.length === 0 ? (
         <div className="empty-state py-8">
           <Text size="small" className="text-gray-400">
-            {filter === "all" ? "Chua co sinh vien diem danh" : "Khong co sinh vien"}
+            {filter === "all" ? "Chưa có sinh viên điểm danh" : "Không có sinh viên"}
           </Text>
         </div>
       ) : (
@@ -160,7 +164,7 @@ export default function TeacherMonitor() {
             className="w-full py-3 rounded-xl bg-red-500 text-white font-semibold text-sm active:bg-red-600"
             onClick={() => setShowEndConfirm(true)}
           >
-            Ket thuc phien diem danh
+            Kết thúc phiên điểm danh
           </button>
         </div>
       )}
@@ -169,12 +173,12 @@ export default function TeacherMonitor() {
       <Modal
         visible={showEndConfirm}
         onClose={() => setShowEndConfirm(false)}
-        title="Ket thuc phien?"
+        title="Kết thúc phiên?"
       >
         <Box className="p-4">
           <div className="bg-amber-50 rounded-xl p-3 mb-3">
             <Text size="small" className="text-amber-800">
-              Da co {checkedIn}/{totalStudents} sinh vien check-in. He thong se tinh diem tin cay sau khi ket thuc.
+              Đã có {checkedIn}/{totalStudents} sinh viên check-in. Hệ thống sẽ tính điểm tin cậy sau khi kết thúc.
             </Text>
           </div>
           <div className="flex space-x-3">
@@ -183,13 +187,13 @@ export default function TeacherMonitor() {
               variant="secondary"
               onClick={() => setShowEndConfirm(false)}
             >
-              Huy
+              Hủy
             </Button>
             <button
               className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm active:bg-red-600"
               onClick={handleEndSession}
             >
-              {ending ? "Dang ket thuc..." : "Ket thuc"}
+              {ending ? "Đang kết thúc..." : "Kết thúc"}
             </button>
           </div>
         </Box>

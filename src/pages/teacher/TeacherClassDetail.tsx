@@ -80,7 +80,7 @@ export default function TeacherClassDetail() {
   if (loading) {
     return (
       <Page className="page">
-        <Header title="Chi tiet lop" />
+        <Header title="Chi tiết lớp" />
         <div className="space-y-3">
           <div className="skeleton h-[120px] rounded-2xl" />
           <div className="grid grid-cols-2 gap-3">
@@ -96,9 +96,9 @@ export default function TeacherClassDetail() {
   if (!classDoc) {
     return (
       <Page className="page">
-        <Header title="Chi tiet lop" />
+        <Header title="Chi tiết lớp" />
         <div className="empty-state">
-          <Text className="text-gray-500">Khong tim thay lop hoc</Text>
+          <Text className="text-gray-500">Không tìm thấy lớp học</Text>
         </div>
       </Page>
     );
@@ -110,7 +110,7 @@ export default function TeacherClassDetail() {
 
       {/* Class code hero */}
       <div className="gradient-blue rounded-2xl p-5 mb-4 text-center text-white">
-        <p className="text-white/70 text-xs font-medium mb-1">Ma lop</p>
+        <p className="text-white/70 text-xs font-medium mb-1">Mã lớp</p>
         <p className="text-3xl font-bold tracking-[0.3em] font-mono mb-3">{classDoc.code}</p>
         <button
           className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 text-white text-sm font-medium active:bg-white/30"
@@ -121,7 +121,7 @@ export default function TeacherClassDetail() {
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mr-1.5">
                 <path d="M3 7l3 3 5-5" />
               </svg>
-              Da copy!
+              Đã copy!
             </>
           ) : (
             <>
@@ -129,7 +129,7 @@ export default function TeacherClassDetail() {
                 <rect x="5" y="5" width="7" height="7" rx="1.5" />
                 <path d="M9 5V3.5A1.5 1.5 0 007.5 2h-4A1.5 1.5 0 002 3.5v4A1.5 1.5 0 003.5 9H5" />
               </svg>
-              Copy ma lop
+              Copy mã lớp
             </>
           )}
         </button>
@@ -139,11 +139,11 @@ export default function TeacherClassDetail() {
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="stat-card bg-red-50 text-red-600">
           <p className="text-2xl font-bold">{classDoc.studentIds.length}</p>
-          <p className="text-xs text-red-500 mt-0.5">Sinh vien</p>
+          <p className="text-xs text-red-500 mt-0.5">Sinh viên</p>
         </div>
         <div className="stat-card bg-red-50 text-red-600">
           <p className="text-2xl font-bold">{sessions.length}</p>
-          <p className="text-xs text-red-500 mt-0.5">Phien diem danh</p>
+          <p className="text-xs text-red-500 mt-0.5">Phiên điểm danh</p>
         </div>
       </div>
 
@@ -154,22 +154,29 @@ export default function TeacherClassDetail() {
           variant="primary"
           onClick={() => navigate(`/teacher/session/${classDoc.id}`)}
         >
-          Diem danh
+          Điểm danh
         </Button>
         <Button
           className="flex-1"
           variant="secondary"
           onClick={() => navigate(`/teacher/fraud/${classDoc.id}`)}
         >
-          Gian lan
+          Gian lận
+        </Button>
+        <Button
+          className="flex-1"
+          variant="secondary"
+          onClick={() => navigate(`/teacher/analytics/${classDoc.id}`)}
+        >
+          Thống kê
         </Button>
       </div>
 
       {/* Session history */}
-      <p className="section-label">Lich su phien ({sessions.length})</p>
+      <p className="section-label">Lịch sử phiên ({sessions.length})</p>
       {sessions.length === 0 ? (
         <div className="empty-state py-6">
-          <Text size="small" className="text-gray-400">Chua co phien nao</Text>
+          <Text size="small" className="text-gray-400">Chưa có phiên nào</Text>
         </div>
       ) : (
         sessions.map((s) => (
@@ -210,7 +217,7 @@ export default function TeacherClassDetail() {
                       : "bg-gray-100 text-gray-500"
                   }`}
                 >
-                  {s.status === "active" ? "Dang diem danh" : "Da ket thuc"}
+                  {s.status === "active" ? "Đang điểm danh" : "Đã kết thúc"}
                 </span>
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   {s.checkedInCount ?? 0}/{classDoc.studentIds.length} SV
@@ -223,10 +230,10 @@ export default function TeacherClassDetail() {
 
       {/* Student list */}
       <div className="mt-5">
-        <p className="section-label">Sinh vien ({students.length})</p>
+        <p className="section-label">Sinh viên ({students.length})</p>
         {students.length === 0 ? (
           <div className="empty-state py-6">
-            <Text size="small" className="text-gray-400">Chua co sinh vien tham gia</Text>
+            <Text size="small" className="text-gray-400">Chưa có sinh viên tham gia</Text>
           </div>
         ) : (
           students.map((s) => (

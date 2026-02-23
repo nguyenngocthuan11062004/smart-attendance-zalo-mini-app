@@ -2,7 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { requireAuth } from "../middleware/auth";
 import { checkRateLimit } from "../middleware/rateLimit";
-import { uploadImageToEKYC, checkImageSanity, matchFaces } from "./ekyc.service";
+import { uploadImageToEKYC, checkImageSanity, matchFaces, isEKYCConfigured } from "./ekyc.service";
 import type { FaceRegistrationDoc, FaceVerificationResult } from "../types/ekyc";
 
 const db = admin.firestore();
@@ -27,37 +27,7 @@ export const registerFace = functions
         throw new functions.https.HttpsError("invalid-argument", "Missing imageBase64");
       }
 
-      // 1. Upload to eKYC
-      let ekycImageId: string;
-      try {
-        ekycImageId = await uploadImageToEKYC(imageBase64);
-      } catch (err: any) {
-        throw new functions.https.HttpsError(
-          "internal",
-          `Image upload failed: ${err.message}`
-        );
-      }
-
-      // 2. Sanity check
-      let sanityResult: { isValid: boolean; issues: string[] };
-      try {
-        sanityResult = await checkImageSanity(ekycImageId);
-      } catch (err: any) {
-        throw new functions.https.HttpsError(
-          "internal",
-          `Sanity check failed: ${err.message}`
-        );
-      }
-
-      if (!sanityResult.isValid) {
-        return {
-          success: false,
-          sanityPassed: false,
-          issues: sanityResult.issues,
-        };
-      }
-
-      // 3. Save image to Firebase Storage
+      // Save image to Firebase Storage regardless of eKYC availability
       const storagePath = `faces/${userId}/reference.jpg`;
       const bucket = storage.bucket();
       const file = bucket.file(storagePath);
@@ -65,12 +35,46 @@ export const registerFace = functions
         metadata: { contentType: "image/jpeg" },
       });
 
-      // 4. Save registration doc to Firestore
+      let ekycImageId = "pending";
+      let sanityPassed = true;
+
+      if (isEKYCConfigured()) {
+        // 1. Upload to eKYC
+        try {
+          ekycImageId = await uploadImageToEKYC(imageBase64);
+        } catch (err: any) {
+          throw new functions.https.HttpsError(
+            "internal",
+            `Image upload failed: ${err.message}`
+          );
+        }
+
+        // 2. Sanity check
+        let sanityResult: { isValid: boolean; issues: string[] };
+        try {
+          sanityResult = await checkImageSanity(ekycImageId);
+        } catch (err: any) {
+          throw new functions.https.HttpsError(
+            "internal",
+            `Sanity check failed: ${err.message}`
+          );
+        }
+
+        if (!sanityResult.isValid) {
+          return {
+            success: false,
+            sanityPassed: false,
+            issues: sanityResult.issues,
+          };
+        }
+      }
+
+      // Save registration doc to Firestore
       const regDoc: Omit<FaceRegistrationDoc, "id"> = {
         studentId: userId,
         referenceImagePath: storagePath,
         ekycImageId,
-        sanityCheckPassed: true,
+        sanityCheckPassed: sanityPassed,
         registeredAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -87,10 +91,14 @@ export const registerFace = functions
         await db.collection(FACE_REGISTRATIONS).add(regDoc);
       }
 
-      // 5. Update user doc: faceRegistered = true
+      // Update user doc: faceRegistered = true
       await db.collection("users").doc(userId).update({ faceRegistered: true });
 
-      return { success: true, sanityPassed: true };
+      return {
+        success: true,
+        sanityPassed: true,
+        issues: ekycImageId === "pending" ? ["pending:ekyc_unavailable"] : undefined,
+      };
     })
   );
 
@@ -137,6 +145,22 @@ export const verifyFace = functions
 
       const registration = regSnap.docs[0].data() as FaceRegistrationDoc;
 
+      // Save selfie to Firebase Storage regardless
+      const selfiePath = `faces/${userId}/sessions/${sessionId}.jpg`;
+      const bucket = storage.bucket();
+      await bucket.file(selfiePath).save(Buffer.from(imageBase64, "base64"), {
+        metadata: { contentType: "image/jpeg" },
+      });
+
+      // If eKYC not configured or registration is pending, return gracefully
+      if (!isEKYCConfigured() || registration.ekycImageId === "pending") {
+        return {
+          matched: false,
+          confidence: 0,
+          error: "ekyc_unavailable",
+        };
+      }
+
       // 2. Upload selfie to eKYC
       let selfieImageId: string;
       try {
@@ -161,14 +185,7 @@ export const verifyFace = functions
         } as Partial<FaceVerificationResult>;
       }
 
-      // 4. Save selfie to Firebase Storage
-      const selfiePath = `faces/${userId}/sessions/${sessionId}.jpg`;
-      const bucket = storage.bucket();
-      await bucket.file(selfiePath).save(Buffer.from(imageBase64, "base64"), {
-        metadata: { contentType: "image/jpeg" },
-      });
-
-      // 5. Update attendance record with face verification result
+      // 4. Update attendance record with face verification result
       const faceResult: FaceVerificationResult = {
         matched: matchResult.matched,
         confidence: matchResult.confidence,

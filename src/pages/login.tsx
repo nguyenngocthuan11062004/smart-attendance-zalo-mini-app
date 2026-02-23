@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAtomValue } from "jotai";
 import { globalLoadingAtom } from "@/store/ui";
 import type { UserRole } from "@/types";
+import { isValidMSSV } from "@/utils/sanitize";
 import logo from "@/static/icon_inhust.png";
 
 export default function LoginPage() {
@@ -28,11 +29,11 @@ export default function LoginPage() {
     if (selectedRole === "student") {
       const trimmed = mssv.trim();
       if (!trimmed) {
-        setMssvError("Vui long nhap MSSV");
+        setMssvError("Vui lòng nhập MSSV");
         return;
       }
-      if (trimmed.length < 5) {
-        setMssvError("MSSV khong hop le");
+      if (!isValidMSSV(trimmed)) {
+        setMssvError("MSSV không hợp lệ (8 chữ số, bắt đầu bằng 20)");
         return;
       }
       setMssvError("");
@@ -55,7 +56,7 @@ export default function LoginPage() {
             style={{ width: 80, height: 80, borderRadius: 16, objectFit: "contain" }}
             className="mb-4"
           />
-          <Text size="small" className="text-gray-400">Dang ket noi...</Text>
+          <Text size="small" className="text-gray-400">Đang kết nối...</Text>
         </div>
       </Page>
     );
@@ -67,11 +68,11 @@ export default function LoginPage() {
       <div className="flex flex-col items-center pt-8 mb-6">
         <Avatar src={currentUser.avatar} size={72} />
         <Text bold size="xLarge" className="mt-3">{currentUser.name}</Text>
-        <Text size="xSmall" className="text-gray-400 mt-0.5">Tai khoan Zalo</Text>
+        <Text size="xSmall" className="text-gray-400 mt-0.5">Tài khoản Zalo</Text>
       </div>
 
       {/* Role selection */}
-      <p className="section-label">Ban la ai?</p>
+      <p className="section-label">Bạn là ai?</p>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <button
           className={`p-4 rounded-2xl text-center transition-all ${
@@ -89,7 +90,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <p className={`text-sm font-bold ${selectedRole === "student" ? "text-white" : "text-gray-700"}`}>
-            Sinh vien
+            Sinh viên
           </p>
         </button>
 
@@ -109,7 +110,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <p className={`text-sm font-bold ${selectedRole === "teacher" ? "text-white" : "text-gray-700"}`}>
-            Giang vien
+            Giảng viên
           </p>
         </button>
       </div>
@@ -117,7 +118,7 @@ export default function LoginPage() {
       {/* MSSV input for students */}
       {selectedRole === "student" && (
         <div className="mb-5">
-          <p className="section-label">Ma so sinh vien</p>
+          <p className="section-label">Mã số sinh viên</p>
           <div className="card-flat p-4">
             <Input
               placeholder="VD: 20215678"
@@ -139,7 +140,7 @@ export default function LoginPage() {
           onClick={handleSubmit}
           disabled={loading}
         >
-          {loading ? "Dang xu ly..." : "Tiep tuc"}
+          {loading ? "Đang xử lý..." : "Tiếp tục"}
         </button>
       )}
     </Page>

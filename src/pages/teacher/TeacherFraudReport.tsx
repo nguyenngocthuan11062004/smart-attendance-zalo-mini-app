@@ -45,7 +45,7 @@ export default function TeacherFraudReport() {
     } catch {
       setLatestResult({
         patterns: [],
-        summary: "Loi khi phan tich. Vui long thu lai sau.",
+        summary: "Lỗi khi phân tích. Vui lòng thử lại sau.",
       });
     } finally {
       setAnalyzing(false);
@@ -53,7 +53,7 @@ export default function TeacherFraudReport() {
   };
 
   const severityConfig = {
-    low: { bg: "bg-red-50", text: "text-red-600", dot: "bg-red-500" },
+    low: { bg: "bg-gray-50", text: "text-gray-500", dot: "bg-gray-400" },
     medium: { bg: "bg-amber-50", text: "text-amber-600", dot: "bg-amber-500" },
     high: { bg: "bg-red-50", text: "text-red-600", dot: "bg-red-500" },
   };
@@ -67,12 +67,14 @@ export default function TeacherFraudReport() {
   };
 
   const typeLabels: Record<string, string> = {
-    always_same_peers: "Luon cung nhom",
-    rapid_verification: "Xac minh qua nhanh",
-    low_peer_count: "It peer xac minh",
-    face_mismatch: "Khong khop khuon mat",
-    ai_detected: "AI phat hien",
+    always_same_peers: "Luôn cùng nhóm",
+    rapid_verification: "Xác minh quá nhanh",
+    low_peer_count: "Ít peer xác minh",
+    face_mismatch: "Không khớp khuôn mặt",
+    ai_detected: "AI phát hiện",
   };
+
+  const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
   const renderPatterns = (patterns: SuspiciousPattern[]) => {
     if (patterns.length === 0) {
@@ -83,13 +85,17 @@ export default function TeacherFraudReport() {
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <Text bold className="text-emerald-600">Khong phat hien gian lan</Text>
-          <Text size="xxSmall" className="text-gray-400 mt-0.5">Du lieu diem danh binh thuong</Text>
+          <Text bold className="text-emerald-600">Không phát hiện gian lận</Text>
+          <Text size="xxSmall" className="text-gray-400 mt-0.5">Dữ liệu điểm danh bình thường</Text>
         </div>
       );
     }
 
-    return patterns.map((p, i) => {
+    const sorted = [...patterns].sort(
+      (a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2)
+    );
+
+    return sorted.map((p, i) => {
       const severity = severityConfig[p.severity];
       const iconPath = typeIcons[p.type] || typeIcons.ai_detected;
       const label = typeLabels[p.type] || p.type;
@@ -107,7 +113,7 @@ export default function TeacherFraudReport() {
                 <Text bold size="small">{label}</Text>
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${severity.bg} ${severity.text}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${severity.dot} mr-1`} />
-                  {p.severity === "low" ? "Thap" : p.severity === "medium" ? "TB" : "Cao"}
+                  {p.severity === "low" ? "Thấp" : p.severity === "medium" ? "TB" : "Cao"}
                 </span>
               </div>
               <Text size="xxSmall" className="text-gray-500">{p.description}</Text>
@@ -130,7 +136,7 @@ export default function TeacherFraudReport() {
   if (loading) {
     return (
       <Page className="page">
-        <Header title="Phan tich gian lan" />
+        <Header title="Phân tích gian lận" />
         <div className="space-y-3">
           <div className="skeleton h-[48px] rounded-xl" />
           <div className="skeleton h-[120px] rounded-2xl" />
@@ -141,13 +147,13 @@ export default function TeacherFraudReport() {
 
   return (
     <Page className="page">
-      <Header title="Phan tich gian lan" />
+      <Header title="Phân tích gian lận" />
 
       {/* Class info */}
       <div className="gradient-red rounded-2xl p-4 mb-4 text-white">
         <p className="text-white/70 text-xs font-medium">{className}</p>
-        <p className="text-lg font-bold mt-0.5">Phat hien gian lan</p>
-        <p className="text-white/60 text-xs mt-1">Phan tich du lieu diem danh de tim mau dang ngo</p>
+        <p className="text-lg font-bold mt-0.5">Phát hiện gian lận</p>
+        <p className="text-white/60 text-xs mt-1">Phân tích dữ liệu điểm danh để tìm mẫu đáng ngờ</p>
       </div>
 
       {/* Analyze button */}
@@ -166,14 +172,14 @@ export default function TeacherFraudReport() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span>Dang phan tich...</span>
+            <span>Đang phân tích...</span>
           </>
         ) : (
           <>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <span>Phan tich gian lan</span>
+            <span>Phân tích gian lận</span>
           </>
         )}
       </button>
@@ -191,7 +197,7 @@ export default function TeacherFraudReport() {
       {/* Previous reports */}
       {reports.length > 0 && !latestResult && (
         <div>
-          <p className="section-label">Bao cao truoc ({reports.length})</p>
+          <p className="section-label">Báo cáo trước ({reports.length})</p>
           {reports.map((report) => (
             <div key={report.id} className="mb-4">
               <div className="card-flat p-3 mb-2">
@@ -200,7 +206,7 @@ export default function TeacherFraudReport() {
                     {new Date(report.generatedAt).toLocaleString("vi-VN")}
                   </Text>
                   <span className="text-[10px] text-gray-400">
-                    {report.suspiciousPatterns.length} mau
+                    {report.suspiciousPatterns.length} mẫu
                   </span>
                 </div>
                 <Text size="small" className="text-gray-600 mt-1">{report.summary}</Text>
@@ -218,8 +224,8 @@ export default function TeacherFraudReport() {
               <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
           </div>
-          <Text bold className="text-gray-500 mb-1">Chua co bao cao</Text>
-          <Text size="xSmall" className="text-gray-400">Nhan "Phan tich gian lan" de bat dau</Text>
+          <Text bold className="text-gray-500 mb-1">Chưa có báo cáo</Text>
+          <Text size="xSmall" className="text-gray-400">Nhấn "Phân tích gian lận" để bắt đầu</Text>
         </div>
       )}
     </Page>

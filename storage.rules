@@ -8,7 +8,7 @@ service firebase.storage {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Default: deny all
+    // Deny all other paths
     match /{allPaths=**} {
       allow read, write: if false;
     }

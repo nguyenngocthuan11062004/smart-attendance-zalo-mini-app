@@ -11,6 +11,15 @@ import type {
 
 const EKYC_BASE_URL = "https://graph.zalo.me/v1/api/ekyc-verify";
 
+/**
+ * Check if eKYC API credentials are configured.
+ * Returns false when API key or private key is missing.
+ */
+export function isEKYCConfigured(): boolean {
+  const config = functions.config();
+  return !!(config.ekyc?.api_key && config.ekyc?.private_key);
+}
+
 function getConfig() {
   const config = functions.config();
   const apiKey = config.ekyc?.api_key;

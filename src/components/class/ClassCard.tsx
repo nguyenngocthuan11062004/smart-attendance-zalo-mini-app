@@ -39,7 +39,7 @@ export default function ClassCard({ classDoc, onClick, showStudentCount }: Class
             </span>
             {showStudentCount && (
               <Text size="xxSmall" className="text-gray-400">
-                {classDoc.studentIds.length} sinh vien
+                {classDoc.studentIds.length} sinh viên
               </Text>
             )}
           </div>

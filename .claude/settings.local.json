@@ -31,7 +31,12 @@
       "Bash(npm run build:*)",
       "Bash(npm run:*)",
       "Bash(python3:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(find:*)",
+      "WebSearch",
+      "mcp__github__search_repositories",
+      "Bash(wc:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
