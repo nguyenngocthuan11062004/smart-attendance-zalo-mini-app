@@ -9,22 +9,27 @@ interface PeerCounterProps {
 export default function PeerCounter({ current, target = 3 }: PeerCounterProps) {
   const percentage = Math.min((current / target) * 100, 100);
   const color =
-    current >= target ? "bg-green-500" : current >= 1 ? "bg-yellow-500" : "bg-gray-300";
+    current >= target ? "#22c55e" : current >= 1 ? "#f59e0b" : "#6b7280";
 
   return (
     <Box className="w-full">
       <div className="flex justify-between mb-1">
-        <Text size="small" bold>
+        <Text size="small" bold style={{ color: "#1a1a1a" }}>
           Xác minh bạn bè
         </Text>
-        <Text size="small" className="text-gray-600">
+        <Text size="small" style={{ color: "#6b7280" }}>
           {current}/{target} peers
         </Text>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-3">
+      <div style={{ width: "100%", background: "#e5e7eb", borderRadius: 999, height: 12 }}>
         <div
-          className={`h-3 rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${percentage}%` }}
+          style={{
+            height: 12,
+            borderRadius: 999,
+            transition: "all 0.5s",
+            background: color,
+            width: `${percentage}%`,
+          }}
         />
       </div>
     </Box>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Button, Text, Input, Modal, Header, useSnackbar } from "zmp-ui";
+import { Page, Box, Text, Input, Header, useSnackbar } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -7,6 +7,7 @@ import { getStudentClasses, getClassByCode, joinClass } from "@/services/class.s
 import { getActiveSessionForClass } from "@/services/session.service";
 import ClassCard from "@/components/class/ClassCard";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import DarkModal from "@/components/ui/DarkModal";
 import { isValidClassCode } from "@/utils/sanitize";
 import type { ClassDoc, SessionDoc } from "@/types";
 
@@ -49,7 +50,7 @@ export default function StudentClasses() {
   const handleJoinClass = async () => {
     if (!classCode.trim() || !user) return;
     if (!isValidClassCode(classCode.trim())) {
-      setJoinError("Mã lớp không hợp lệ (2-10 ký tự chữ/số)");
+      setJoinError("Ma lop khong hop le (2-10 ky tu chu/so)");
       return;
     }
     setJoining(true);
@@ -57,11 +58,11 @@ export default function StudentClasses() {
     try {
       const found = await getClassByCode(classCode.trim());
       if (!found) {
-        setJoinError("Không tìm thấy lớp với mã này");
+        setJoinError("Khong tim thay lop voi ma nay");
         return;
       }
       if (classes.some((c) => c.id === found.id)) {
-        setJoinError("Bạn đã tham gia lớp này rồi");
+        setJoinError("Ban da tham gia lop nay roi");
         return;
       }
       await joinClass(found.id, user.id);
@@ -69,7 +70,7 @@ export default function StudentClasses() {
       setClasses((prev) => [...prev, newClass]);
       setJoinModal(false);
       setClassCode("");
-      openSnackbar({ type: "success", text: `Đã tham gia lớp ${found.name}` });
+      openSnackbar({ type: "success", text: `Da tham gia lop ${found.name}` });
       // Check if new class has active session
       const session = await getActiveSessionForClass(found.id);
       if (session) {
@@ -100,19 +101,32 @@ export default function StudentClasses() {
       setActiveSessions((prev) => ({ ...prev, [classDoc.id]: freshSession }));
       navigate(`/student/attendance/${freshSession.id}`);
     } else {
-      openSnackbar({ type: "default", text: "Chưa có phiên điểm danh nào đang hoạt động" });
+      openSnackbar({ type: "default", text: "Chua co phien diem danh nao dang hoat dong" });
     }
   };
 
   return (
     <Page className="page">
-      <Header title="Lớp học của tôi" showBackIcon={false} />
+      <Header title="Lop hoc cua toi" showBackIcon={false} />
 
       <PullToRefresh onRefresh={async () => { setLoading(true); await loadClasses(); }}>
         <Box className="mb-4">
-          <Button fullWidth variant="primary" onClick={() => setJoinModal(true)}>
-            Tham gia lớp mới
-          </Button>
+          <button
+            onClick={() => setJoinModal(true)}
+            className="btn-primary-dark"
+            style={{
+              width: "100%",
+              padding: "14px 0",
+              fontSize: 15,
+              fontWeight: 600,
+              borderRadius: 14,
+              background: "#be1d2c",
+              color: "#fff",
+              border: "none",
+            }}
+          >
+            Tham gia lop moi
+          </button>
         </Box>
 
         {loading ? (
@@ -123,19 +137,37 @@ export default function StudentClasses() {
           </div>
         ) : classes.length === 0 ? (
           <Box className="text-center py-8">
-            <Text className="text-gray-500">Chưa tham gia lớp nào</Text>
-            <Text size="xSmall" className="text-gray-400">
-              Nhấn "Tham gia lớp mới" để bắt đầu
+            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" style={{ margin: "0 auto" }}>
+                <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+              </svg>
+            </div>
+            <Text style={{ color: "#9ca3af" }}>Chua tham gia lop nao</Text>
+            <Text size="xSmall" style={{ color: "#6b7280", marginTop: 4 }}>
+              Nhan "Tham gia lop moi" de bat dau
             </Text>
           </Box>
         ) : (
-          classes.map((c) => (
+          classes.map((c, index) => (
             <div key={c.id} className="mb-3">
               <ClassCard classDoc={c} onClick={() => handleClassClick(c)} />
               {activeSessions[c.id] && (
                 <div className="px-4 -mt-2 mb-1">
                   <button
-                    className="w-full py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold active:bg-emerald-600 flex items-center justify-center"
+                    style={{
+                      width: "100%",
+                      padding: "10px 0",
+                      borderRadius: 12,
+                      background: "#22c55e",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAttendance(c.id);
@@ -145,7 +177,7 @@ export default function StudentClasses() {
                       <circle cx="8" cy="8" r="6" />
                       <path d="M5.5 8l1.5 1.5 3-3" />
                     </svg>
-                    Điểm danh ngay
+                    Diem danh ngay
                   </button>
                 </div>
               )}
@@ -154,24 +186,52 @@ export default function StudentClasses() {
         )}
       </PullToRefresh>
 
-      <Modal visible={joinModal} onClose={() => setJoinModal(false)} title="Tham gia lớp">
-        <Box className="space-y-3 p-4">
-          <Input
-            label="Mã lớp"
-            placeholder="VD: WEB68A"
-            value={classCode}
-            onChange={(e) => setClassCode(e.target.value)}
-          />
+      <DarkModal visible={joinModal} onClose={() => setJoinModal(false)} title="Tham gia lop">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "0 4px" }}>
+          <div>
+            <label style={{ fontSize: 13, color: "#6b7280", marginBottom: 6, display: "block" }}>Ma lop</label>
+            <input
+              className="input-dark"
+              placeholder="VD: WEB68A"
+              value={classCode}
+              onChange={(e) => setClassCode(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: "#f0f0f5",
+                border: "1px solid rgba(0,0,0,0.08)",
+                color: "#1a1a1a",
+                fontSize: 15,
+                outline: "none",
+              }}
+            />
+          </div>
           {joinError && (
-            <Text size="small" className="text-red-500">
+            <Text size="small" style={{ color: "#ef4444" }}>
               {joinError}
             </Text>
           )}
-          <Button fullWidth variant="primary" loading={joining} onClick={handleJoinClass}>
-            Tham gia
-          </Button>
-        </Box>
-      </Modal>
+          <button
+            className="btn-primary-dark"
+            onClick={handleJoinClass}
+            disabled={joining}
+            style={{
+              width: "100%",
+              padding: "14px 0",
+              fontSize: 15,
+              fontWeight: 600,
+              borderRadius: 14,
+              background: "#be1d2c",
+              color: "#fff",
+              border: "none",
+              opacity: joining ? 0.6 : 1,
+            }}
+          >
+            {joining ? "Dang xu ly..." : "Tham gia"}
+          </button>
+        </div>
+      </DarkModal>
     </Page>
   );
 }

@@ -53,9 +53,9 @@ export default function TeacherFraudReport() {
   };
 
   const severityConfig = {
-    low: { bg: "bg-gray-50", text: "text-gray-500", dot: "bg-gray-400" },
-    medium: { bg: "bg-amber-50", text: "text-amber-600", dot: "bg-amber-500" },
-    high: { bg: "bg-red-50", text: "text-red-600", dot: "bg-red-500" },
+    low: { bg: "rgba(107,114,128,0.15)", text: "#9ca3af", dot: "#6b7280", border: "#6b7280" },
+    medium: { bg: "rgba(245,158,11,0.15)", text: "#f59e0b", dot: "#f59e0b", border: "#f59e0b" },
+    high: { bg: "rgba(239,68,68,0.15)", text: "#ef4444", dot: "#ef4444", border: "#ef4444" },
   };
 
   const typeIcons: Record<string, string> = {
@@ -79,14 +79,35 @@ export default function TeacherFraudReport() {
   const renderPatterns = (patterns: SuspiciousPattern[]) => {
     if (patterns.length === 0) {
       return (
-        <div className="card-flat p-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-2">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round">
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: 16,
+            padding: 16,
+            textAlign: "center",
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          }}
+        >
+          <div
+            className="animate-success-pop"
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              background: "rgba(34,197,94,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 8px",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round">
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <Text bold className="text-emerald-600">Không phát hiện gian lận</Text>
-          <Text size="xxSmall" className="text-gray-400 mt-0.5">Dữ liệu điểm danh bình thường</Text>
+          <p style={{ color: "#22c55e", fontWeight: 600 }}>Không phát hiện gian lận</p>
+          <p style={{ color: "#6b7280", fontSize: 11, marginTop: 2 }}>Dữ liệu điểm danh bình thường</p>
         </div>
       );
     }
@@ -101,26 +122,85 @@ export default function TeacherFraudReport() {
       const label = typeLabels[p.type] || p.type;
 
       return (
-        <div key={i} className="card-flat p-3 mb-2">
+        <div
+          key={i}
+          className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)} ${p.severity === "high" ? "glow-red" : p.severity === "medium" ? "glow-amber" : ""}`}
+          style={{
+            background: "#ffffff",
+            borderRadius: 16,
+            padding: 12,
+            marginBottom: 8,
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            borderLeft: `4px solid ${severity.border}`,
+          }}
+        >
           <div className="flex items-start">
-            <div className={`w-9 h-9 rounded-lg ${severity.bg} flex items-center justify-center mr-3 flex-shrink-0 mt-0.5`}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={severity.text}>
+            <div
+              className="animate-breathe"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: severity.bg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={severity.text} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d={iconPath} />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <Text bold size="small">{label}</Text>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${severity.bg} ${severity.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${severity.dot} mr-1`} />
+                <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 13 }}>{label}</p>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    background: severity.bg,
+                    color: severity.text,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      background: severity.dot,
+                      marginRight: 4,
+                      display: "inline-block",
+                    }}
+                  />
                   {p.severity === "low" ? "Thấp" : p.severity === "medium" ? "TB" : "Cao"}
                 </span>
               </div>
-              <Text size="xxSmall" className="text-gray-500">{p.description}</Text>
+              <p style={{ color: "#6b7280", fontSize: 11 }}>{p.description}</p>
               {p.studentIds.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
+                <div className="flex flex-wrap gap-1" style={{ marginTop: 6 }}>
                   {p.studentIds.map((id) => (
-                    <span key={id} className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-mono">
+                    <span
+                      key={id}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: "#f0f0f5",
+                        color: "#6b7280",
+                        fontSize: 10,
+                        fontFamily: "monospace",
+                        border: "1px solid rgba(0,0,0,0.06)",
+                      }}
+                    >
                       {id}
                     </span>
                   ))}
@@ -135,42 +215,64 @@ export default function TeacherFraudReport() {
 
   if (loading) {
     return (
-      <Page className="page">
+      <Page className="page" style={{ background: "#f2f2f7" }}>
         <Header title="Phân tích gian lận" />
         <div className="space-y-3">
-          <div className="skeleton h-[48px] rounded-xl" />
-          <div className="skeleton h-[120px] rounded-2xl" />
+          <div className="skeleton" style={{ height: 48, borderRadius: 12 }} />
+          <div className="skeleton" style={{ height: 120, borderRadius: 20 }} />
         </div>
       </Page>
     );
   }
 
   return (
-    <Page className="page">
+    <Page className="page" style={{ background: "#f2f2f7" }}>
       <Header title="Phân tích gian lận" />
 
-      {/* Class info */}
-      <div className="gradient-red rounded-2xl p-4 mb-4 text-white">
-        <p className="text-white/70 text-xs font-medium">{className}</p>
-        <p className="text-lg font-bold mt-0.5">Phát hiện gian lận</p>
-        <p className="text-white/60 text-xs mt-1">Phân tích dữ liệu điểm danh để tìm mẫu đáng ngờ</p>
+      {/* Class info - dark card */}
+      <div
+        className="glass-card animate-fade-in"
+        style={{
+          background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
+          borderRadius: 20,
+          padding: 16,
+          marginBottom: 16,
+          border: "1px solid rgba(0,0,0,0.06)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        }}
+      >
+        <p style={{ color: "#9ca3af", fontSize: 12, fontWeight: 500 }}>{className}</p>
+        <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700, marginTop: 2 }}>Phát hiện gian lận</p>
+        <p style={{ color: "#9ca3af", fontSize: 12, marginTop: 4 }}>Phân tích dữ liệu điểm danh để tìm mẫu đáng ngờ</p>
       </div>
 
       {/* Analyze button */}
       <button
-        className={`w-full py-3 rounded-xl font-semibold text-sm mb-4 flex items-center justify-center space-x-2 ${
-          analyzing
-            ? "bg-gray-100 text-gray-400"
-            : "bg-gray-900 text-white active:bg-gray-800"
-        }`}
+        className={analyzing ? "" : "glow-red press-scale"}
+        style={{
+          width: "100%",
+          padding: "12px 0",
+          borderRadius: 12,
+          fontWeight: 600,
+          fontSize: 14,
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          border: "none",
+          background: analyzing ? "#f0f0f5" : "#be1d2c",
+          color: analyzing ? "#9ca3af" : "#ffffff",
+          boxShadow: analyzing ? "none" : "0 0 20px rgba(190,29,44,0.3)",
+        }}
         onClick={handleAnalyze}
         disabled={analyzing}
       >
         {analyzing ? (
           <>
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <svg className="animate-spin" style={{ width: 16, height: 16 }} viewBox="0 0 24 24" fill="none">
+              <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <span>Đang phân tích...</span>
           </>
@@ -186,9 +288,19 @@ export default function TeacherFraudReport() {
 
       {/* Latest result */}
       {latestResult && (
-        <div className="mb-5">
-          <div className="card-flat p-3 mb-3 border-l-4 border-red-400">
-            <Text size="small" className="text-gray-700">{latestResult.summary}</Text>
+        <div style={{ marginBottom: 20 }}>
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 16,
+              padding: 12,
+              marginBottom: 12,
+              border: "1px solid rgba(0,0,0,0.06)",
+              borderLeft: "4px solid #ef4444",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            }}
+          >
+            <p style={{ color: "#6b7280", fontSize: 14 }}>{latestResult.summary}</p>
           </div>
           {renderPatterns(latestResult.patterns)}
         </div>
@@ -199,17 +311,26 @@ export default function TeacherFraudReport() {
         <div>
           <p className="section-label">Báo cáo trước ({reports.length})</p>
           {reports.map((report) => (
-            <div key={report.id} className="mb-4">
-              <div className="card-flat p-3 mb-2">
+            <div key={report.id} style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: 16,
+                  padding: 12,
+                  marginBottom: 8,
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                }}
+              >
                 <div className="flex items-center justify-between">
-                  <Text size="xxSmall" className="text-gray-400">
+                  <p style={{ color: "#6b7280", fontSize: 11 }}>
                     {new Date(report.generatedAt).toLocaleString("vi-VN")}
-                  </Text>
-                  <span className="text-[10px] text-gray-400">
+                  </p>
+                  <span style={{ color: "#6b7280", fontSize: 10 }}>
                     {report.suspiciousPatterns.length} mẫu
                   </span>
                 </div>
-                <Text size="small" className="text-gray-600 mt-1">{report.summary}</Text>
+                <p style={{ color: "#6b7280", fontSize: 14, marginTop: 4 }}>{report.summary}</p>
               </div>
               {renderPatterns(report.suspiciousPatterns)}
             </div>
@@ -218,14 +339,26 @@ export default function TeacherFraudReport() {
       )}
 
       {reports.length === 0 && !latestResult && (
-        <div className="empty-state py-8">
-          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round">
+        <div className="empty-state" style={{ paddingTop: 32, paddingBottom: 32 }}>
+          <div
+            className="animate-float"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              background: "#f0f0f5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px",
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round">
               <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
           </div>
-          <Text bold className="text-gray-500 mb-1">Chưa có báo cáo</Text>
-          <Text size="xSmall" className="text-gray-400">Nhấn "Phân tích gian lận" để bắt đầu</Text>
+          <p style={{ color: "#1a1a1a", fontWeight: 600, marginBottom: 4 }}>Chưa có báo cáo</p>
+          <p style={{ color: "#9ca3af", fontSize: 12 }}>Nhấn "Phân tích gian lận" để bắt đầu</p>
         </div>
       )}
     </Page>

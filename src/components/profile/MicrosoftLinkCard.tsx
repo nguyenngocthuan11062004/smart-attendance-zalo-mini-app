@@ -54,17 +54,17 @@ export default function MicrosoftLinkCard() {
       <div style={cardStyle}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <MicrosoftIcon />
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#1f2937" }}>Tài khoản Microsoft 365</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>Tài khoản Microsoft 365</span>
           <span style={verifiedBadge}>Đã xác thực</span>
         </div>
         {user?.microsoftEmail && (
-          <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>
-            Email: <span style={{ color: "#2563eb" }}>{user.microsoftEmail}</span>
+          <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 4 }}>
+            Email: <span style={{ color: "#a78bfa" }}>{user.microsoftEmail}</span>
           </p>
         )}
         {user?.hustStudentId && (
-          <p style={{ fontSize: 13, color: "#6b7280" }}>
-            MSSV: <span style={{ fontWeight: 600, color: "#1f2937" }}>{user.hustStudentId}</span>
+          <p style={{ fontSize: 13, color: "#9ca3af" }}>
+            MSSV: <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{user.hustStudentId}</span>
           </p>
         )}
       </div>
@@ -75,9 +75,9 @@ export default function MicrosoftLinkCard() {
     <div style={cardStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <MicrosoftIcon />
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#1f2937" }}>Liên kết Microsoft 365</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>Liên kết Microsoft 365</span>
       </div>
-      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 16 }}>
         Xác thực tài khoản sinh viên HUST bằng email Microsoft 365 (@sis.hust.edu.vn)
       </p>
 
@@ -88,7 +88,7 @@ export default function MicrosoftLinkCard() {
       {state === "waiting" ? (
         <div style={{ textAlign: "center", padding: "8px 0" }}>
           <div style={spinnerStyle} />
-          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 8 }}>
+          <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 8 }}>
             Đang chờ xác thực...
           </p>
         </div>
@@ -117,10 +117,11 @@ function MicrosoftIcon() {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 16,
+  background: "#ffffff",
+  borderRadius: 20,
   padding: 20,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+  border: "1px solid rgba(0,0,0,0.06)",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
 };
 
 const verifiedBadge: React.CSSProperties = {
@@ -136,20 +137,21 @@ const verifiedBadge: React.CSSProperties = {
 const linkButtonStyle: React.CSSProperties = {
   width: "100%",
   padding: "12px 0",
-  borderRadius: 12,
+  borderRadius: 14,
   border: "none",
-  background: "#b91c1c",
+  background: "#be1d2c",
   color: "#fff",
   fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
+  boxShadow: "0 0 20px rgba(190,29,44,0.3)",
 };
 
 const spinnerStyle: React.CSSProperties = {
   width: 24,
   height: 24,
   border: "3px solid #e5e7eb",
-  borderTopColor: "#b91c1c",
+  borderTopColor: "#be1d2c",
   borderRadius: "50%",
   animation: "spin 0.8s linear infinite",
   margin: "0 auto",

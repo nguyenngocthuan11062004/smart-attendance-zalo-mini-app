@@ -1,19 +1,20 @@
 import React, { useState } from "react";
-import { Page, Avatar, Input, Modal, Box, Button } from "zmp-ui";
+import { Page, Avatar, Input, Box, Button } from "zmp-ui";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { isValidPhone, isValidEmail } from "@/utils/sanitize";
 import MicrosoftLinkCard from "@/components/profile/MicrosoftLinkCard";
+import DarkModal from "@/components/ui/DarkModal";
 import bkLogo from "@/static/bk_logo.png";
 import bgProfile from "@/static/bgprofile.jpg";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
+    <div style={{ padding: "14px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
       <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>{label}</p>
-      <p style={{ fontSize: 16, fontWeight: 600, color: "#1f2937" }}>{value}</p>
+      <p style={{ fontSize: 16, fontWeight: 600, color: "#1a1a1a" }}>{value}</p>
     </div>
   );
 }
@@ -54,11 +55,11 @@ export default function ProfilePage() {
     setEmailError("");
 
     if (editPhone && !isValidPhone(editPhone)) {
-      setPhoneError("Số điện thoại không hợp lệ");
+      setPhoneError("S\u1ed1 \u0111i\u1ec7n tho\u1ea1i kh\u00f4ng h\u1ee3p l\u1ec7");
       return;
     }
     if (editEmail && !isValidEmail(editEmail)) {
-      setEmailError("Email không hợp lệ");
+      setEmailError("Email kh\u00f4ng h\u1ee3p l\u1ec7");
       return;
     }
 
@@ -76,12 +77,12 @@ export default function ProfilePage() {
   };
 
   return (
-    <Page style={{ background: "#f3f4f6", minHeight: "100vh", padding: 0 }}>
-      {/* ── Red header with BK logo straddling header/photo ── */}
+    <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
+      {/* -- Red header with BK logo straddling header/photo -- */}
       <div style={{ position: "relative", zIndex: 2 }}>
         <div
           style={{
-            background: "linear-gradient(180deg, #b91c1c 0%, #991b1b 100%)",
+            background: "#be1d2c",
             paddingTop: "calc(var(--zaui-safe-area-inset-top, 0px) + 10px)",
             paddingBottom: 32,
             paddingLeft: 16,
@@ -104,7 +105,7 @@ export default function ProfilePage() {
         {/* BK logo at header/photo boundary */}
         <img
           src={bkLogo}
-          alt="Bách Khoa"
+          alt="B\u00e1ch Khoa"
           style={{
             position: "absolute",
             left: 16,
@@ -117,7 +118,7 @@ export default function ProfilePage() {
         />
       </div>
 
-      {/* ── Profile card with bgprofile background (no gap) ── */}
+      {/* -- Profile card with bgprofile background (no gap) -- */}
       <div
         style={{
           background: `url(${bgProfile})`,
@@ -128,115 +129,135 @@ export default function ProfilePage() {
       >
         <div
           style={{
-            background: "rgba(255,255,255,0.92)",
+            background: "rgba(255,255,255,0.85)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             borderRadius: 16,
             padding: "16px",
             display: "flex",
             alignItems: "center",
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
         >
           <Avatar src={user.avatar} size={80} style={{ borderRadius: 12, flexShrink: 0 }} />
           <div className="ml-4 min-w-0 flex-1">
-            <p style={{ fontSize: 18, fontWeight: 700, color: "#1f2937", marginBottom: 6 }}>
+            <p style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 6 }}>
               {user.name}
             </p>
             {user.phone && (
-              <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 3 }}>
-                SĐT: <span style={{ color: "#2563eb", textDecoration: "underline" }}>{user.phone}</span>
+              <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 3 }}>
+                S\u0110T: <span style={{ color: "#a78bfa", textDecoration: "underline" }}>{user.phone}</span>
               </p>
             )}
-            <p className="truncate" style={{ fontSize: 13, color: "#6b7280" }}>
-              Email: <span style={{ color: "#2563eb", textDecoration: "underline" }}>{email}</span>
+            <p className="truncate" style={{ fontSize: 13, color: "#9ca3af" }}>
+              Email: <span style={{ color: "#a78bfa", textDecoration: "underline" }}>{email}</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── Info card ── */}
+      {/* -- Info card -- */}
       <div
         style={{
           margin: "0 16px",
-          background: "#fff",
+          background: "#ffffff",
           borderRadius: 16,
           padding: "4px 20px 20px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(0,0,0,0.06)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         }}
       >
         <div className="grid grid-cols-2 gap-x-6">
-          <InfoRow label="Mã sinh viên:" value={user.mssv || "—"} />
-          <InfoRow label="Ngày sinh:" value={user.birthdate || "—"} />
+          <InfoRow label="M\u00e3 sinh vi\u00ean:" value={user.mssv || "\u2014"} />
+          <InfoRow label="Ng\u00e0y sinh:" value={user.birthdate || "\u2014"} />
         </div>
         <div className="grid grid-cols-2 gap-x-6">
-          <div style={{ padding: "14px 0", borderBottom: "1px solid #f3f4f6" }}>
-            <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>Email cá nhân:</p>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#2563eb", wordBreak: "break-all" }}>
-              {user.email || "—"}
+          <div style={{ padding: "14px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+            <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>Email c\u00e1 nh\u00e2n:</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#a78bfa", wordBreak: "break-all" }}>
+              {user.email || "\u2014"}
             </p>
           </div>
-          <InfoRow label="Số điện thoại:" value={user.phone || "—"} />
+          <InfoRow label="S\u1ed1 \u0111i\u1ec7n tho\u1ea1i:" value={user.phone || "\u2014"} />
         </div>
-        <InfoRow label="Khoa/Viện:" value={user.department || "—"} />
-        <InfoRow label="Hệ:" value={user.program || "—"} />
-        <InfoRow label="Lớp:" value={user.className || "—"} />
+        <InfoRow label="Khoa/Vi\u1ec7n:" value={user.department || "\u2014"} />
+        <InfoRow label="H\u1ec7:" value={user.program || "\u2014"} />
+        <InfoRow label="L\u1edbp:" value={user.className || "\u2014"} />
       </div>
 
-      {/* ── Microsoft 365 Link ── */}
+      {/* -- Microsoft 365 Link -- */}
       <div style={{ margin: "16px 16px 0" }}>
         <MicrosoftLinkCard />
       </div>
 
-      {/* ── Edit + Logout ── */}
+      {/* -- Edit + Logout -- */}
       <div style={{ padding: "20px 16px 100px" }}>
         <button
-          className="w-full active:bg-gray-50"
+          className="w-full"
           style={{
             padding: "11px 0",
             borderRadius: 12,
-            background: "#fff",
-            color: "#2563eb",
+            background: "#ffffff",
+            color: "#a78bfa",
             fontSize: 14,
             fontWeight: 600,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
             marginBottom: 10,
           }}
           onClick={openEditModal}
         >
-          Chỉnh sửa thông tin
+          Ch\u1ec9nh s\u1eeda th\u00f4ng tin
         </button>
         <button
-          className="w-full active:bg-gray-200"
+          className="w-full"
           style={{
             padding: "11px 0",
             borderRadius: 12,
-            background: "#fff",
+            background: "#ffffff",
             color: "#ef4444",
             fontSize: 14,
             fontWeight: 600,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
           onClick={() => {
             logout();
             navigate("/login", { replace: true });
           }}
         >
-          Đăng xuất
+          \u0110\u0103ng xu\u1ea5t
         </button>
       </div>
 
-      {/* ── Edit modal ── */}
-      <Modal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
+      {/* -- Edit modal -- */}
+      <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Ch\u1ec9nh s\u1eeda th\u00f4ng tin">
         <Box className="p-4 space-y-3">
-          <Input label="Số điện thoại" placeholder="VD: 0986447465" value={editPhone} onChange={(e) => { setEditPhone(e.target.value); setPhoneError(""); }} status={phoneError ? "error" : undefined} errorText={phoneError} />
-          <Input label="Email cá nhân" placeholder="VD: email@gmail.com" value={editEmail} onChange={(e) => { setEditEmail(e.target.value); setEmailError(""); }} status={emailError ? "error" : undefined} errorText={emailError} />
-          <Input label="Ngày sinh" placeholder="VD: 11/06/2004" value={editBirthdate} onChange={(e) => setEditBirthdate(e.target.value)} />
-          <Input label="Khoa/Viện" placeholder="VD: Trường CNTT&TT" value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} />
-          <Input label="Hệ" placeholder="VD: Cử nhân - K67" value={editProgram} onChange={(e) => setEditProgram(e.target.value)} />
-          <Input label="Lớp" placeholder="VD: KTMT 03-K67" value={editClassName} onChange={(e) => setEditClassName(e.target.value)} />
-          <Button fullWidth variant="primary" onClick={handleSaveProfile}>
-            Lưu thay đổi
-          </Button>
+          <Input label="S\u1ed1 \u0111i\u1ec7n tho\u1ea1i" placeholder="VD: 0986447465" value={editPhone} onChange={(e) => { setEditPhone(e.target.value); setPhoneError(""); }} status={phoneError ? "error" : undefined} errorText={phoneError} />
+          <Input label="Email c\u00e1 nh\u00e2n" placeholder="VD: email@gmail.com" value={editEmail} onChange={(e) => { setEditEmail(e.target.value); setEmailError(""); }} status={emailError ? "error" : undefined} errorText={emailError} />
+          <Input label="Ng\u00e0y sinh" placeholder="VD: 11/06/2004" value={editBirthdate} onChange={(e) => setEditBirthdate(e.target.value)} />
+          <Input label="Khoa/Vi\u1ec7n" placeholder="VD: Tr\u01b0\u1eddng CNTT&TT" value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} />
+          <Input label="H\u1ec7" placeholder="VD: C\u1eed nh\u00e2n - K67" value={editProgram} onChange={(e) => setEditProgram(e.target.value)} />
+          <Input label="L\u1edbp" placeholder="VD: KTMT 03-K67" value={editClassName} onChange={(e) => setEditClassName(e.target.value)} />
+          <button
+            style={{
+              width: "100%",
+              padding: "12px 0",
+              borderRadius: 12,
+              background: "#be1d2c",
+              color: "#ffffff",
+              fontSize: 14,
+              fontWeight: 600,
+              border: "none",
+              boxShadow: "0 2px 8px rgba(190,29,44,0.3)",
+            }}
+            onClick={handleSaveProfile}
+          >
+            L\u01b0u thay \u0111\u1ed5i
+          </button>
         </Box>
-      </Modal>
+      </DarkModal>
     </Page>
   );
 }

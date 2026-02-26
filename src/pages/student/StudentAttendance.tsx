@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Page, Text, Button, Header } from "zmp-ui";
+import { Page, Text, Header } from "zmp-ui";
 import { useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -19,6 +19,7 @@ import TrustBadge from "@/components/attendance/TrustBadge";
 import StepIndicator from "@/components/attendance/StepIndicator";
 import FaceVerification from "@/components/face/FaceVerification";
 import FaceStatusBadge from "@/components/face/FaceStatusBadge";
+import ScoreRing from "@/components/ui/ScoreRing";
 import type { FaceVerificationResult } from "@/types";
 
 export default function StudentAttendance() {
@@ -38,7 +39,7 @@ export default function StudentAttendance() {
     if (!sessionId || session) return;
     getSession(sessionId)
       .then((s) => { if (s) setSession(s); })
-      .catch(() => setError("Không thể tải phiên điểm danh"));
+      .catch(() => setError("Khong the tai phien diem danh"));
   }, [sessionId, session, setSession]);
 
   // Initialize step on mount
@@ -89,7 +90,7 @@ export default function StudentAttendance() {
       // Forward raw QR payload to server for authoritative validation
       await checkIn(session.classId, user?.name || "", payload);
     } catch {
-      setError("Lỗi khi quét QR giảng viên. Vui lòng thử lại.");
+      setError("Loi khi quet QR giang vien. Vui long thu lai.");
     }
   };
 
@@ -137,16 +138,16 @@ export default function StudentAttendance() {
         myAttendance.id
       );
     } catch {
-      setError("Lỗi khi quét QR bạn bè. Vui lòng thử lại.");
+      setError("Loi khi quet QR ban be. Vui long thu lai.");
     }
   };
 
   if (!session) {
     return (
       <Page className="page">
-        <Header title="Điểm danh" />
-        <div className="empty-state py-10">
-          <Text size="small" className="text-gray-400">Đang tải phiên...</Text>
+        <Header title="Diem danh" />
+        <div className="empty-state-dark" style={{ padding: "40px 0", textAlign: "center" }}>
+          <Text size="small" style={{ color: "#9ca3af" }}>Dang tai phien...</Text>
         </div>
       </Page>
     );
@@ -155,15 +156,26 @@ export default function StudentAttendance() {
   if (session.status === "ended") {
     return (
       <Page className="page">
-        <Header title="Điểm danh" />
-        <div className="empty-state py-10">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round">
+        <Header title="Diem danh" />
+        <div className="empty-state-dark" style={{ padding: "40px 0", textAlign: "center" }}>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "rgba(107,114,128,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px",
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round">
               <circle cx="12" cy="12" r="9" />
               <path d="M12 7v5l3 3" />
             </svg>
           </div>
-          <Text bold size="large" className="text-gray-600 mb-2">Phiên đã kết thúc</Text>
+          <Text bold size="large" style={{ color: "#6b7280", marginBottom: 8 }}>Phien da ket thuc</Text>
           {myAttendance && (
             <div className="space-y-2">
               <TrustBadge score={myAttendance.trustScore} />
@@ -177,27 +189,40 @@ export default function StudentAttendance() {
 
   return (
     <Page className="page">
-      <Header title={`Điểm danh - ${session.className}`} />
+      <Header title={`Diem danh - ${session.className}`} />
 
       <StepIndicator currentStep={step} />
 
       {/* Step 1: Scan teacher QR */}
       {step === "scan-teacher" && (
-        <div className="empty-state py-8">
-          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <div className="glass-card animate-fade-in" style={{ padding: 24, textAlign: "center" }}>
+          <div
+            className="animate-breathe"
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              background: "rgba(190,29,44,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              boxShadow: "0 0 20px rgba(190,29,44,0.3)",
+            }}
+          >
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round">
               <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
               <rect x="7" y="7" width="10" height="10" rx="1" />
             </svg>
           </div>
-          <Text bold size="large" className="text-gray-700 mb-1">Quét QR giảng viên</Text>
-          <Text size="small" className="text-gray-400 mb-5">
-            Quét mã QR trên màn hình của giảng viên
+          <Text bold size="large" style={{ color: "#1a1a1a", marginBottom: 4 }}>Quet QR giang vien</Text>
+          <Text size="small" style={{ color: "#6b7280", marginBottom: 20 }}>
+            Quet ma QR tren man hinh cua giang vien
           </Text>
           <QRScanner
             onScan={handleScanTeacher}
             scanning={scanning}
-            label="Quét QR giảng viên"
+            label="Quet QR giang vien"
             error={scanError}
           />
         </div>
@@ -205,7 +230,7 @@ export default function StudentAttendance() {
 
       {/* Step 2: Face verification */}
       {step === "face-verify" && myAttendance && (
-        <div className="py-4">
+        <div className="glass-card-purple animate-slide-up" style={{ padding: 16 }}>
           <FaceVerification
             sessionId={sessionId || ""}
             attendanceId={myAttendance.id}
@@ -217,35 +242,50 @@ export default function StudentAttendance() {
 
       {/* Step 3: Show QR + Scan peers */}
       {(step === "show-qr" || step === "scan-peers") && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <Text bold size="large" className="text-gray-700">Xác minh ngang hàng</Text>
-            <Text size="small" className="text-gray-400 mt-0.5">
-              Cho bạn bè quét QR của bạn và quét lại QR của họ
+        <div className="space-y-4 animate-fade-in">
+          <div style={{ textAlign: "center" }}>
+            <Text bold size="large" style={{ color: "#1a1a1a" }}>Xac minh ngang hang</Text>
+            <Text size="small" style={{ color: "#6b7280", marginTop: 2 }}>
+              Cho ban be quet QR cua ban va quet lai QR cua ho
             </Text>
           </div>
 
           {myAttendance && <PeerCounter current={myAttendance.peerCount} />}
 
-          <QRDisplay
-            qrDataURL={qrDataURL}
-            secondsLeft={secondsLeft}
-            totalSeconds={refreshSeconds}
-            label="QR của bạn"
-          />
+          <div className="glass-card animate-glow-pulse" style={{ padding: 16 }}>
+            <QRDisplay
+              qrDataURL={qrDataURL}
+              secondsLeft={secondsLeft}
+              totalSeconds={refreshSeconds}
+              label="QR cua ban"
+            />
+          </div>
 
           <QRScanner
             onScan={handleScanPeer}
             scanning={scanning}
-            label="Quét QR bạn bè"
+            label="Quet QR ban be"
             error={scanError}
           />
 
           {myAttendance && myAttendance.peerCount >= 3 && (
-            <div className="text-center py-2">
-              <Button variant="primary" onClick={() => setStep("done")}>
-                Hoàn tất
-              </Button>
+            <div className="animate-bounce-in" style={{ textAlign: "center", padding: "8px 0" }}>
+              <button
+                className="btn-primary-dark glow-green press-scale"
+                onClick={() => setStep("done")}
+                style={{
+                  padding: "12px 32px",
+                  borderRadius: 14,
+                  background: "#22c55e",
+                  color: "#fff",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  border: "none",
+                  boxShadow: "0 0 20px rgba(34,197,94,0.3)",
+                }}
+              >
+                Hoan tat
+              </button>
             </div>
           )}
         </div>
@@ -253,20 +293,58 @@ export default function StudentAttendance() {
 
       {/* Done */}
       {step === "done" && myAttendance && (
-        <div className="empty-state py-8">
-          <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round">
+        <div style={{ padding: "32px 0", textAlign: "center", position: "relative", overflow: "hidden" }}>
+          {/* Confetti burst */}
+          <div style={{ position: "absolute", top: "30%", left: "50%", pointerEvents: "none" }}>
+            {[
+              { tx: "30px", ty: "-50px", bg: "#22c55e" },
+              { tx: "-35px", ty: "-45px", bg: "#f59e0b" },
+              { tx: "50px", ty: "-20px", bg: "#be1d2c" },
+              { tx: "-50px", ty: "-25px", bg: "#a78bfa" },
+              { tx: "15px", ty: "-60px", bg: "#ec4899" },
+              { tx: "-20px", ty: "-55px", bg: "#22c55e" },
+              { tx: "40px", ty: "-35px", bg: "#f59e0b" },
+              { tx: "-45px", ty: "-40px", bg: "#be1d2c" },
+            ].map((c, i) => (
+              <div
+                key={i}
+                className="confetti-particle"
+                style={{
+                  "--tx": c.tx,
+                  "--ty": c.ty,
+                  background: c.bg,
+                  animationDelay: `${i * 0.05}s`,
+                } as React.CSSProperties}
+              />
+            ))}
+          </div>
+
+          <div
+            className="animate-bounce-in glow-green"
+            style={{
+              width: 88,
+              height: 88,
+              borderRadius: "50%",
+              background: "rgba(34,197,94,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              boxShadow: "0 0 30px rgba(34,197,94,0.3)",
+            }}
+          >
+            <svg className="animate-success-pop" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round">
               <path d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <Text bold size="xLarge" className="text-gray-700 mb-3">Hoàn tất!</Text>
+          <Text bold size="xLarge" className="animate-fade-in" style={{ color: "#1a1a1a", marginBottom: 12 }}>Hoan tat!</Text>
           <div className="space-y-2 mb-4">
-            <TrustBadge score={myAttendance.trustScore} />
-            <PeerCounter current={myAttendance.peerCount} />
-            <FaceStatusBadge faceVerification={myAttendance.faceVerification} />
+            <div className="animate-stagger-1"><TrustBadge score={myAttendance.trustScore} /></div>
+            <div className="animate-stagger-2"><PeerCounter current={myAttendance.peerCount} /></div>
+            <div className="animate-stagger-3"><FaceStatusBadge faceVerification={myAttendance.faceVerification} /></div>
           </div>
-          <Text size="small" className="text-gray-400">
-            Kết quả điểm danh sẽ được giảng viên xác nhận sau
+          <Text size="small" className="animate-stagger-4" style={{ color: "#9ca3af" }}>
+            Ket qua diem danh se duoc giang vien xac nhan sau
           </Text>
         </div>
       )}

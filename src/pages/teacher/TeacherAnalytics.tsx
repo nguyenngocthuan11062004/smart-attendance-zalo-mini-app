@@ -4,6 +4,9 @@ import { useParams } from "react-router-dom";
 import { getClassById } from "@/services/class.service";
 import { getClassSessions } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
+import ScoreRing from "@/components/ui/ScoreRing";
+import DarkStatCard from "@/components/ui/DarkStatCard";
+import DarkProgressBar from "@/components/ui/DarkProgressBar";
 import type { ClassDoc, SessionDoc, AttendanceDoc } from "@/types";
 
 interface SessionStat {
@@ -75,69 +78,75 @@ export default function TeacherAnalytics() {
   const maxBarHeight = 80;
 
   return (
-    <Page className="page">
-      <Header title="Th\u1ed1ng k\u00ea \u0111i\u1ec3m danh" />
+    <Page className="page" style={{ background: "#f2f2f7" }}>
+      <Header title="Thống kê điểm danh" />
 
       {loading ? (
         <div className="space-y-3">
-          <div className="skeleton h-[80px] rounded-2xl" />
-          <div className="skeleton h-[200px] rounded-2xl" />
+          <div className="skeleton" style={{ height: 80, borderRadius: 20 }} />
+          <div className="skeleton" style={{ height: 200, borderRadius: 20 }} />
         </div>
       ) : !classDoc ? (
-        <div className="empty-state py-10">
-          <Text className="text-gray-400">Kh\u00f4ng t\u00ecm th\u1ea5y l\u1edbp h\u1ecdc</Text>
+        <div className="empty-state" style={{ paddingTop: 40, paddingBottom: 40 }}>
+          <p style={{ color: "#9ca3af" }}>Không tìm thấy lớp học</p>
         </div>
       ) : (
         <>
           {/* Class header */}
-          <div className="gradient-red rounded-2xl p-4 mb-4 text-white">
-            <p className="text-white/70 text-xs font-medium">
-              {classDoc.code}
-            </p>
-            <p className="text-lg font-bold mt-0.5">{classDoc.name}</p>
-            <p className="text-white/60 text-xs mt-1">
-              {classDoc.studentIds.length} sinh vi\u00ean \u00b7 {totalSessions} phi\u00ean
-            </p>
+          <div
+            className="glass-card animate-fade-in"
+            style={{
+              background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
+              borderRadius: 20,
+              padding: 16,
+              marginBottom: 16,
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p style={{ color: "#9ca3af", fontSize: 12, fontWeight: 500, fontFamily: "monospace" }}>
+                  {classDoc.code}
+                </p>
+                <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700, marginTop: 2 }}>{classDoc.name}</p>
+                <p style={{ color: "#9ca3af", fontSize: 12, marginTop: 4 }}>
+                  {classDoc.studentIds.length} sinh viên · {totalSessions} phiên
+                </p>
+              </div>
+              <ScoreRing percentage={avgRate} size={72} color="#a78bfa" strokeWidth={6} glow animated>
+                <span style={{ color: "#a78bfa", fontSize: 14, fontWeight: 700 }}>{avgRate}%</span>
+              </ScoreRing>
+            </div>
           </div>
 
           {/* Overview stats */}
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div
-              className="stat-card"
-              style={{ background: "#f0fdf4", color: "#16a34a" }}
-            >
-              <p style={{ fontSize: 22, fontWeight: 700 }}>{avgRate}%</p>
-              <p style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                TB c\u00f3 m\u1eb7t
-              </p>
+            <div className="animate-bounce-in animate-stagger-1">
+              <DarkStatCard value={`${avgRate}%`} label="TB có mặt" color="#22c55e" enhanced />
             </div>
-            <div
-              className="stat-card"
-              style={{ background: "#fef2f2", color: "#dc2626" }}
-            >
-              <p style={{ fontSize: 22, fontWeight: 700 }}>{totalSessions}</p>
-              <p style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                S\u1ed1 phi\u00ean
-              </p>
+            <div className="animate-bounce-in animate-stagger-2">
+              <DarkStatCard value={totalSessions} label="Số phiên" color="#be1d2c" enhanced />
             </div>
-            <div
-              className="stat-card"
-              style={{ background: "#eff6ff", color: "#2563eb" }}
-            >
-              <p style={{ fontSize: 22, fontWeight: 700 }}>
-                {classDoc.studentIds.length}
-              </p>
-              <p style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>
-                Sinh vi\u00ean
-              </p>
+            <div className="animate-bounce-in animate-stagger-3">
+              <DarkStatCard value={classDoc.studentIds.length} label="Sinh viên" color="#a78bfa" enhanced />
             </div>
           </div>
 
           {/* Bar chart */}
           {stats.length > 0 ? (
-            <div className="card-flat p-4 mb-4">
-              <p className="section-label mb-3">
-                T\u1ef7 l\u1ec7 c\u00f3 m\u1eb7t theo phi\u00ean
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: 16,
+                marginBottom: 16,
+                border: "1px solid rgba(0,0,0,0.06)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+              }}
+            >
+              <p className="section-label" style={{ marginBottom: 12 }}>
+                Tỷ lệ có mặt theo phiên
               </p>
               <div
                 className="flex items-end justify-between"
@@ -158,29 +167,40 @@ export default function TeacherAnalytics() {
                       className="flex flex-col items-center"
                       style={{ flex: 1 }}
                     >
-                      <p
-                        style={{
-                          fontSize: 9,
-                          color: "#9ca3af",
-                          marginBottom: 2,
-                        }}
-                      >
+                      <p style={{ fontSize: 9, color: "#6b7280", marginBottom: 2 }}>
                         {Math.round(rate * 100)}%
                       </p>
                       <div
                         style={{
                           width: "60%",
-                          height: barH,
-                          background: color,
+                          background: "#e5e7eb",
                           borderRadius: 4,
-                          transition: "height 0.3s",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "flex-end",
+                          height: maxBarHeight,
                         }}
-                      />
+                      >
+                        <div
+                          className={`animate-stagger-${Math.min(i + 1, 10)}`}
+                          style={{
+                            width: "100%",
+                            height: barH,
+                            background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+                            borderRadius: 4,
+                            transition: "height 0.6s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease",
+                            boxShadow: `0 0 8px ${color}40`,
+                          }}
+                        />
+                      </div>
                       <p
                         style={{
                           fontSize: 8,
-                          color: "#cbd5e1",
+                          color: "#9ca3af",
                           marginTop: 4,
+                          background: "linear-gradient(135deg, #f0f0f5 0%, #ffffff 100%)",
+                          padding: "1px 4px",
+                          borderRadius: 4,
                         }}
                       >
                         {new Date(s.session.startedAt).toLocaleDateString(
@@ -194,64 +214,108 @@ export default function TeacherAnalytics() {
               </div>
             </div>
           ) : (
-            <div className="empty-state py-6">
-              <Text className="text-gray-400">
-                Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u phi\u00ean n\u00e0o
-              </Text>
+            <div className="empty-state" style={{ paddingTop: 24, paddingBottom: 24 }}>
+              <p style={{ color: "#9ca3af" }}>Chưa có dữ liệu phiên nào</p>
             </div>
           )}
 
           {/* Session detail list */}
           {stats.length > 0 && (
             <div>
-              <p className="section-label">Chi ti\u1ebft t\u1eebng phi\u00ean</p>
-              {[...stats].reverse().map((s, i) => (
-                <div key={i} className="card-flat p-3 mb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Text bold size="small">
-                        {new Date(s.session.startedAt).toLocaleDateString(
-                          "vi-VN",
-                          {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          }
+              <p className="section-label">Chi tiết từng phiên</p>
+              {[...stats].reverse().map((s, i) => {
+                const rate = s.total > 0 ? (s.present / s.total) * 100 : 0;
+                return (
+                  <div
+                    key={i}
+                    className={`hover-lift animate-stagger-${Math.min(i + 1, 10)}`}
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: 16,
+                      padding: 12,
+                      marginBottom: 8,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 13 }}>
+                          {new Date(s.session.startedAt).toLocaleDateString(
+                            "vi-VN",
+                            {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            }
+                          )}
+                        </p>
+                        <p style={{ color: "#9ca3af", fontSize: 11 }}>
+                          {new Date(s.session.startedAt).toLocaleTimeString(
+                            "vi-VN",
+                            { hour: "2-digit", minute: "2-digit" }
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            background: "rgba(34,197,94,0.15)",
+                            color: "#22c55e",
+                          }}
+                        >
+                          {s.present} có mặt
+                        </span>
+                        {s.review > 0 && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: "rgba(245,158,11,0.15)",
+                              color: "#f59e0b",
+                            }}
+                          >
+                            {s.review} xem xét
+                          </span>
                         )}
-                      </Text>
-                      <Text size="xxSmall" className="text-gray-400">
-                        {new Date(s.session.startedAt).toLocaleTimeString(
-                          "vi-VN",
-                          { hour: "2-digit", minute: "2-digit" }
+                        {s.absent > 0 && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: "rgba(239,68,68,0.15)",
+                              color: "#ef4444",
+                            }}
+                          >
+                            {s.absent} vắng
+                          </span>
                         )}
-                      </Text>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">
-                        {s.present} c\u00f3 m\u1eb7t
-                      </span>
-                      {s.review > 0 && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-600">
-                          {s.review} xem x\u00e9t
-                        </span>
-                      )}
-                      {s.absent > 0 && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600">
-                          {s.absent} v\u1eafng
-                        </span>
-                      )}
+                    <div style={{ marginTop: 8 }}>
+                      <DarkProgressBar
+                        percentage={rate}
+                        color={rate >= 80 ? "#22c55e" : rate >= 60 ? "#f59e0b" : "#ef4444"}
+                        height={6}
+                      />
                     </div>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden mt-2">
-                    <div
-                      className="progress-fill h-full bg-emerald-500"
-                      style={{
-                        width: `${s.total > 0 ? (s.present / s.total) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>

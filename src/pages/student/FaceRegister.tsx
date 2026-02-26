@@ -19,12 +19,16 @@ export default function FaceRegister() {
   }, [user, setUser, navigate]);
 
   return (
-    <Page className="page">
+    <Page className="page" style={{ background: "#f2f2f7" }}>
       <Header title="Dang ky khuon mat" />
-      <FaceRegistration
-        onComplete={handleComplete}
-        onSkip={() => navigate("/home", { replace: true })}
-      />
+      <div style={{ padding: "0 16px" }}>
+        <div className="glass-card-purple animate-slide-up" style={{ padding: 20 }}>
+          <FaceRegistration
+            onComplete={handleComplete}
+            onSkip={() => navigate("/home", { replace: true })}
+          />
+        </div>
+      </div>
     </Page>
   );
 }

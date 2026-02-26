@@ -6,6 +6,9 @@ import { globalErrorAtom } from "@/store/ui";
 import { getStudentHistory } from "@/services/attendance.service";
 import AttendanceCard from "@/components/attendance/AttendanceCard";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import ScoreRing from "@/components/ui/ScoreRing";
+import DarkStatCard from "@/components/ui/DarkStatCard";
+import DarkProgressBar from "@/components/ui/DarkProgressBar";
 import type { AttendanceDoc } from "@/types";
 
 function getEffectiveScore(r: AttendanceDoc): string {
@@ -25,7 +28,7 @@ export default function StudentHistory() {
       const data = await getStudentHistory(user.id);
       setRecords(data.sort((a, b) => b.checkedInAt - a.checkedInAt));
     } catch {
-      setError("Không thể tải lịch sử điểm danh");
+      setError("Khong the tai lich su diem danh");
     } finally {
       setLoading(false);
     }
@@ -39,52 +42,38 @@ export default function StudentHistory() {
   const totalCount = records.length;
   const reviewCount = records.filter((r) => getEffectiveScore(r) === "review").length;
   const absentCount = totalCount - presentCount - reviewCount;
+  const attendancePercent = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
 
   return (
     <Page className="page">
-      <Header title="Lịch sử điểm danh" showBackIcon={false} />
+      <Header title="Lich su diem danh" showBackIcon={false} />
 
       <PullToRefresh onRefresh={async () => { setLoading(true); await loadHistory(); }}>
       {totalCount > 0 && (
         <div className="mb-4">
           {/* Main attendance rate */}
-          <div className="card-flat p-4 mb-3">
-            <div className="flex items-center justify-between mb-3">
+          <div className="card-flat animate-stagger-1" style={{ padding: 16, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div>
-                <Text size="xSmall" className="text-gray-400">Tỷ lệ có mặt</Text>
-                <Text bold size="xLarge" className="text-gray-800">
-                  {Math.round((presentCount / totalCount) * 100)}%
+                <Text size="xSmall" style={{ color: "#6b7280" }}>Ty le co mat</Text>
+                <Text bold size="xLarge" style={{ color: "#1a1a1a" }}>
+                  {attendancePercent}%
                 </Text>
               </div>
-              <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{
-                  background: `conic-gradient(#ef4444 ${(presentCount / totalCount) * 360}deg, #f1f5f9 0deg)`,
-                }}
-              >
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                  <Text bold size="small" className="text-red-600">{presentCount}/{totalCount}</Text>
-                </div>
-              </div>
+              <ScoreRing percentage={attendancePercent} size={64} color="#be1d2c" glow animated>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#be1d2c" }}>
+                  {presentCount}/{totalCount}
+                </span>
+              </ScoreRing>
             </div>
-            <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div className="progress-fill h-full bg-red-500" style={{ width: `${(presentCount / totalCount) * 100}%` }} />
-            </div>
+            <DarkProgressBar percentage={attendancePercent} color="#be1d2c" />
           </div>
 
           {/* Stat cards row */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="stat-card" style={{ background: "#f0fdf4", color: "#16a34a" }}>
-              <p style={{ fontSize: 20, fontWeight: 700 }}>{presentCount}</p>
-              <p style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>Có mặt</p>
-            </div>
-            <div className="stat-card" style={{ background: "#fef9c3", color: "#ca8a04" }}>
-              <p style={{ fontSize: 20, fontWeight: 700 }}>{reviewCount}</p>
-              <p style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>Xem xét</p>
-            </div>
-            <div className="stat-card" style={{ background: "#fee2e2", color: "#dc2626" }}>
-              <p style={{ fontSize: 20, fontWeight: 700 }}>{absentCount}</p>
-              <p style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>Vắng</p>
-            </div>
+            <div className="animate-stagger-2"><DarkStatCard value={presentCount} label="Co mat" color="#22c55e" enhanced /></div>
+            <div className="animate-stagger-3"><DarkStatCard value={reviewCount} label="Xem xet" color="#f59e0b" enhanced /></div>
+            <div className="animate-stagger-4"><DarkStatCard value={absentCount} label="Vang" color="#be1d2c" enhanced /></div>
           </div>
         </div>
       )}
@@ -96,11 +85,23 @@ export default function StudentHistory() {
           ))}
         </div>
       ) : records.length === 0 ? (
-        <Box className="text-center py-8">
-          <Text className="text-gray-500">Chưa có lịch sử điểm danh</Text>
-        </Box>
+        <div className="empty-state-dark" style={{ padding: "32px 0", textAlign: "center" }}>
+          <div className="animate-float" style={{ marginBottom: 12 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" style={{ margin: "0 auto" }}>
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <Text style={{ color: "#9ca3af" }}>Chua co lich su diem danh</Text>
+        </div>
       ) : (
-        records.map((r) => <AttendanceCard key={r.id} record={r} showName={false} />)
+        records.map((r, index) => (
+          <div key={r.id} className={`animate-stagger-${Math.min(index + 1, 10)}`}>
+            <AttendanceCard record={r} showName={false} index={index} />
+          </div>
+        ))
       )}
       </PullToRefresh>
     </Page>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Text, Button, Spinner } from "zmp-ui";
 import CameraCapture from "./CameraCapture";
 import LivenessChallenge from "./LivenessChallenge";
+import ScoreRing from "@/components/ui/ScoreRing";
 import { verifyFace, buildSkippedResult } from "@/services/face.service";
 import type { FaceVerificationResult } from "@/types";
 
@@ -85,117 +86,222 @@ export default function FaceVerification({
   // Liveness check state (first step)
   if (state === "liveness") {
     return (
-      <Box className="space-y-4">
-        <Box className="text-center">
-          <Text bold size="large">Kiểm tra liveness</Text>
-          <Text size="small" className="text-gray-500">
-            Xác minh bạn là người thật
-          </Text>
-        </Box>
-        <LivenessChallenge
-          onComplete={handleLivenessComplete}
-          onSkip={handleLivenessSkip}
-        />
-      </Box>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="space-y-4">
+          <div className="text-center animate-slide-up animate-stagger-1">
+            <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700 }}>Kiểm tra liveness</p>
+            <p style={{ color: "#6b7280", fontSize: 13, marginTop: 4 }}>
+              Xác minh bạn là người thật
+            </p>
+          </div>
+          <LivenessChallenge
+            onComplete={handleLivenessComplete}
+            onSkip={handleLivenessSkip}
+          />
+        </div>
+      </div>
     );
   }
 
   if (state === "verifying") {
     return (
-      <Box className="flex flex-col items-center space-y-4 py-8">
-        <Spinner />
-        <Text className="text-gray-500">Đang xác minh khuôn mặt...</Text>
-      </Box>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="flex flex-col items-center space-y-4 py-8">
+          <div
+            className="animate-glow-pulse"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: "rgba(167,139,250,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 20px rgba(167,139,250,0.2)",
+            }}
+          >
+            <Spinner />
+          </div>
+          <p className="animate-fade-in" style={{ color: "#6b7280", fontSize: 14 }}>Đang xác minh khuôn mặt...</p>
+          <div className="animate-shimmer-slide" style={{
+            width: 160,
+            height: 4,
+            borderRadius: 2,
+            background: "rgba(167,139,250,0.1)",
+            overflow: "hidden",
+          }} />
+        </div>
+      </div>
     );
   }
 
   if (state === "success") {
+    const pct = Math.round(confidence * 100);
     return (
-      <Box className="flex flex-col items-center space-y-4 py-8">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-          <Text size="xLarge" className="text-green-600">&#10003;</Text>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="glass-card-green animate-fade-in" style={{ margin: "0 16px", padding: 24 }}>
+          <div className="flex flex-col items-center space-y-4">
+            <div
+              className="animate-bounce-in"
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                background: "rgba(34,197,94,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 0 32px rgba(34,197,94,0.35)",
+              }}
+            >
+              <span className="animate-success-pop" style={{ fontSize: 36, color: "#22c55e" }}>&#10003;</span>
+            </div>
+            <p className="animate-fade-in" style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700 }}>Xác minh thành công!</p>
+            <div className="flex flex-col items-center animate-slide-up animate-stagger-2" style={{ gap: 8 }}>
+              <ScoreRing
+                percentage={pct}
+                size={128}
+                strokeWidth={8}
+                color="#22c55e"
+                glow
+                animated
+              >
+                <span style={{ color: "#22c55e", fontSize: 24, fontWeight: 700 }}>{pct}%</span>
+              </ScoreRing>
+              <p style={{ color: "#6b7280", fontSize: 13 }}>Độ tin cậy</p>
+            </div>
+            {livenessFrames && (
+              <p className="animate-fade-in animate-stagger-3" style={{ color: "#22c55e", fontSize: 12 }}>Liveness check passed</p>
+            )}
+          </div>
         </div>
-        <Text bold size="large">Xác minh thành công!</Text>
-        <Text className="text-gray-500">
-          Độ tin cậy: {Math.round(confidence * 100)}%
-        </Text>
-        {livenessFrames && (
-          <Text size="xSmall" className="text-emerald-500">Liveness check passed</Text>
-        )}
-      </Box>
+      </div>
     );
   }
 
   if (state === "failed") {
+    const pct = Math.round(confidence * 100);
     return (
-      <Box className="flex flex-col items-center space-y-4 py-6">
-        <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center">
-          <Text size="xLarge" className="text-yellow-600">?</Text>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="glass-card-amber animate-fade-in" style={{ margin: "0 16px", padding: 24 }}>
+          <div className="flex flex-col items-center space-y-4">
+            <div
+              className="animate-bounce-in"
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: "rgba(245,158,11,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <span style={{ fontSize: 28, color: "#f59e0b" }}>?</span>
+            </div>
+            <p className="animate-fade-in" style={{ color: "#f59e0b", fontWeight: 700, fontSize: 15 }}>Không khớp khuôn mặt</p>
+            <div className="flex flex-col items-center animate-slide-up animate-stagger-2" style={{ gap: 8 }}>
+              <ScoreRing
+                percentage={pct}
+                size={80}
+                strokeWidth={6}
+                color="#f59e0b"
+                glow
+                animated
+              >
+                <span style={{ color: "#f59e0b", fontSize: 16, fontWeight: 700 }}>{pct}%</span>
+              </ScoreRing>
+              <p style={{ color: "#6b7280", fontSize: 13, textAlign: "center" }}>
+                Độ tin cậy: {pct}% (cần {"≥"} 70%)
+              </p>
+            </div>
+
+            {retryCount < 2 ? (
+              <div className="flex flex-col items-center animate-slide-up animate-stagger-3" style={{ gap: 8 }}>
+                <p style={{ color: "#9ca3af", fontSize: 12 }}>
+                  Đảm bảo đủ ánh sáng và nhìn thẳng camera
+                </p>
+                <button
+                  className="btn-primary-dark glow-amber press-scale"
+                  onClick={() => setState("capture")}
+                >
+                  Thử lại ({2 - retryCount} lần còn lại)
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center animate-slide-up animate-stagger-3" style={{ gap: 8 }}>
+                <p style={{ color: "#9ca3af", fontSize: 12, textAlign: "center" }}>
+                  Đã hết lượt thử. Bạn có thể bỏ qua và tiếp tục điểm danh.
+                  Giảng viên sẽ xem xét kết quả.
+                </p>
+              </div>
+            )}
+
+            <button className="btn-secondary-dark press-scale" onClick={handleSkip}>
+              Bỏ qua
+            </button>
+          </div>
         </div>
-        <Text bold className="text-yellow-600">Không khớp khuôn mặt</Text>
-        <Text size="small" className="text-gray-500 text-center">
-          Độ tin cậy: {Math.round(confidence * 100)}% (cần {"≥"} 70%)
-        </Text>
-
-        {retryCount < 2 ? (
-          <Box className="space-y-2 flex flex-col items-center">
-            <Text size="xSmall" className="text-gray-400">
-              Đảm bảo đủ ánh sáng và nhìn thẳng camera
-            </Text>
-            <Button variant="primary" onClick={() => setState("capture")}>
-              Thử lại ({2 - retryCount} lần còn lại)
-            </Button>
-          </Box>
-        ) : (
-          <Box className="space-y-2 flex flex-col items-center">
-            <Text size="xSmall" className="text-gray-400 text-center">
-              Đã hết lượt thử. Bạn có thể bỏ qua và tiếp tục điểm danh.
-              Giảng viên sẽ xem xét kết quả.
-            </Text>
-          </Box>
-        )}
-
-        <Button size="small" variant="tertiary" onClick={handleSkip}>
-          Bỏ qua
-        </Button>
-      </Box>
+      </div>
     );
   }
 
   if (state === "error") {
     return (
-      <Box className="flex flex-col items-center space-y-4 py-6">
-        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-          <Text size="xLarge" className="text-red-500">!</Text>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="glass-card-red animate-shake" style={{ margin: "0 16px", padding: 24 }}>
+          <div className="flex flex-col items-center space-y-4">
+            <div
+              className="animate-bounce-in"
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: "rgba(239,68,68,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <span style={{ fontSize: 28, color: "#ef4444" }}>!</span>
+            </div>
+            <p className="animate-fade-in" style={{ color: "#ef4444", textAlign: "center", fontSize: 14 }}>{errorMsg}</p>
+            <button
+              className="btn-primary-dark glow-red press-scale"
+              onClick={() => setState("capture")}
+            >
+              Thử lại
+            </button>
+            <button className="btn-secondary-dark press-scale" onClick={handleSkip}>
+              Bỏ qua
+            </button>
+          </div>
         </div>
-        <Text className="text-red-500 text-center">{errorMsg}</Text>
-        <Button variant="primary" onClick={() => setState("capture")}>
-          Thử lại
-        </Button>
-        <Button size="small" variant="tertiary" onClick={handleSkip}>
-          Bỏ qua
-        </Button>
-      </Box>
+      </div>
     );
   }
 
   // capture state (fallback when liveness skipped)
   return (
-    <Box className="space-y-4">
-      <Box className="text-center">
-        <Text bold size="large">Xác minh khuôn mặt</Text>
-        <Text size="small" className="text-gray-500">
-          Chụp selfie để xác minh danh tính
-        </Text>
-      </Box>
+    <div className="page" style={{ minHeight: "auto" }}>
+      <div className="space-y-4">
+        <div className="text-center animate-slide-up animate-stagger-1">
+          <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700 }}>Xác minh khuôn mặt</p>
+          <p style={{ color: "#6b7280", fontSize: 13, marginTop: 4 }}>
+            Chụp selfie để xác minh danh tính
+          </p>
+        </div>
 
-      <CameraCapture onCapture={handleCapture} />
+        <div className="animate-slide-up animate-stagger-2 glass-card-purple" style={{ padding: 16 }}>
+          <CameraCapture onCapture={handleCapture} />
+        </div>
 
-      <Box className="text-center">
-        <Button size="small" variant="tertiary" onClick={handleSkip}>
-          Bỏ qua bước này
-        </Button>
-      </Box>
-    </Box>
+        <div className="text-center animate-slide-up animate-stagger-3">
+          <button className="btn-secondary-dark press-scale" onClick={handleSkip}>
+            Bỏ qua bước này
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

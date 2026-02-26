@@ -12,7 +12,7 @@ export default function QRCountdown({ secondsLeft, totalSeconds }: QRCountdownPr
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progress);
 
-  const color = progress > 0.5 ? "#22c55e" : progress > 0.2 ? "#eab308" : "#ef4444";
+  const color = progress > 0.5 ? "#22c55e" : progress > 0.2 ? "#f59e0b" : "#ef4444";
 
   return (
     <div className="flex flex-col items-center">
@@ -49,7 +49,7 @@ export default function QRCountdown({ secondsLeft, totalSeconds }: QRCountdownPr
           {secondsLeft}
         </text>
       </svg>
-      <Text size="xSmall" className="text-gray-500 mt-1">
+      <Text size="xSmall" style={{ color: "#9ca3af", marginTop: 4 }}>
         Tự động làm mới
       </Text>
     </div>

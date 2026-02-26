@@ -44,69 +44,127 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
 
   if (state === "uploading") {
     return (
-      <Box className="flex flex-col items-center space-y-4 py-8">
-        <Spinner />
-        <Text className="text-gray-500">Đang xử lý khuôn mặt...</Text>
-      </Box>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="flex flex-col items-center space-y-4 py-8">
+          <div
+            className="animate-glow-pulse"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: "rgba(167,139,250,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 20px rgba(167,139,250,0.2)",
+            }}
+          >
+            <Spinner />
+          </div>
+          <p className="animate-fade-in" style={{ color: "#6b7280", fontSize: 14 }}>Đang xử lý khuôn mặt...</p>
+          <div className="animate-shimmer-slide" style={{
+            width: 160,
+            height: 4,
+            borderRadius: 2,
+            background: "rgba(167,139,250,0.1)",
+            overflow: "hidden",
+          }} />
+        </div>
+      </div>
     );
   }
 
   if (state === "success") {
     return (
-      <Box className="flex flex-col items-center space-y-4 py-8">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-          <Text size="xLarge" className="text-green-600">&#10003;</Text>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="flex flex-col items-center space-y-4 py-8">
+          <div
+            className="animate-bounce-in"
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              background: "rgba(34,197,94,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 32px rgba(34,197,94,0.35)",
+            }}
+          >
+            <span className="animate-success-pop" style={{ fontSize: 36, color: "#22c55e" }}>&#10003;</span>
+          </div>
+          <p className="animate-fade-in" style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700 }}>Đăng ký thành công!</p>
+          <p className="animate-fade-in animate-stagger-2" style={{ color: "#6b7280", fontSize: 14 }}>Khuôn mặt đã được lưu lại</p>
         </div>
-        <Text bold size="large">Đăng ký thành công!</Text>
-        <Text className="text-gray-500">Khuôn mặt đã được lưu lại</Text>
-      </Box>
+      </div>
     );
   }
 
   if (state === "error") {
     return (
-      <Box className="flex flex-col items-center space-y-4 py-6">
-        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-          <Text size="xLarge" className="text-red-500">!</Text>
+      <div className="page" style={{ minHeight: "auto" }}>
+        <div className="glass-card-red animate-shake" style={{ margin: "0 16px", padding: 24 }}>
+          <div className="flex flex-col items-center space-y-4">
+            <div
+              className="animate-bounce-in"
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: "rgba(239,68,68,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <span style={{ fontSize: 28, color: "#ef4444" }}>!</span>
+            </div>
+            {errorMsg && (
+              <p className="animate-fade-in" style={{ color: "#ef4444", textAlign: "center", fontSize: 14 }}>{errorMsg}</p>
+            )}
+            {issues.length > 0 && (
+              <div className="space-y-1">
+                {issues.map((issue, i) => (
+                  <p key={i} className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`} style={{ color: "#ef4444", textAlign: "center", fontSize: 13 }}>
+                    - {issue}
+                  </p>
+                ))}
+              </div>
+            )}
+            <p className="animate-fade-in" style={{ color: "#9ca3af", textAlign: "center", fontSize: 12 }}>
+              Đảm bảo đủ sáng, khuôn mặt rõ ràng, không đội kính râm
+            </p>
+            <button className="btn-primary-dark glow-red press-scale" onClick={() => setState("capture")}>
+              Chụp lại
+            </button>
+          </div>
         </div>
-        {errorMsg && <Text className="text-red-500 text-center">{errorMsg}</Text>}
-        {issues.length > 0 && (
-          <Box className="space-y-1">
-            {issues.map((issue, i) => (
-              <Text key={i} size="small" className="text-red-500 text-center">
-                - {issue}
-              </Text>
-            ))}
-          </Box>
-        )}
-        <Text size="xSmall" className="text-gray-400 text-center">
-          Đảm bảo đủ sáng, khuôn mặt rõ ràng, không đội kính râm
-        </Text>
-        <Button variant="primary" onClick={() => setState("capture")}>
-          Chụp lại
-        </Button>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box className="space-y-4">
-      <Box className="text-center">
-        <Text bold size="large">Đăng ký khuôn mặt</Text>
-        <Text size="small" className="text-gray-500">
-          Chụp một tấm ảnh rõ mặt để đăng ký nhận diện
-        </Text>
-      </Box>
+    <div className="page" style={{ minHeight: "auto" }}>
+      <div className="space-y-4">
+        <div className="text-center animate-slide-up animate-stagger-1">
+          <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700 }}>Đăng ký khuôn mặt</p>
+          <p style={{ color: "#6b7280", fontSize: 13, marginTop: 4 }}>
+            Chụp một tấm ảnh rõ mặt để đăng ký nhận diện
+          </p>
+        </div>
 
-      <CameraCapture onCapture={handleCapture} />
+        <div className="animate-slide-up animate-stagger-2 glass-card-purple" style={{ padding: 16 }}>
+          <CameraCapture onCapture={handleCapture} />
+        </div>
 
-      {onSkip && (
-        <Box className="text-center">
-          <Button size="small" variant="tertiary" onClick={onSkip}>
-            Bỏ qua
-          </Button>
-        </Box>
-      )}
-    </Box>
+        {onSkip && (
+          <div className="text-center animate-slide-up animate-stagger-3">
+            <button className="btn-secondary-dark press-scale" onClick={onSkip}>
+              Bỏ qua
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

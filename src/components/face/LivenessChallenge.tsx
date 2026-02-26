@@ -28,6 +28,7 @@ export default function LivenessChallenge({ onComplete, onSkip, onError }: Liven
   const [phase, setPhase] = useState<"neutral" | "countdown" | "challenge">("neutral");
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [neutralFrame, setNeutralFrame] = useState<string | null>(null);
+  const [showFlash, setShowFlash] = useState(false);
 
   // Pick a random challenge on mount
   const [challenge] = useState(() => CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)]);
@@ -106,6 +107,9 @@ export default function LivenessChallenge({ onComplete, onSkip, onError }: Liven
     const timer = setTimeout(() => {
       const frame = captureFrame();
       if (frame && neutralFrame) {
+        // Flash effect on auto-capture
+        setShowFlash(true);
+        setTimeout(() => setShowFlash(false), 300);
         stopCamera();
         onComplete([neutralFrame, frame]);
       }
@@ -115,92 +119,205 @@ export default function LivenessChallenge({ onComplete, onSkip, onError }: Liven
 
   if (cameraError) {
     return (
-      <Box className="flex flex-col items-center space-y-3 py-6">
-        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-          <Text size="xLarge" className="text-red-500">!</Text>
+      <div className="glass-card-red animate-shake" style={{ padding: 24 }}>
+        <div className="flex flex-col items-center space-y-3">
+          <div
+            className="animate-bounce-in"
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "rgba(239,68,68,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span style={{ fontSize: 28, color: "#ef4444" }}>!</span>
+          </div>
+          <p className="animate-fade-in" style={{ color: "#ef4444", textAlign: "center", fontSize: 14 }}>{cameraError}</p>
+          <button className="btn-secondary-dark press-scale" onClick={startCamera}>
+            Thử lại
+          </button>
+          <button className="btn-secondary-dark press-scale" onClick={onSkip}>
+            Bỏ qua
+          </button>
         </div>
-        <Text className="text-red-500 text-center">{cameraError}</Text>
-        <Button size="small" variant="tertiary" onClick={startCamera}>
-          Thử lại
-        </Button>
-        <Button size="small" variant="tertiary" onClick={onSkip}>
-          Bỏ qua
-        </Button>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-4">
       {/* Camera preview */}
-      <div className="relative w-64 h-64 rounded-full overflow-hidden bg-gray-900">
-        <div className="absolute inset-0 z-10 pointer-events-none">
-          <svg viewBox="0 0 256 256" className="w-full h-full">
+      <div
+        style={{
+          position: "relative",
+          width: 256,
+          height: 256,
+          borderRadius: "50%",
+          overflow: "hidden",
+          background: "#f2f2f7",
+          border: phase === "countdown"
+            ? "3px solid #be1d2c"
+            : phase === "challenge"
+              ? "3px solid #22c55e"
+              : "2px solid #a78bfa",
+          boxShadow: phase === "countdown"
+            ? "0 0 30px rgba(190,29,44,0.35)"
+            : phase === "challenge"
+              ? "0 0 30px rgba(34,197,94,0.35)"
+              : "0 0 20px rgba(167,139,250,0.3)",
+          transition: "border-color 0.4s ease, box-shadow 0.4s ease",
+        }}
+        className={phase === "countdown" ? "animate-glow-pulse" : ""}
+      >
+        {/* Flash overlay on auto-capture */}
+        {showFlash && (
+          <div
+            className="animate-flash"
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 20,
+              background: "white",
+              borderRadius: "50%",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
+        <div style={{ position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none" }}>
+          <svg viewBox="0 0 256 256" style={{ width: "100%", height: "100%" }}>
             <defs>
               <mask id="liveness-mask">
                 <rect width="256" height="256" fill="white" />
                 <ellipse cx="128" cy="128" rx="90" ry="115" fill="black" />
               </mask>
             </defs>
-            <rect width="256" height="256" fill="rgba(0,0,0,0.5)" mask="url(#liveness-mask)" />
+            <rect width="256" height="256" fill="rgba(242,242,247,0.6)" mask="url(#liveness-mask)" />
             <ellipse
               cx="128" cy="128" rx="90" ry="115" fill="none"
-              stroke={phase === "challenge" ? "#10b981" : "#ef4444"}
-              strokeWidth="2" strokeDasharray="8 4"
+              stroke={phase === "challenge" ? "#22c55e" : phase === "countdown" ? "#be1d2c" : "#a78bfa"}
+              strokeWidth="2"
+              strokeDasharray={phase === "challenge" ? "none" : "8 4"}
+              className={phase === "neutral" && !cameraReady ? "animate-rotating-dash" : ""}
+              style={{ transition: "stroke 0.4s ease" }}
             />
           </svg>
         </div>
         <video
           ref={videoRef}
           autoPlay playsInline muted
-          className="w-full h-full object-cover"
-          style={{ transform: "scaleX(-1)" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: "scaleX(-1)",
+          }}
         />
       </div>
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Phase instructions */}
+      {/* Phase: Neutral */}
       {phase === "neutral" && cameraReady && (
-        <Box className="text-center space-y-2">
-          <Text bold size="large">Bước 1: Nhìn thẳng camera</Text>
-          <Text size="small" className="text-gray-500">Giữ khuôn mặt bình thường</Text>
-          <Button variant="primary" onClick={handleCaptureNeutral}>
-            Sẵn sàng
-          </Button>
-        </Box>
-      )}
-
-      {phase === "countdown" && (
-        <Box className="text-center space-y-2">
-          <Text bold size="large">Bước 2: {challenge.label}</Text>
-          <Text size="xxSmall" className="text-gray-400">
-            Chuẩn bị...
-          </Text>
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto">
-            <Text bold size="xLarge" className="text-red-500">{countdown}</Text>
+        <div className="glass-card-purple animate-fade-in" style={{ padding: 16, textAlign: "center", width: "100%" }}>
+          <div className="space-y-2">
+            <p style={{ color: "#1a1a1a", fontSize: 17, fontWeight: 700 }}>Bước 1: Nhìn thẳng camera</p>
+            <p style={{ color: "#6b7280", fontSize: 13 }}>Giữ khuôn mặt bình thường</p>
+            <button className="btn-primary-dark press-scale glow-purple" onClick={handleCaptureNeutral}>
+              Sẵn sàng
+            </button>
           </div>
-          <Text className="text-3xl">{challenge.icon}</Text>
-        </Box>
+        </div>
       )}
 
+      {/* Phase: Countdown */}
+      {phase === "countdown" && (
+        <div className="text-center space-y-2 animate-fade-in">
+          <p style={{ color: "#1a1a1a", fontSize: 17, fontWeight: 700 }}>Bước 2: {challenge.label}</p>
+          <p style={{ color: "#9ca3af", fontSize: 12 }}>
+            Chuẩn bị...
+          </p>
+          <div
+            className="glow-red animate-glow-pulse"
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: "50%",
+              background: "rgba(190,29,44,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto",
+              border: "2px solid rgba(190,29,44,0.4)",
+              transition: "transform 0.3s ease",
+              transform: `scale(${1 + (COUNTDOWN_SECONDS - countdown) * 0.05})`,
+            }}
+          >
+            <span style={{
+              color: "#be1d2c",
+              fontSize: 32,
+              fontWeight: 700,
+              transition: "transform 0.3s ease",
+            }}>{countdown}</span>
+          </div>
+          <span className="animate-bounce-in" style={{ fontSize: 36, display: "inline-block" }}>{challenge.icon}</span>
+        </div>
+      )}
+
+      {/* Phase: Challenge */}
       {phase === "challenge" && (
-        <Box className="text-center space-y-2">
-          <Text bold size="large" className="text-emerald-600">
+        <div className="text-center space-y-2 animate-fade-in">
+          <p style={{ color: "#22c55e", fontSize: 17, fontWeight: 700 }}>
             {challenge.label} ngay!
-          </Text>
-          <Text className="text-4xl animate-bounce">{challenge.icon}</Text>
-          <Text size="small" className="text-gray-400">Đang chụp...</Text>
-        </Box>
+          </p>
+          <span className="animate-bounce-in" style={{ fontSize: 48, display: "inline-block" }}>{challenge.icon}</span>
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-breathe" style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#22c55e",
+              boxShadow: "0 0 8px rgba(34,197,94,0.5)",
+            }} />
+            <p style={{ color: "#22c55e", fontSize: 13 }}>Đang chụp...</p>
+          </div>
+        </div>
       )}
 
       {!cameraReady && !cameraError && (
-        <Text size="small" className="text-gray-400">Đang khởi động camera...</Text>
+        <div className="flex items-center gap-2 animate-fade-in">
+          <div className="animate-rotating-dash" style={{
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            border: "2px solid transparent",
+            borderTopColor: "#a78bfa",
+          }} />
+          <p style={{ color: "#9ca3af", fontSize: 13 }}>Đang khởi động camera...</p>
+        </div>
       )}
 
-      <Button size="small" variant="tertiary" onClick={onSkip}>
+      {/* Phase progress dots */}
+      <div className="flex items-center gap-3" style={{ margin: "8px 0" }}>
+        {(["neutral", "countdown", "challenge"] as const).map((p, i) => (
+          <div key={p} style={{
+            width: phase === p ? 24 : 8,
+            height: 8,
+            borderRadius: 4,
+            background: phase === p
+              ? (p === "challenge" ? "#22c55e" : p === "countdown" ? "#be1d2c" : "#a78bfa")
+              : (["neutral", "countdown", "challenge"].indexOf(phase) > i ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.08)"),
+            transition: "all 0.4s ease",
+          }} />
+        ))}
+      </div>
+
+      <button className="btn-secondary-dark press-scale" onClick={onSkip}>
         Bỏ qua kiểm tra
-      </Button>
-    </Box>
+      </button>
+    </div>
   );
 }

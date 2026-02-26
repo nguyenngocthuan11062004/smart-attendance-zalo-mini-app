@@ -1,5 +1,5 @@
 import React, { Component, type ReactNode } from "react";
-import { Page, Text, Button, Header } from "zmp-ui";
+import { Page, Header } from "zmp-ui";
 
 interface Props {
   children: ReactNode;
@@ -27,24 +27,39 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <Page className="page">
+        <Page className="page" style={{ background: "#f2f2f7" }}>
           <Header title="Lỗi" showBackIcon={false} />
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                background: "rgba(239,68,68,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+              }}
+            >
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 8v4M12 16h.01" />
               </svg>
             </div>
-            <Text bold size="large" className="text-gray-700 mb-2">
+            <p style={{ color: "#1a1a1a", fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
               Đã xảy ra lỗi
-            </Text>
-            <Text size="small" className="text-gray-400 mb-6 px-8">
+            </p>
+            <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 24, padding: "0 32px" }}>
               Ứng dụng gặp sự cố. Vui lòng thử lại.
-            </Text>
-            <Button variant="primary" onClick={this.handleReset}>
+            </p>
+            <button
+              className="btn-primary-dark"
+              onClick={this.handleReset}
+              style={{ padding: "10px 32px", fontSize: 14 }}
+            >
               Thử lại
-            </Button>
+            </button>
           </div>
         </Page>
       );

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Button, Modal, Header } from "zmp-ui";
+import { Page, Box, Text, Button, Header } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeSessionAtom } from "@/store/session";
@@ -10,6 +10,9 @@ import { getClassById } from "@/services/class.service";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "@/config/firebase";
 import AttendanceCard from "@/components/attendance/AttendanceCard";
+import ScoreRing from "@/components/ui/ScoreRing";
+import DarkStatCard from "@/components/ui/DarkStatCard";
+import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc } from "@/types";
 
 type FilterType = "all" | "present" | "review" | "absent";
@@ -82,43 +85,58 @@ export default function TeacherMonitor() {
   ];
 
   return (
-    <Page className="page">
+    <Page className="page" style={{ background: "#f2f2f7" }}>
       <Header title="Theo dõi điểm danh" />
 
-      {/* Progress section */}
+      {/* Progress section with ScoreRing */}
       {totalStudents > 0 && (
-        <div className="card-flat p-4 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center space-x-2">
-              <Text bold size="normal">{checkedIn}</Text>
-              <Text size="xSmall" className="text-gray-400">/ {totalStudents} sinh viên</Text>
+        <div
+          className="glass-card"
+          style={{
+            borderRadius: 20,
+            padding: 16,
+            marginBottom: 16,
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span style={{ color: "#1a1a1a", fontSize: 20, fontWeight: 700 }}>{checkedIn}</span>
+                <span style={{ color: "#9ca3af", fontSize: 13 }}>/ {totalStudents} sinh viên</span>
+              </div>
+              {session?.status === "active" && (
+                <div className="flex items-center space-x-1" style={{ marginTop: 4 }}>
+                  <span
+                    className="animate-breathe"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      background: "#22c55e",
+                      display: "inline-block",
+                    }}
+                  />
+                  <span style={{ color: "#22c55e", fontSize: 11, fontWeight: 500 }}>Realtime</span>
+                </div>
+              )}
             </div>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600">
-              {progressPercent}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-2.5">
-            <div
-              className="progress-fill bg-red-500 h-2.5"
-              style={{ width: `${progressPercent}%` }}
-            />
+            <ScoreRing percentage={progressPercent} size={64} color="#a78bfa" glow animated>
+              <span style={{ color: "#a78bfa", fontSize: 13, fontWeight: 700 }}>{progressPercent}%</span>
+            </ScoreRing>
           </div>
         </div>
       )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="stat-card bg-emerald-50 text-emerald-600">
-          <p className="text-2xl font-bold">{present}</p>
-          <p className="text-[11px] text-emerald-500 mt-0.5 font-medium">Có mặt</p>
+        <div className="animate-bounce-in animate-stagger-1">
+          <DarkStatCard value={present} label="Có mặt" color="#22c55e" enhanced />
         </div>
-        <div className="stat-card bg-amber-50 text-amber-600">
-          <p className="text-2xl font-bold">{review}</p>
-          <p className="text-[11px] text-amber-500 mt-0.5 font-medium">Xem xét</p>
+        <div className="animate-bounce-in animate-stagger-2">
+          <DarkStatCard value={review} label="Xem xét" color="#f59e0b" enhanced />
         </div>
-        <div className="stat-card bg-red-50 text-red-600">
-          <p className="text-2xl font-bold">{absentCount}</p>
-          <p className="text-[11px] text-red-500 mt-0.5 font-medium">Vắng</p>
+        <div className="animate-bounce-in animate-stagger-3">
+          <DarkStatCard value={absentCount} label="Vắng" color="#ef4444" enhanced />
         </div>
       </div>
 
@@ -127,7 +145,7 @@ export default function TeacherMonitor() {
         {filterButtons.map((f) => (
           <button
             key={f.key}
-            className={`filter-chip ${filter === f.key ? "active" : ""}`}
+            className={`filter-chip state-transition ${filter === f.key ? "active" : ""}`}
             onClick={() => setFilter(f.key)}
           >
             {f.label} ({f.count})
@@ -137,31 +155,40 @@ export default function TeacherMonitor() {
 
       {/* List header */}
       <div className="flex justify-between items-center mb-3">
-        <Text bold size="normal">Danh sách ({filteredRecords.length})</Text>
-        {session?.status === "active" && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
-            Realtime
-          </span>
-        )}
+        <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 15 }}>Danh sách ({filteredRecords.length})</p>
       </div>
 
       {/* Records list */}
       {filteredRecords.length === 0 ? (
-        <div className="empty-state py-8">
-          <Text size="small" className="text-gray-400">
+        <div className="empty-state" style={{ paddingTop: 32, paddingBottom: 32 }}>
+          <p style={{ color: "#9ca3af", fontSize: 14 }}>
             {filter === "all" ? "Chưa có sinh viên điểm danh" : "Không có sinh viên"}
-          </Text>
+          </p>
         </div>
       ) : (
-        filteredRecords.map((r) => <AttendanceCard key={r.id} record={r} />)
+        filteredRecords.map((r, i) => (
+          <div key={r.id} className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}>
+            <AttendanceCard record={r} />
+          </div>
+        ))
       )}
 
       {/* End session button */}
       {session?.status === "active" && (
-        <div className="mt-4 pb-4">
+        <div style={{ marginTop: 16, paddingBottom: 16 }}>
           <button
-            className="w-full py-3 rounded-xl bg-red-500 text-white font-semibold text-sm active:bg-red-600"
+            className="glow-red press-scale"
+            style={{
+              width: "100%",
+              padding: "12px 0",
+              borderRadius: 12,
+              background: "#be1d2c",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              boxShadow: "0 0 20px rgba(190,29,44,0.3)",
+            }}
             onClick={() => setShowEndConfirm(true)}
           >
             Kết thúc phiên điểm danh
@@ -170,34 +197,50 @@ export default function TeacherMonitor() {
       )}
 
       {/* Confirm modal */}
-      <Modal
+      <DarkModal
         visible={showEndConfirm}
         onClose={() => setShowEndConfirm(false)}
         title="Kết thúc phiên?"
       >
-        <Box className="p-4">
-          <div className="bg-amber-50 rounded-xl p-3 mb-3">
-            <Text size="small" className="text-amber-800">
-              Đã có {checkedIn}/{totalStudents} sinh viên check-in. Hệ thống sẽ tính điểm tin cậy sau khi kết thúc.
-            </Text>
-          </div>
-          <div className="flex space-x-3">
-            <Button
-              className="flex-1"
-              variant="secondary"
-              onClick={() => setShowEndConfirm(false)}
-            >
-              Hủy
-            </Button>
-            <button
-              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm active:bg-red-600"
-              onClick={handleEndSession}
-            >
-              {ending ? "Đang kết thúc..." : "Kết thúc"}
-            </button>
-          </div>
-        </Box>
-      </Modal>
+        <div
+          style={{
+            background: "rgba(245,158,11,0.15)",
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ color: "#f59e0b", fontSize: 14 }}>
+            Đã có {checkedIn}/{totalStudents} sinh viên check-in. Hệ thống sẽ tính điểm tin cậy sau khi kết thúc.
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            className="btn-secondary-dark press-scale"
+            style={{ flex: 1, padding: "10px 0" }}
+            onClick={() => setShowEndConfirm(false)}
+          >
+            Hủy
+          </button>
+          <button
+            className="glow-red press-scale"
+            style={{
+              flex: 1,
+              padding: "10px 0",
+              borderRadius: 12,
+              background: "#be1d2c",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              boxShadow: "0 0 20px rgba(190,29,44,0.3)",
+            }}
+            onClick={handleEndSession}
+          >
+            {ending ? "Đang kết thúc..." : "Kết thúc"}
+          </button>
+        </div>
+      </DarkModal>
     </Page>
   );
 }

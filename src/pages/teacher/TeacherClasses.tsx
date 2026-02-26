@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Page, Box, Button, Text, Input, Modal, Header } from "zmp-ui";
+import { Page, Box, Button, Text, Input, Header } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { getTeacherClasses, createClass } from "@/services/class.service";
 import ClassCard from "@/components/class/ClassCard";
 import PullToRefresh from "@/components/ui/PullToRefresh";
+import DarkModal from "@/components/ui/DarkModal";
 import type { ClassDoc } from "@/types";
 
 export default function TeacherClasses() {
@@ -45,22 +46,42 @@ export default function TeacherClasses() {
   };
 
   return (
-    <Page className="page">
+    <Page className="page" style={{ background: "#f2f2f7" }}>
       <Header title="Quản lý lớp học" showBackIcon={false} />
 
       <PullToRefresh onRefresh={async () => { setLoading(true); await loadClasses(); }}>
-      {/* Header card with gradient */}
-      <div className="gradient-blue rounded-2xl p-4 mb-4 text-white">
+      {/* Header card */}
+      <div
+        style={{
+          background: "linear-gradient(180deg, #ffffff 0%, #f2f2f7 100%)",
+          borderRadius: 20,
+          padding: 16,
+          marginBottom: 16,
+          border: "1px solid rgba(0,0,0,0.06)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        }}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white/70 text-xs font-medium">Tổng số lớp</p>
-            <p className="text-3xl font-bold mt-0.5">{loading ? "..." : classes.length}</p>
+            <p style={{ color: "#9ca3af", fontSize: 12, fontWeight: 500 }}>Tổng số lớp</p>
+            <p style={{ color: "#1a1a1a", fontSize: 30, fontWeight: 700, marginTop: 2 }}>
+              {loading ? "..." : classes.length}
+            </p>
           </div>
           <button
-            className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center active:bg-white/30"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              background: "rgba(0,0,0,0.05)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "none",
+            }}
             onClick={() => setCreateModal(true)}
           >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round">
               <path d="M11 4v14M4 11h14" />
             </svg>
           </button>
@@ -72,50 +93,69 @@ export default function TeacherClasses() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-[72px]" />
+            <div key={i} className="skeleton" style={{ height: 72 }} />
           ))}
         </div>
       ) : classes.length === 0 ? (
         <div className="empty-state">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-3">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round">
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              background: "rgba(220,38,38,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 12,
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
               <rect x="4" y="6" width="20" height="16" rx="3" />
               <path d="M9 6V4a2 2 0 012-2h6a2 2 0 012 2v2" />
             </svg>
           </div>
-          <Text bold className="text-gray-600 mb-1">Chưa có lớp học</Text>
-          <Text size="xSmall" className="text-gray-400 mb-4">Tạo lớp học đầu tiên để bắt đầu</Text>
-          <Button size="small" variant="primary" onClick={() => setCreateModal(true)}>
+          <p style={{ color: "#1a1a1a", fontWeight: 600, marginBottom: 4 }}>Chưa có lớp học</p>
+          <p style={{ color: "#9ca3af", fontSize: 12, marginBottom: 16 }}>Tạo lớp học đầu tiên để bắt đầu</p>
+          <button className="btn-primary-dark" onClick={() => setCreateModal(true)}>
             Tạo lớp mới
-          </Button>
+          </button>
         </div>
       ) : (
-        classes.map((c) => (
-          <ClassCard
-            key={c.id}
-            classDoc={c}
-            showStudentCount
-            onClick={() => navigate(`/teacher/class/${c.id}`)}
-          />
+        classes.map((c, i) => (
+          <div key={c.id}>
+            <ClassCard
+              classDoc={c}
+              showStudentCount
+              onClick={() => navigate(`/teacher/class/${c.id}`)}
+            />
+          </div>
         ))
       )}
       </PullToRefresh>
 
-      <Modal visible={createModal} onClose={() => setCreateModal(false)} title="Tạo lớp mới">
-        <Box className="p-4">
-          <Input
-            label="Tên lớp"
+      <DarkModal visible={createModal} onClose={() => setCreateModal(false)} title="Tạo lớp mới">
+        <div style={{ padding: "0 4px" }}>
+          <label style={{ display: "block", color: "#6b7280", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
+            Tên lớp
+          </label>
+          <input
+            className="input-dark"
             placeholder="VD: CNTT K68..."
             value={className}
             onChange={(e) => setClassName(e.target.value)}
+            style={{ width: "100%", marginBottom: 16 }}
           />
-          <div className="mt-4">
-            <Button fullWidth variant="primary" loading={creating} onClick={handleCreateClass}>
-              Tạo lớp
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+          <button
+            className="btn-primary-dark"
+            style={{ width: "100%" }}
+            disabled={creating}
+            onClick={handleCreateClass}
+          >
+            {creating ? "Đang tạo..." : "Tạo lớp"}
+          </button>
+        </div>
+      </DarkModal>
     </Page>
   );
 }

@@ -6,6 +6,8 @@ import { getSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import FaceStatusBadge from "@/components/face/FaceStatusBadge";
+import DarkStatCard from "@/components/ui/DarkStatCard";
+import ScoreRing from "@/components/ui/ScoreRing";
 import type { AttendanceDoc } from "@/types";
 
 interface AbsentStudent {
@@ -14,18 +16,18 @@ interface AbsentStudent {
   markedPresent?: boolean;
 }
 
-const avatarColors = [
-  "bg-red-100 text-red-600",
-  "bg-emerald-100 text-emerald-600",
-  "bg-amber-100 text-amber-600",
-  "bg-rose-100 text-rose-600",
-  "bg-orange-100 text-orange-600",
+const avatarColorsDark = [
+  { bg: "rgba(220,38,38,0.15)", text: "#ef4444" },
+  { bg: "rgba(34,197,94,0.15)", text: "#22c55e" },
+  { bg: "rgba(245,158,11,0.15)", text: "#f59e0b" },
+  { bg: "rgba(167,139,250,0.15)", text: "#a78bfa" },
+  { bg: "rgba(251,146,60,0.15)", text: "#fb923c" },
 ];
 
 function getAvatarColor(name: string) {
   let h = 0;
   for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h);
-  return avatarColors[Math.abs(h) % avatarColors.length];
+  return avatarColorsDark[Math.abs(h) % avatarColorsDark.length];
 }
 
 export default function TeacherReview() {
@@ -120,7 +122,6 @@ export default function TeacherReview() {
       ].join(",");
     });
 
-    // Add absent students at the end of CSV
     const absentRows = absentStudents.map((s, i) => {
       return [
         records.length + i + 1,
@@ -138,7 +139,6 @@ export default function TeacherReview() {
     const date = new Date().toISOString().slice(0, 10);
     const filename = `diem-danh-${sessionId}-${date}.csv`;
 
-    // Try standard download first
     try {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -150,14 +150,12 @@ export default function TeacherReview() {
       URL.revokeObjectURL(url);
       openSnackbar({ type: "success", text: "Đã xuất báo cáo" });
     } catch {
-      // Fallback for Zalo WebView: upload to Firebase Storage and share URL
       try {
         const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
         const { storage } = await import("@/config/firebase");
         const storageRef = ref(storage, `exports/${sessionId}/${filename}`);
         await uploadBytes(storageRef, blob);
         const downloadUrl = await getDownloadURL(storageRef);
-        // Copy URL to clipboard or open in browser
         if (navigator.clipboard) {
           await navigator.clipboard.writeText(downloadUrl);
           openSnackbar({ type: "success", text: "Link tải đã được sao chép!" });
@@ -178,29 +176,41 @@ export default function TeacherReview() {
     (r) => (r.teacherOverride === "present") || (!r.teacherOverride && r.trustScore === "present")
   ).length;
 
+  const totalCheckedIn = records.length;
+  const totalAll = totalCheckedIn + absentStudents.length;
+  const attendPercent = totalAll > 0 ? Math.round((presentCount / totalAll) * 100) : 0;
+
   return (
-    <Page className="page">
+    <Page className="page" style={{ background: "#f2f2f7" }}>
       <Header title="Xem xét điểm danh" />
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="stat-card bg-emerald-50 text-emerald-600">
-          <p className="text-2xl font-bold">{presentCount}</p>
-          <p className="text-[11px] text-emerald-500 mt-0.5 font-medium">Có mặt</p>
-        </div>
-        <div className="stat-card bg-amber-50 text-amber-600">
-          <p className="text-2xl font-bold">{borderlineCases.length}</p>
-          <p className="text-[11px] text-amber-500 mt-0.5 font-medium">Xem xét</p>
-        </div>
-        <div className="stat-card bg-red-50 text-red-600">
-          <p className="text-2xl font-bold">{absentStudents.length}</p>
-          <p className="text-[11px] text-red-500 mt-0.5 font-medium">Vắng mặt</p>
+      {/* Summary stats with ScoreRing */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="grid grid-cols-3 gap-2" style={{ flex: 1, marginRight: 12 }}>
+          <div className="animate-bounce-in animate-stagger-1">
+            <DarkStatCard value={presentCount} label="Có mặt" color="#22c55e" enhanced />
+          </div>
+          <div className="animate-bounce-in animate-stagger-2">
+            <DarkStatCard value={borderlineCases.length} label="Xem xét" color="#f59e0b" enhanced />
+          </div>
+          <div className="animate-bounce-in animate-stagger-3">
+            <DarkStatCard value={absentStudents.length} label="Vắng mặt" color="#ef4444" enhanced />
+          </div>
         </div>
       </div>
 
       {/* Export button */}
       <button
-        className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold flex items-center justify-center space-x-2 active:bg-gray-50 mb-4"
+        className="btn-secondary-dark press-scale"
+        style={{
+          width: "100%",
+          padding: "10px 0",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
         onClick={handleExport}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -212,51 +222,88 @@ export default function TeacherReview() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-[80px]" />
+            <div key={i} className={`skeleton animate-stagger-${i}`} style={{ height: 80 }} />
           ))}
         </div>
       ) : (
         <>
           {/* Section 1: Borderline cases */}
           {borderlineCases.length > 0 && (
-            <div className="mb-5">
+            <div style={{ marginBottom: 20 }}>
               <p className="section-label">Cần xem xét ({borderlineCases.length})</p>
-              {borderlineCases.map((r) => (
-                <ReviewCard key={r.id} record={r} onOverride={handleOverride} />
+              {borderlineCases.map((r, i) => (
+                <div key={r.id} className={`animate-stagger-${Math.min(i + 1, 10)}`}>
+                  <ReviewCard record={r} onOverride={handleOverride} />
+                </div>
               ))}
             </div>
           )}
 
           {/* Section 2: Absent students */}
           {absentStudents.length > 0 && (
-            <div className="mb-5">
+            <div style={{ marginBottom: 20 }}>
               <p className="section-label">Vắng mặt - Chưa check-in ({absentStudents.length})</p>
-              {absentStudents.map((s) => (
-                <div key={s.id} className="card-flat p-4 mb-2">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center">
-                      <div className={`avatar-circle ${getAvatarColor(s.name)} mr-3`} style={{ width: 36, height: 36, fontSize: 13 }}>
-                        {s.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <Text bold size="normal">{s.name}</Text>
-                        <Text size="xxSmall" className="text-gray-400">Chưa check-in</Text>
-                      </div>
-                    </div>
-                    <TrustBadge score={s.markedPresent ? "present" : "absent"} size="small" />
-                  </div>
-                  <button
-                    className={`w-full py-2 rounded-xl text-sm font-semibold ${
-                      s.markedPresent
-                        ? "bg-gray-100 text-gray-600 active:bg-gray-200"
-                        : "bg-emerald-500 text-white active:bg-emerald-600"
-                    }`}
-                    onClick={() => handleAbsentOverride(s.id)}
+              {absentStudents.map((s, i) => {
+                const ac = getAvatarColor(s.name);
+                return (
+                  <div
+                    key={s.id}
+                    className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: 16,
+                      padding: 16,
+                      marginBottom: 8,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
                   >
-                    {s.markedPresent ? "Hủy đánh dấu" : "Đánh dấu có mặt (có lý do)"}
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            background: ac.bg,
+                            color: ac.text,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            marginRight: 12,
+                            border: `2px solid ${ac.text}`,
+                          }}
+                        >
+                          {s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 14 }}>{s.name}</p>
+                          <p style={{ color: "#9ca3af", fontSize: 11 }}>Chưa check-in</p>
+                        </div>
+                      </div>
+                      <TrustBadge score={s.markedPresent ? "present" : "absent"} size="small" />
+                    </div>
+                    <button
+                      className={s.markedPresent ? "press-scale" : "glow-green press-scale"}
+                      style={{
+                        width: "100%",
+                        padding: "8px 0",
+                        borderRadius: 12,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        border: "none",
+                        background: s.markedPresent ? "#f0f0f5" : "#22c55e",
+                        color: s.markedPresent ? "#9ca3af" : "#ffffff",
+                      }}
+                      onClick={() => handleAbsentOverride(s.id)}
+                    >
+                      {s.markedPresent ? "Hủy đánh dấu" : "Đánh dấu có mặt (có lý do)"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -264,30 +311,60 @@ export default function TeacherReview() {
           <div>
             <p className="section-label">Tất cả đã check-in ({records.length})</p>
             {records.length === 0 ? (
-              <div className="empty-state py-6">
-                <Text size="small" className="text-gray-400">Không có dữ liệu</Text>
+              <div className="empty-state" style={{ paddingTop: 24, paddingBottom: 24 }}>
+                <p style={{ color: "#9ca3af", fontSize: 14 }}>Không có dữ liệu</p>
               </div>
             ) : (
-              records.map((r) => (
-                <div key={r.id} className="card-flat p-3 mb-2">
-                  <div className="flex items-center">
-                    <div className={`avatar-circle ${getAvatarColor(r.studentName)} mr-3`} style={{ width: 36, height: 36, fontSize: 13 }}>
-                      {r.studentName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Text bold size="normal" className="truncate">{r.studentName}</Text>
-                      <div className="flex items-center flex-wrap gap-1 mt-0.5">
-                        <Text size="xxSmall" className="text-gray-400">{r.peerCount} peer</Text>
-                        <FaceStatusBadge faceVerification={r.faceVerification} size="small" />
+              records.map((r, i) => {
+                const ac = getAvatarColor(r.studentName);
+                return (
+                  <div
+                    key={r.id}
+                    className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: 16,
+                      padding: 12,
+                      marginBottom: 8,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          background: ac.bg,
+                          color: ac.text,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          marginRight: 12,
+                          flexShrink: 0,
+                          border: `2px solid ${ac.text}`,
+                        }}
+                      >
+                        {r.studentName.charAt(0).toUpperCase()}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 14 }} className="truncate">{r.studentName}</p>
+                        <div className="flex items-center flex-wrap gap-1 mt-0.5">
+                          <span style={{ color: "#9ca3af", fontSize: 11 }}>{r.peerCount} peer</span>
+                          <FaceStatusBadge faceVerification={r.faceVerification} size="small" />
+                        </div>
+                      </div>
+                      <TrustBadge
+                        score={r.teacherOverride ? (r.teacherOverride === "present" ? "present" : "absent") : r.trustScore}
+                        size="small"
+                      />
                     </div>
-                    <TrustBadge
-                      score={r.teacherOverride ? (r.teacherOverride === "present" ? "present" : "absent") : r.trustScore}
-                      size="small"
-                    />
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </>
@@ -303,34 +380,78 @@ function ReviewCard({
   record: AttendanceDoc;
   onOverride: (id: string, decision: "present" | "absent") => void;
 }) {
+  const ac = getAvatarColor(record.studentName);
   return (
-    <div className="card-flat p-4 mb-2 border-l-4 border-amber-400">
+    <div
+      className="glass-card-amber"
+      style={{
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 8,
+        borderLeft: "4px solid #f59e0b",
+      }}
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center">
-          <div className={`avatar-circle ${getAvatarColor(record.studentName)} mr-3`} style={{ width: 36, height: 36, fontSize: 13 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              background: ac.bg,
+              color: ac.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              fontWeight: 700,
+              marginRight: 12,
+              border: `2px solid ${ac.text}`,
+            }}
+          >
             {record.studentName.charAt(0).toUpperCase()}
           </div>
           <div>
-            <Text bold size="normal">{record.studentName}</Text>
-            <Text size="xxSmall" className="text-gray-400">
+            <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 14 }}>{record.studentName}</p>
+            <p style={{ color: "#9ca3af", fontSize: 11 }}>
               {record.peerCount} peer | {new Date(record.checkedInAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-            </Text>
+            </p>
           </div>
         </div>
         <TrustBadge score="review" size="small" />
       </div>
-      <div className="mb-3">
+      <div style={{ marginBottom: 12 }}>
         <FaceStatusBadge faceVerification={record.faceVerification} />
       </div>
       <div className="flex space-x-2">
         <button
-          className="flex-1 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold active:bg-emerald-600"
+          className="glow-green press-scale"
+          style={{
+            flex: 1,
+            padding: "8px 0",
+            borderRadius: 12,
+            background: "#22c55e",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "none",
+          }}
           onClick={() => onOverride(record.id, "present")}
         >
           Có mặt
         </button>
         <button
-          className="flex-1 py-2 rounded-xl bg-red-100 text-red-600 text-sm font-semibold active:bg-red-200"
+          className="glow-red press-scale"
+          style={{
+            flex: 1,
+            padding: "8px 0",
+            borderRadius: 12,
+            background: "rgba(239,68,68,0.15)",
+            color: "#ef4444",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "none",
+          }}
           onClick={() => onOverride(record.id, "absent")}
         >
           Vắng
@@ -339,4 +460,3 @@ function ReviewCard({
     </div>
   );
 }
-

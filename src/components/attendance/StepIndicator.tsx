@@ -26,16 +26,42 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
           <React.Fragment key={s.key}>
             <div className="flex flex-col items-center" style={{ minWidth: 52 }}>
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                  isCompleted
-                    ? "bg-emerald-500 text-white"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  transition: "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  background: isCompleted
+                    ? "#a78bfa"
                     : isActive
-                    ? "bg-red-500 text-white shadow-md shadow-red-200 scale-110"
-                    : "bg-gray-100 text-gray-400"
-                }`}
+                    ? "#be1d2c"
+                    : "#e5e7eb",
+                  color: isCompleted || isActive ? "#fff" : "#9ca3af",
+                  boxShadow: isActive
+                    ? "0 0 16px rgba(190,29,44,0.5)"
+                    : isCompleted
+                    ? "0 0 10px rgba(167,139,250,0.3)"
+                    : "none",
+                  transform: isActive ? "scale(1.15)" : "scale(1)",
+                  animation: isActive ? "glowPulse 2s ease-in-out infinite" : "none",
+                }}
               >
                 {isCompleted ? (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    className="animate-success-pop"
+                  >
                     <path d="M3 7l3 3 5-5" />
                   </svg>
                 ) : (
@@ -43,19 +69,46 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
                 )}
               </div>
               <p
-                className={`text-[10px] mt-1 font-medium ${
-                  isActive ? "text-red-600" : isCompleted ? "text-emerald-600" : "text-gray-400"
-                }`}
+                style={{
+                  fontSize: 10,
+                  marginTop: 4,
+                  fontWeight: isActive ? 600 : 500,
+                  transition: "color 0.3s",
+                  color: isActive
+                    ? "#be1d2c"
+                    : isCompleted
+                    ? "#a78bfa"
+                    : "#9ca3af",
+                }}
               >
                 {s.label}
               </p>
             </div>
             {i < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mb-4 rounded-full ${
-                  i < effectiveIndex ? "bg-emerald-400" : "bg-gray-200"
-                }`}
-              />
+                style={{
+                  flex: 1,
+                  height: 2,
+                  marginBottom: 16,
+                  borderRadius: 999,
+                  background: i < effectiveIndex ? "#a78bfa" : "#e5e7eb",
+                  transition: "background 0.5s ease, box-shadow 0.5s ease",
+                  boxShadow: i < effectiveIndex ? "0 0 6px rgba(167,139,250,0.3)" : "none",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                {i < effectiveIndex && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)",
+                      animation: "shimmerSlide 2s ease-in-out infinite",
+                    }}
+                  />
+                )}
+              </div>
             )}
           </React.Fragment>
         );

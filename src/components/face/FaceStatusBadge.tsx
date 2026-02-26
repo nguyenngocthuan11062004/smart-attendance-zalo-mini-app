@@ -7,11 +7,14 @@ interface FaceStatusBadgeProps {
 }
 
 export default function FaceStatusBadge({ faceVerification, size = "normal" }: FaceStatusBadgeProps) {
-  const textSize = size === "small" ? "text-[10px]" : "text-xs";
+  const textSize = size === "small" ? 10 : 12;
 
   if (!faceVerification) {
     return (
-      <span className={`inline-flex items-center px-1.5 py-0.5 rounded bg-gray-50 ${textSize} text-gray-400`}>
+      <span
+        className="inline-flex items-center px-1.5 py-0.5 rounded"
+        style={{ background: "#e5e7eb", fontSize: textSize, color: "#9ca3af" }}
+      >
         Chưa xác minh
       </span>
     );
@@ -19,7 +22,10 @@ export default function FaceStatusBadge({ faceVerification, size = "normal" }: F
 
   if (faceVerification.skipped) {
     return (
-      <span className={`inline-flex items-center px-1.5 py-0.5 rounded bg-amber-50 ${textSize} text-amber-600`}>
+      <span
+        className="inline-flex items-center px-1.5 py-0.5 rounded"
+        style={{ background: "rgba(245,158,11,0.15)", fontSize: textSize, color: "#f59e0b" }}
+      >
         Bỏ qua
       </span>
     );
@@ -27,14 +33,20 @@ export default function FaceStatusBadge({ faceVerification, size = "normal" }: F
 
   if (faceVerification.matched && faceVerification.confidence >= 0.7) {
     return (
-      <span className={`inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 ${textSize} text-emerald-600`}>
+      <span
+        className="inline-flex items-center px-1.5 py-0.5 rounded"
+        style={{ background: "rgba(34,197,94,0.15)", fontSize: textSize, color: "#22c55e" }}
+      >
         Khớp {Math.round(faceVerification.confidence * 100)}%
       </span>
     );
   }
 
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded bg-red-50 ${textSize} text-red-600`}>
+    <span
+      className="inline-flex items-center px-1.5 py-0.5 rounded"
+      style={{ background: "rgba(239,68,68,0.15)", fontSize: textSize, color: "#ef4444" }}
+    >
       Không khớp {Math.round(faceVerification.confidence * 100)}%
     </span>
   );

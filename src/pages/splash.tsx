@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Page } from "zmp-ui";
-import { useNavigate } from "zmp-ui";
+import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { isAuthenticatedAtom, authInitializedAtom } from "@/store/auth";
 import splash from "@/static/splash_inhust.png";
@@ -52,7 +52,7 @@ export default function SplashPage() {
   }, [authInitialized, navigate]);
 
   return (
-    <Page style={{ padding: 0, margin: 0, minHeight: "100vh", background: "#000" }}>
+    <Page style={{ padding: 0, margin: 0, minHeight: "100vh", background: "#ffffff" }}>
       <div
         style={{
           position: "fixed",
