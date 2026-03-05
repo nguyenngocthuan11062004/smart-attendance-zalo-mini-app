@@ -93,7 +93,7 @@ export default function TeacherMonitor() {
         <div
           className="glass-card"
           style={{
-            borderRadius: 20,
+            borderRadius: 12,
             padding: 16,
             marginBottom: 16,
           }}
@@ -176,23 +176,13 @@ export default function TeacherMonitor() {
       {/* End session button */}
       {session?.status === "active" && (
         <div style={{ marginTop: 16, paddingBottom: 16 }}>
-          <button
-            className="glow-red press-scale"
-            style={{
-              width: "100%",
-              padding: "12px 0",
-              borderRadius: 12,
-              background: "#be1d2c",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: 14,
-              border: "none",
-              boxShadow: "0 0 20px rgba(190,29,44,0.3)",
-            }}
+          <Button
+            type="danger"
+            fullWidth
             onClick={() => setShowEndConfirm(true)}
           >
             Kết thúc phiên điểm danh
-          </button>
+          </Button>
         </div>
       )}
 
@@ -215,30 +205,21 @@ export default function TeacherMonitor() {
           </p>
         </div>
         <div className="flex space-x-3">
-          <button
-            className="btn-secondary-dark press-scale"
-            style={{ flex: 1, padding: "10px 0" }}
+          <Button
+            variant="secondary"
+            style={{ flex: 1 }}
             onClick={() => setShowEndConfirm(false)}
           >
             Hủy
-          </button>
-          <button
-            className="glow-red press-scale"
-            style={{
-              flex: 1,
-              padding: "10px 0",
-              borderRadius: 12,
-              background: "#be1d2c",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: 14,
-              border: "none",
-              boxShadow: "0 0 20px rgba(190,29,44,0.3)",
-            }}
+          </Button>
+          <Button
+            type="danger"
+            style={{ flex: 1 }}
+            loading={ending}
             onClick={handleEndSession}
           >
             {ending ? "Đang kết thúc..." : "Kết thúc"}
-          </button>
+          </Button>
         </div>
       </DarkModal>
     </Page>

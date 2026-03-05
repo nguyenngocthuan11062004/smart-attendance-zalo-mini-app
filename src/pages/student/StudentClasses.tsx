@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Input, Header, useSnackbar } from "zmp-ui";
+import { Page, Box, Text, Input, Header, Button, useSnackbar } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -111,22 +111,9 @@ export default function StudentClasses() {
 
       <PullToRefresh onRefresh={async () => { setLoading(true); await loadClasses(); }}>
         <Box className="mb-4">
-          <button
-            onClick={() => setJoinModal(true)}
-            className="btn-primary-dark"
-            style={{
-              width: "100%",
-              padding: "14px 0",
-              fontSize: 15,
-              fontWeight: 600,
-              borderRadius: 14,
-              background: "#be1d2c",
-              color: "#fff",
-              border: "none",
-            }}
-          >
+          <Button type="danger" fullWidth onClick={() => setJoinModal(true)}>
             Tham gia lop moi
-          </button>
+          </Button>
         </Box>
 
         {loading ? (
@@ -154,31 +141,25 @@ export default function StudentClasses() {
               <ClassCard classDoc={c} onClick={() => handleClassClick(c)} />
               {activeSessions[c.id] && (
                 <div className="px-4 -mt-2 mb-1">
-                  <button
-                    style={{
-                      width: "100%",
-                      padding: "10px 0",
-                      borderRadius: 12,
-                      background: "#22c55e",
-                      color: "#fff",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      border: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                  <Button
+                    fullWidth
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAttendance(c.id);
                     }}
+                    style={{
+                      background: "#22c55e",
+                      borderRadius: 12,
+                    }}
+                    prefixIcon={
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <circle cx="8" cy="8" r="6" />
+                        <path d="M5.5 8l1.5 1.5 3-3" />
+                      </svg>
+                    }
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mr-1.5">
-                      <circle cx="8" cy="8" r="6" />
-                      <path d="M5.5 8l1.5 1.5 3-3" />
-                    </svg>
                     Diem danh ngay
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -212,24 +193,9 @@ export default function StudentClasses() {
               {joinError}
             </Text>
           )}
-          <button
-            className="btn-primary-dark"
-            onClick={handleJoinClass}
-            disabled={joining}
-            style={{
-              width: "100%",
-              padding: "14px 0",
-              fontSize: 15,
-              fontWeight: 600,
-              borderRadius: 14,
-              background: "#be1d2c",
-              color: "#fff",
-              border: "none",
-              opacity: joining ? 0.6 : 1,
-            }}
-          >
+          <Button type="danger" fullWidth onClick={handleJoinClass} disabled={joining} loading={joining}>
             {joining ? "Dang xu ly..." : "Tham gia"}
-          </button>
+          </Button>
         </div>
       </DarkModal>
     </Page>

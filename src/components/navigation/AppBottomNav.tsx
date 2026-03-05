@@ -43,8 +43,8 @@ export default function AppBottomNav() {
 
   if (!role) return null;
 
-  const hiddenPaths = ["/splash", "/welcome", "/login"];
-  if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return null;
+  const visiblePaths = ["/home", "/search", "/profile"];
+  if (!visiblePaths.includes(location.pathname)) return null;
 
   const activePath = location.pathname;
 

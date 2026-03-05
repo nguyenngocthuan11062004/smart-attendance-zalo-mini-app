@@ -1,8 +1,9 @@
 {
   "app": {
     "title": "Điểm Danh Thông Minh",
+    "headerColor": "#be1d2c",
     "textColor": {
-      "light": "black",
+      "light": "white",
       "dark": "white"
     },
     "statusBar": "transparent",

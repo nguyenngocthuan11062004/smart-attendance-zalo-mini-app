@@ -19,6 +19,8 @@ export interface UserDoc {
   hustStudentId?: string;
   microsoftLinkedAt?: number;
   microsoftDisplayName?: string;
+  followedOA?: boolean;
+  zaloPhone?: string;
   createdAt: number;
   updatedAt: number;
 }

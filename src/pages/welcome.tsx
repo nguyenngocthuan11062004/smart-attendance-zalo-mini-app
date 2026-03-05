@@ -1,5 +1,5 @@
 import React from "react";
-import { Page, Box, Button, Text } from "zmp-ui";
+import { Page, Box, Text, Button } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 
 export default function WelcomePage() {
@@ -21,12 +21,9 @@ export default function WelcomePage() {
         <Text size="small" style={{ color: "#9ca3af" }}>
           Trust Score: 3+ peers = Có mặt | 1-2 peers = Cần xem xét | 0 = Vắng
         </Text>
-        <button
-          className="btn-primary-dark glow"
-          onClick={onStart}
-        >
+        <Button type="danger" fullWidth size="large" onClick={onStart}>
           Bắt đầu
-        </button>
+        </Button>
       </Box>
     </Page>
   );

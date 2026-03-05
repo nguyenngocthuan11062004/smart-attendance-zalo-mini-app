@@ -82,7 +82,7 @@ export default function TeacherFraudReport() {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: 12,
             padding: 16,
             textAlign: "center",
             border: "1px solid rgba(0,0,0,0.06)",
@@ -127,7 +127,7 @@ export default function TeacherFraudReport() {
           className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)} ${p.severity === "high" ? "glow-red" : p.severity === "medium" ? "glow-amber" : ""}`}
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: 12,
             padding: 12,
             marginBottom: 8,
             border: "1px solid rgba(0,0,0,0.06)",
@@ -234,7 +234,7 @@ export default function TeacherFraudReport() {
         className="glass-card animate-fade-in"
         style={{
           background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
-          borderRadius: 20,
+          borderRadius: 12,
           padding: 16,
           marginBottom: 16,
           border: "1px solid rgba(0,0,0,0.06)",
@@ -247,44 +247,16 @@ export default function TeacherFraudReport() {
       </div>
 
       {/* Analyze button */}
-      <button
-        className={analyzing ? "" : "glow-red press-scale"}
-        style={{
-          width: "100%",
-          padding: "12px 0",
-          borderRadius: 12,
-          fontWeight: 600,
-          fontSize: 14,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          border: "none",
-          background: analyzing ? "#f0f0f5" : "#be1d2c",
-          color: analyzing ? "#9ca3af" : "#ffffff",
-          boxShadow: analyzing ? "none" : "0 0 20px rgba(190,29,44,0.3)",
-        }}
-        onClick={handleAnalyze}
+      <Button
+        type="danger"
+        fullWidth
+        style={{ marginBottom: 16 }}
+        loading={analyzing}
         disabled={analyzing}
+        onClick={handleAnalyze}
       >
-        {analyzing ? (
-          <>
-            <svg className="animate-spin" style={{ width: 16, height: 16 }} viewBox="0 0 24 24" fill="none">
-              <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span>Đang phân tích...</span>
-          </>
-        ) : (
-          <>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <span>Phân tích gian lận</span>
-          </>
-        )}
-      </button>
+        {analyzing ? "Đang phân tích..." : "Phân tích gian lận"}
+      </Button>
 
       {/* Latest result */}
       {latestResult && (
@@ -292,7 +264,7 @@ export default function TeacherFraudReport() {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 16,
+              borderRadius: 12,
               padding: 12,
               marginBottom: 12,
               border: "1px solid rgba(0,0,0,0.06)",
@@ -315,7 +287,7 @@ export default function TeacherFraudReport() {
               <div
                 style={{
                   background: "#ffffff",
-                  borderRadius: 16,
+                  borderRadius: 12,
                   padding: 12,
                   marginBottom: 8,
                   border: "1px solid rgba(0,0,0,0.06)",

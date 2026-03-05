@@ -136,12 +136,12 @@ export default function LivenessChallenge({ onComplete, onSkip, onError }: Liven
             <span style={{ fontSize: 28, color: "#ef4444" }}>!</span>
           </div>
           <p className="animate-fade-in" style={{ color: "#ef4444", textAlign: "center", fontSize: 14 }}>{cameraError}</p>
-          <button className="btn-secondary-dark press-scale" onClick={startCamera}>
+          <Button variant="secondary" fullWidth onClick={startCamera}>
             Thử lại
-          </button>
-          <button className="btn-secondary-dark press-scale" onClick={onSkip}>
+          </Button>
+          <Button variant="secondary" fullWidth onClick={onSkip}>
             Bỏ qua
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -226,9 +226,9 @@ export default function LivenessChallenge({ onComplete, onSkip, onError }: Liven
           <div className="space-y-2">
             <p style={{ color: "#1a1a1a", fontSize: 17, fontWeight: 700 }}>Bước 1: Nhìn thẳng camera</p>
             <p style={{ color: "#6b7280", fontSize: 13 }}>Giữ khuôn mặt bình thường</p>
-            <button className="btn-primary-dark press-scale glow-purple" onClick={handleCaptureNeutral}>
+            <Button type="danger" fullWidth onClick={handleCaptureNeutral}>
               Sẵn sàng
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -315,9 +315,9 @@ export default function LivenessChallenge({ onComplete, onSkip, onError }: Liven
         ))}
       </div>
 
-      <button className="btn-secondary-dark press-scale" onClick={onSkip}>
+      <Button variant="secondary" fullWidth onClick={onSkip}>
         Bỏ qua kiểm tra
-      </button>
+      </Button>
     </div>
   );
 }

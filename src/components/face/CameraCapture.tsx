@@ -88,9 +88,9 @@ export default function CameraCapture({ onCapture, onError, disabled }: CameraCa
             <span style={{ fontSize: 28, color: "#ef4444" }}>!</span>
           </div>
           <p className="animate-fade-in" style={{ color: "#ef4444", textAlign: "center", fontSize: 14 }}>{cameraError}</p>
-          <button className="btn-secondary-dark press-scale" onClick={startCamera}>
+          <Button variant="secondary" fullWidth onClick={startCamera}>
             Thu lai
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -179,25 +179,21 @@ export default function CameraCapture({ onCapture, onError, disabled }: CameraCa
         </div>
       )}
 
-      <button
-        className={`btn-primary-dark press-scale ${cameraReady && !disabled ? "glow-red animate-glow-pulse" : ""}`}
+      <Button
+        type="danger"
         disabled={!cameraReady || disabled}
         onClick={capture}
+        className={cameraReady && !disabled ? "glow-red animate-glow-pulse" : ""}
         style={{
           width: 64,
           height: 64,
           borderRadius: "50%",
           padding: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 14,
-          fontWeight: 700,
-          transition: "all 0.3s ease",
+          minWidth: "unset",
         }}
       >
         Chup
-      </button>
+      </Button>
     </div>
   );
 }

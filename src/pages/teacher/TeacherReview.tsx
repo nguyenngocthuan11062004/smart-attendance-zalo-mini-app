@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Button, Header, useSnackbar } from "zmp-ui";
+import { Page, Box, Text, Button, Header, useSnackbar, Icon } from "zmp-ui";
 import { useParams } from "react-router-dom";
 import { getSessionAttendance, teacherOverride } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
@@ -200,24 +200,14 @@ export default function TeacherReview() {
       </div>
 
       {/* Export button */}
-      <button
-        className="btn-secondary-dark press-scale"
-        style={{
-          width: "100%",
-          padding: "10px 0",
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
+      <Button
+        variant="secondary"
+        fullWidth
+        style={{ marginBottom: 16 }}
         onClick={handleExport}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-        </svg>
-        <span>Xuất báo cáo</span>
-      </button>
+        Xuất báo cáo
+      </Button>
 
       {loading ? (
         <div className="space-y-3">
@@ -251,7 +241,7 @@ export default function TeacherReview() {
                     className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}
                     style={{
                       background: "#ffffff",
-                      borderRadius: 16,
+                      borderRadius: 12,
                       padding: 16,
                       marginBottom: 8,
                       border: "1px solid rgba(0,0,0,0.06)",
@@ -285,22 +275,15 @@ export default function TeacherReview() {
                       </div>
                       <TrustBadge score={s.markedPresent ? "present" : "absent"} size="small" />
                     </div>
-                    <button
-                      className={s.markedPresent ? "press-scale" : "glow-green press-scale"}
-                      style={{
-                        width: "100%",
-                        padding: "8px 0",
-                        borderRadius: 12,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        border: "none",
-                        background: s.markedPresent ? "#f0f0f5" : "#22c55e",
-                        color: s.markedPresent ? "#9ca3af" : "#ffffff",
-                      }}
+                    <Button
+                      variant={s.markedPresent ? "secondary" : "primary"}
+                      type={s.markedPresent ? "neutral" : "highlight"}
+                      fullWidth
+                      size="small"
                       onClick={() => handleAbsentOverride(s.id)}
                     >
                       {s.markedPresent ? "Hủy đánh dấu" : "Đánh dấu có mặt (có lý do)"}
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
@@ -323,7 +306,7 @@ export default function TeacherReview() {
                     className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}
                     style={{
                       background: "#ffffff",
-                      borderRadius: 16,
+                      borderRadius: 12,
                       padding: 12,
                       marginBottom: 8,
                       border: "1px solid rgba(0,0,0,0.06)",
@@ -385,7 +368,7 @@ function ReviewCard({
     <div
       className="glass-card-amber"
       style={{
-        borderRadius: 16,
+        borderRadius: 12,
         padding: 16,
         marginBottom: 8,
         borderLeft: "4px solid #f59e0b",
@@ -424,38 +407,22 @@ function ReviewCard({
         <FaceStatusBadge faceVerification={record.faceVerification} />
       </div>
       <div className="flex space-x-2">
-        <button
-          className="glow-green press-scale"
-          style={{
-            flex: 1,
-            padding: "8px 0",
-            borderRadius: 12,
-            background: "#22c55e",
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 600,
-            border: "none",
-          }}
+        <Button
+          type="highlight"
+          size="small"
+          style={{ flex: 1 }}
           onClick={() => onOverride(record.id, "present")}
         >
           Có mặt
-        </button>
-        <button
-          className="glow-red press-scale"
-          style={{
-            flex: 1,
-            padding: "8px 0",
-            borderRadius: 12,
-            background: "rgba(239,68,68,0.15)",
-            color: "#ef4444",
-            fontSize: 13,
-            fontWeight: 600,
-            border: "none",
-          }}
+        </Button>
+        <Button
+          variant="secondary"
+          size="small"
+          style={{ flex: 1 }}
           onClick={() => onOverride(record.id, "absent")}
         >
           Vắng
-        </button>
+        </Button>
       </div>
     </div>
   );

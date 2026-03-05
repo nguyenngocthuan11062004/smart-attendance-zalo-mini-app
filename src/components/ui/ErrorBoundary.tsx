@@ -1,5 +1,5 @@
 import React, { Component, type ReactNode } from "react";
-import { Page, Header } from "zmp-ui";
+import { Page, Header, Button, Icon } from "zmp-ui";
 
 interface Props {
   children: ReactNode;
@@ -42,10 +42,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 marginBottom: 16,
               }}
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4M12 16h.01" />
-              </svg>
+              <Icon icon="zi-warning" size={28} style={{ color: "#ef4444" }} />
             </div>
             <p style={{ color: "#1a1a1a", fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
               Đã xảy ra lỗi
@@ -53,13 +50,9 @@ export default class ErrorBoundary extends Component<Props, State> {
             <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 24, padding: "0 32px" }}>
               Ứng dụng gặp sự cố. Vui lòng thử lại.
             </p>
-            <button
-              className="btn-primary-dark"
-              onClick={this.handleReset}
-              style={{ padding: "10px 32px", fontSize: 14 }}
-            >
+            <Button type="danger" size="medium" onClick={this.handleReset}>
               Thử lại
-            </button>
+            </Button>
           </div>
         </Page>
       );

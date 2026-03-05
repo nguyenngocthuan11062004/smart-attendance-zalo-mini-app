@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Button } from "zmp-ui";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { initMicrosoftOAuth, openMicrosoftAuth, subscribeToVerification } from "@/services/microsoft.service";
@@ -93,13 +94,15 @@ export default function MicrosoftLinkCard() {
           </p>
         </div>
       ) : (
-        <button
-          style={linkButtonStyle}
-          onClick={handleLink}
+        <Button
+          type="danger"
+          fullWidth
+          loading={state === "loading"}
           disabled={state === "loading"}
+          onClick={handleLink}
         >
           {state === "loading" ? "Đang xử lý..." : state === "error" ? "Thử lại" : "Liên kết ngay"}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -118,7 +121,7 @@ function MicrosoftIcon() {
 
 const cardStyle: React.CSSProperties = {
   background: "#ffffff",
-  borderRadius: 20,
+  borderRadius: 12,
   padding: 20,
   border: "1px solid rgba(0,0,0,0.06)",
   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
@@ -132,19 +135,6 @@ const verifiedBadge: React.CSSProperties = {
   borderRadius: 20,
   padding: "2px 10px",
   marginLeft: "auto",
-};
-
-const linkButtonStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 0",
-  borderRadius: 14,
-  border: "none",
-  background: "#be1d2c",
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-  boxShadow: "0 0 20px rgba(190,29,44,0.3)",
 };
 
 const spinnerStyle: React.CSSProperties = {

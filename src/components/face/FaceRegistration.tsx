@@ -134,9 +134,9 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
             <p className="animate-fade-in" style={{ color: "#9ca3af", textAlign: "center", fontSize: 12 }}>
               Đảm bảo đủ sáng, khuôn mặt rõ ràng, không đội kính râm
             </p>
-            <button className="btn-primary-dark glow-red press-scale" onClick={() => setState("capture")}>
+            <Button type="danger" fullWidth onClick={() => setState("capture")}>
               Chụp lại
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -159,9 +159,9 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
 
         {onSkip && (
           <div className="text-center animate-slide-up animate-stagger-3">
-            <button className="btn-secondary-dark press-scale" onClick={onSkip}>
+            <Button variant="secondary" fullWidth onClick={onSkip}>
               Bỏ qua
-            </button>
+            </Button>
           </div>
         )}
       </div>

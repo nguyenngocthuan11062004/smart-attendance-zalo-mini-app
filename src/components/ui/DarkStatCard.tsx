@@ -20,7 +20,7 @@ export default function DarkStatCard({
       className={enhanced ? "hover-lift press-scale" : ""}
       style={{
         background: "#ffffff",
-        borderRadius: 16,
+        borderRadius: 12,
         padding: "14px 8px",
         textAlign: "center",
         position: "relative",
@@ -54,7 +54,7 @@ export default function DarkStatCard({
             right: 0,
             width: 40,
             height: 40,
-            borderRadius: "0 16px 0 40px",
+            borderRadius: "0 12px 0 40px",
             opacity: 0.1,
             background: color,
           }}

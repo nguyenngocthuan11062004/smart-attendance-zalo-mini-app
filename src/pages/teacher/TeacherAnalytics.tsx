@@ -97,7 +97,7 @@ export default function TeacherAnalytics() {
             className="glass-card animate-fade-in"
             style={{
               background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
-              borderRadius: 20,
+              borderRadius: 12,
               padding: 16,
               marginBottom: 16,
               border: "1px solid rgba(0,0,0,0.06)",
@@ -138,7 +138,7 @@ export default function TeacherAnalytics() {
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 12,
                 padding: 16,
                 marginBottom: 16,
                 border: "1px solid rgba(0,0,0,0.06)",
@@ -231,7 +231,7 @@ export default function TeacherAnalytics() {
                     className={`hover-lift animate-stagger-${Math.min(i + 1, 10)}`}
                     style={{
                       background: "#ffffff",
-                      borderRadius: 16,
+                      borderRadius: 12,
                       padding: 12,
                       marginBottom: 8,
                       border: "1px solid rgba(0,0,0,0.06)",

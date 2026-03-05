@@ -113,7 +113,7 @@ export default function TeacherClassDetail() {
         className="glass-card animate-fade-in"
         style={{
           background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
-          borderRadius: 20,
+          borderRadius: 12,
           padding: 20,
           marginBottom: 16,
           textAlign: "center",
@@ -174,7 +174,7 @@ export default function TeacherClassDetail() {
           className="animate-bounce-in animate-stagger-1"
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: 12,
             padding: "14px 8px",
             textAlign: "center",
             border: "1px solid rgba(0,0,0,0.06)",
@@ -189,7 +189,7 @@ export default function TeacherClassDetail() {
           className="animate-bounce-in animate-stagger-2"
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: 12,
             padding: "14px 8px",
             textAlign: "center",
             border: "1px solid rgba(0,0,0,0.06)",
@@ -204,27 +204,27 @@ export default function TeacherClassDetail() {
 
       {/* Action buttons */}
       <div className="flex space-x-3 mb-5">
-        <button
-          className="btn-primary-dark glow-red press-scale"
-          style={{ flex: 1, padding: "10px 0" }}
+        <Button
+          type="danger"
+          style={{ flex: 1 }}
           onClick={() => navigate(`/teacher/session/${classDoc.id}`)}
         >
           Điểm danh
-        </button>
-        <button
-          className="btn-secondary-dark press-scale"
-          style={{ flex: 1, padding: "10px 0" }}
+        </Button>
+        <Button
+          variant="secondary"
+          style={{ flex: 1 }}
           onClick={() => navigate(`/teacher/fraud/${classDoc.id}`)}
         >
           Gian lận
-        </button>
-        <button
-          className="btn-secondary-dark press-scale"
-          style={{ flex: 1, padding: "10px 0" }}
+        </Button>
+        <Button
+          variant="secondary"
+          style={{ flex: 1 }}
           onClick={() => navigate(`/teacher/analytics/${classDoc.id}`)}
         >
           Thống kê
-        </button>
+        </Button>
       </div>
 
       {/* Session history */}
@@ -240,7 +240,7 @@ export default function TeacherClassDetail() {
             className={`hover-lift animate-stagger-${Math.min(i + 1, 10)}`}
             style={{
               background: "#ffffff",
-              borderRadius: 16,
+              borderRadius: 12,
               padding: 12,
               marginBottom: 8,
               border: "1px solid rgba(0,0,0,0.06)",
@@ -324,7 +324,7 @@ export default function TeacherClassDetail() {
                 className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}
                 style={{
                   background: "#ffffff",
-                  borderRadius: 16,
+                  borderRadius: 12,
                   padding: 12,
                   marginBottom: 8,
                   border: "1px solid rgba(0,0,0,0.06)",

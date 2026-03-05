@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Page, Box, Button, Text } from "zmp-ui";
+import { Page, Box, Text, Button } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -37,7 +37,7 @@ export default function DevPage() {
 
   return (
     <Page className="page page-no-header" style={{ background: "#f2f2f7" }}>
-      <div style={{ background: "#ffffff", borderRadius: 20, padding: 16, marginBottom: 16, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div style={{ background: "#ffffff", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <p style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>Dev Navigation</p>
         <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>Nhay vao bat ky man hinh nao de test</p>
       </div>
@@ -45,7 +45,7 @@ export default function DevPage() {
       {/* Mock mode toggle */}
       <div style={{
         background: "#ffffff",
-        borderRadius: 20,
+        borderRadius: 12,
         padding: 16,
         marginBottom: 20,
         border: mockOn ? "2px solid rgba(34,197,94,0.3)" : "1px solid rgba(0,0,0,0.06)",
@@ -73,21 +73,15 @@ export default function DevPage() {
             : "Bat de chay offline, du lieu in-memory"
           }
         </p>
-        <button
-          style={{
-            width: "100%",
-            padding: "10px 0",
-            borderRadius: 14,
-            fontSize: 14,
-            fontWeight: 600,
-            border: "none",
-            background: mockOn ? "#e5e7eb" : "#22c55e",
-            color: mockOn ? "#6b7280" : "#fff",
-          }}
+        <Button
+          variant={mockOn ? "secondary" : "primary"}
+          fullWidth
+          size="large"
+          style={mockOn ? {} : { background: "#22c55e" }}
           onClick={mockOn ? disableMock : enableMock}
         >
           {mockOn ? "Tat Mock Mode" : "Bat Mock Mode + Tao du lieu"}
-        </button>
+        </Button>
       </div>
 
       {/* Common */}
@@ -131,7 +125,7 @@ function NavButton({ label, onClick, desc }: { label: string; onClick: () => voi
     <div
       style={{
         background: "#ffffff",
-        borderRadius: 16,
+        borderRadius: 12,
         padding: 12,
         border: "1px solid rgba(0,0,0,0.06)",
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",

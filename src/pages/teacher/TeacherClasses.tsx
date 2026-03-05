@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Page, Box, Button, Text, Input, Header } from "zmp-ui";
+import { Page, Box, Button, Text, Input, Header, Icon } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -54,7 +54,7 @@ export default function TeacherClasses() {
       <div
         style={{
           background: "linear-gradient(180deg, #ffffff 0%, #f2f2f7 100%)",
-          borderRadius: 20,
+          borderRadius: 12,
           padding: 16,
           marginBottom: 16,
           border: "1px solid rgba(0,0,0,0.06)",
@@ -117,9 +117,9 @@ export default function TeacherClasses() {
           </div>
           <p style={{ color: "#1a1a1a", fontWeight: 600, marginBottom: 4 }}>Chưa có lớp học</p>
           <p style={{ color: "#9ca3af", fontSize: 12, marginBottom: 16 }}>Tạo lớp học đầu tiên để bắt đầu</p>
-          <button className="btn-primary-dark" onClick={() => setCreateModal(true)}>
+          <Button type="danger" onClick={() => setCreateModal(true)}>
             Tạo lớp mới
-          </button>
+          </Button>
         </div>
       ) : (
         classes.map((c, i) => (
@@ -146,14 +146,15 @@ export default function TeacherClasses() {
             onChange={(e) => setClassName(e.target.value)}
             style={{ width: "100%", marginBottom: 16 }}
           />
-          <button
-            className="btn-primary-dark"
-            style={{ width: "100%" }}
+          <Button
+            type="danger"
+            fullWidth
             disabled={creating}
+            loading={creating}
             onClick={handleCreateClass}
           >
             {creating ? "Đang tạo..." : "Tạo lớp"}
-          </button>
+          </Button>
         </div>
       </DarkModal>
     </Page>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Button, Header } from "zmp-ui";
+import { Page, Box, Text, Button, Header, Icon } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -99,8 +99,8 @@ export default function TeacherSession() {
       <Page className="page" style={{ background: "#f2f2f7" }}>
         <Header title="Phiên điểm danh" />
         <div className="space-y-3">
-          <div className="skeleton" style={{ height: 60, borderRadius: 20 }} />
-          <div className="skeleton" style={{ height: 300, borderRadius: 20 }} />
+          <div className="skeleton" style={{ height: 60, borderRadius: 12 }} />
+          <div className="skeleton" style={{ height: 300, borderRadius: 12 }} />
         </div>
       </Page>
     );
@@ -158,14 +158,14 @@ export default function TeacherSession() {
           <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 20 }}>
             Bắt đầu phiên để tạo mã QR cho sinh viên
           </p>
-          <button
-            className="btn-primary-dark glow-green press-scale"
-            style={{ padding: "12px 32px", fontSize: 15 }}
+          <Button
+            type="danger"
+            loading={starting}
             disabled={starting}
             onClick={handleStart}
           >
             {starting ? "Đang bắt đầu..." : "Bắt đầu điểm danh"}
-          </button>
+          </Button>
         </div>
       ) : (
         /* Active session */
@@ -174,7 +174,7 @@ export default function TeacherSession() {
           <div
             className="glass-card-green animate-breathe"
             style={{
-              borderRadius: 20,
+              borderRadius: 12,
               padding: 12,
               textAlign: "center",
             }}
@@ -208,7 +208,7 @@ export default function TeacherSession() {
             className="card"
             style={{
               background: "#ffffff",
-              borderRadius: 16,
+              borderRadius: 12,
               padding: 12,
               border: "1px solid rgba(0,0,0,0.06)",
               boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
@@ -257,30 +257,20 @@ export default function TeacherSession() {
           </div>
 
           <div className="flex space-x-3">
-            <button
-              className="btn-secondary-dark press-scale"
-              style={{ flex: 1, padding: "10px 0" }}
+            <Button
+              variant="secondary"
+              style={{ flex: 1 }}
               onClick={() => navigate(`/teacher/monitor/${session.id}`)}
             >
               Theo dõi
-            </button>
-            <button
-              className="glow-red press-scale animate-glow-pulse"
-              style={{
-                flex: 1,
-                padding: "10px 0",
-                borderRadius: 12,
-                background: "#be1d2c",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: 14,
-                border: "none",
-                boxShadow: "0 0 20px rgba(220,38,38,0.3)",
-              }}
+            </Button>
+            <Button
+              type="danger"
+              style={{ flex: 1 }}
               onClick={() => setShowEndConfirm(true)}
             >
               Kết thúc
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -295,7 +285,7 @@ export default function TeacherSession() {
               className={`hover-lift animate-stagger-${Math.min(i + 1, 10)}`}
               style={{
                 background: "#ffffff",
-                borderRadius: 16,
+                borderRadius: 12,
                 padding: 12,
                 marginBottom: 8,
                 border: "1px solid rgba(0,0,0,0.06)",
@@ -367,30 +357,21 @@ export default function TeacherSession() {
           </p>
         </div>
         <div className="flex space-x-3">
-          <button
-            className="btn-secondary-dark press-scale"
-            style={{ flex: 1, padding: "10px 0" }}
+          <Button
+            variant="secondary"
+            style={{ flex: 1 }}
             onClick={() => setShowEndConfirm(false)}
           >
             Hủy
-          </button>
-          <button
-            className="glow-red press-scale"
-            style={{
-              flex: 1,
-              padding: "10px 0",
-              borderRadius: 12,
-              background: "#be1d2c",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: 14,
-              border: "none",
-              boxShadow: "0 0 20px rgba(190,29,44,0.3)",
-            }}
+          </Button>
+          <Button
+            type="danger"
+            style={{ flex: 1 }}
+            loading={ending}
             onClick={handleEnd}
           >
             {ending ? "Đang kết thúc..." : "Kết thúc"}
-          </button>
+          </Button>
         </div>
       </DarkModal>
     </Page>

@@ -221,12 +221,9 @@ export default function FaceVerification({
                 <p style={{ color: "#9ca3af", fontSize: 12 }}>
                   Đảm bảo đủ ánh sáng và nhìn thẳng camera
                 </p>
-                <button
-                  className="btn-primary-dark glow-amber press-scale"
-                  onClick={() => setState("capture")}
-                >
+                <Button type="danger" fullWidth onClick={() => setState("capture")}>
                   Thử lại ({2 - retryCount} lần còn lại)
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center animate-slide-up animate-stagger-3" style={{ gap: 8 }}>
@@ -237,9 +234,9 @@ export default function FaceVerification({
               </div>
             )}
 
-            <button className="btn-secondary-dark press-scale" onClick={handleSkip}>
+            <Button variant="secondary" fullWidth onClick={handleSkip}>
               Bỏ qua
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -266,15 +263,12 @@ export default function FaceVerification({
               <span style={{ fontSize: 28, color: "#ef4444" }}>!</span>
             </div>
             <p className="animate-fade-in" style={{ color: "#ef4444", textAlign: "center", fontSize: 14 }}>{errorMsg}</p>
-            <button
-              className="btn-primary-dark glow-red press-scale"
-              onClick={() => setState("capture")}
-            >
+            <Button type="danger" fullWidth onClick={() => setState("capture")}>
               Thử lại
-            </button>
-            <button className="btn-secondary-dark press-scale" onClick={handleSkip}>
+            </Button>
+            <Button variant="secondary" fullWidth onClick={handleSkip}>
               Bỏ qua
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -297,9 +291,9 @@ export default function FaceVerification({
         </div>
 
         <div className="text-center animate-slide-up animate-stagger-3">
-          <button className="btn-secondary-dark press-scale" onClick={handleSkip}>
+          <Button variant="secondary" fullWidth onClick={handleSkip}>
             Bỏ qua bước này
-          </button>
+          </Button>
         </div>
       </div>
     </div>

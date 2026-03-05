@@ -12,8 +12,8 @@ export default function FaceStatusBadge({ faceVerification, size = "normal" }: F
   if (!faceVerification) {
     return (
       <span
-        className="inline-flex items-center px-1.5 py-0.5 rounded"
-        style={{ background: "#e5e7eb", fontSize: textSize, color: "#9ca3af" }}
+        className="inline-flex items-center px-1.5 py-0.5"
+        style={{ borderRadius: 8, background: "#e5e7eb", fontSize: textSize, color: "#9ca3af" }}
       >
         Chưa xác minh
       </span>
@@ -23,8 +23,8 @@ export default function FaceStatusBadge({ faceVerification, size = "normal" }: F
   if (faceVerification.skipped) {
     return (
       <span
-        className="inline-flex items-center px-1.5 py-0.5 rounded"
-        style={{ background: "rgba(245,158,11,0.15)", fontSize: textSize, color: "#f59e0b" }}
+        className="inline-flex items-center px-1.5 py-0.5"
+        style={{ borderRadius: 8, background: "rgba(245,158,11,0.15)", fontSize: textSize, color: "#f59e0b" }}
       >
         Bỏ qua
       </span>
@@ -34,8 +34,8 @@ export default function FaceStatusBadge({ faceVerification, size = "normal" }: F
   if (faceVerification.matched && faceVerification.confidence >= 0.7) {
     return (
       <span
-        className="inline-flex items-center px-1.5 py-0.5 rounded"
-        style={{ background: "rgba(34,197,94,0.15)", fontSize: textSize, color: "#22c55e" }}
+        className="inline-flex items-center px-1.5 py-0.5"
+        style={{ borderRadius: 8, background: "rgba(34,197,94,0.15)", fontSize: textSize, color: "#22c55e" }}
       >
         Khớp {Math.round(faceVerification.confidence * 100)}%
       </span>
@@ -44,8 +44,8 @@ export default function FaceStatusBadge({ faceVerification, size = "normal" }: F
 
   return (
     <span
-      className="inline-flex items-center px-1.5 py-0.5 rounded"
-      style={{ background: "rgba(239,68,68,0.15)", fontSize: textSize, color: "#ef4444" }}
+      className="inline-flex items-center px-1.5 py-0.5"
+      style={{ borderRadius: 8, background: "rgba(239,68,68,0.15)", fontSize: textSize, color: "#ef4444" }}
     >
       Không khớp {Math.round(faceVerification.confidence * 100)}%
     </span>

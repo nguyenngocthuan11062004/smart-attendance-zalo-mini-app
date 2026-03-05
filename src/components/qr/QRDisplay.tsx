@@ -20,7 +20,7 @@ export default function QRDisplay({ qrDataURL, secondsLeft, totalSeconds, label 
         style={{
           padding: 20,
           background: "#ffffff",
-          borderRadius: 20,
+          borderRadius: 12,
           border: "1px solid rgba(0,0,0,0.06)",
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           position: "relative",
@@ -32,7 +32,7 @@ export default function QRDisplay({ qrDataURL, secondsLeft, totalSeconds, label 
           style={{
             position: "absolute",
             inset: -4,
-            borderRadius: 24,
+            borderRadius: 16,
             background: "radial-gradient(circle, rgba(190,29,44,0.08) 0%, transparent 70%)",
             pointerEvents: "none",
           }}

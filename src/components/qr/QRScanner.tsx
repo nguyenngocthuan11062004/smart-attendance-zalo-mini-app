@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Icon, Text } from "zmp-ui";
+import { Icon, Text, Button } from "zmp-ui";
 
 interface QRScannerProps {
   onScan: () => void;
@@ -25,36 +25,20 @@ export default function QRScanner({ onScan, scanning, label, error }: QRScannerP
             position: "absolute",
             inset: -20,
             background: "rgba(34,197,94,0.15)",
-            borderRadius: 20,
+            borderRadius: 12,
             pointerEvents: "none",
           }}
         />
       )}
-      <button
-        className="btn-primary-dark press-scale"
+      <Button
+        type="danger"
         disabled={scanning}
+        loading={scanning}
         onClick={handleScan}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 16,
-          padding: "12px 28px",
-          opacity: scanning ? 0.6 : 1,
-        }}
+        prefixIcon={!scanning ? <Icon icon="zi-camera" /> : undefined}
       >
-        {scanning ? (
-          <div className="animate-rotating-dash" style={{ width: 20, height: 20 }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
-              <path d="M10 2a8 8 0 0 1 8 8" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </div>
-        ) : (
-          <Icon icon="zi-camera" style={{ fontSize: 20 }} />
-        )}
         {scanning ? "Đang quét..." : (label || "Quét QR")}
-      </button>
+      </Button>
       {error && (
         <p className="animate-shake" style={{ color: "#ef4444", textAlign: "center", fontSize: 13 }}>
           {error}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text } from "zmp-ui";
+import { Box, Text, Icon } from "zmp-ui";
 import type { ClassDoc } from "@/types";
 
 interface ClassCardProps {
@@ -56,9 +56,7 @@ export default function ClassCard({ classDoc, onClick, showStudentCount, index }
             )}
           </div>
         </div>
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round">
-          <path d="M7 5l5 5-5 5" />
-        </svg>
+        <Icon icon="zi-chevron-right" style={{ color: "#9ca3af" }} />
       </div>
     </Box>
   );

@@ -1,4 +1,4 @@
-import { getUserID, getUserInfo, getAccessToken as zmpGetAccessToken } from "zmp-sdk";
+import { getUserID, getUserInfo, getAccessToken as zmpGetAccessToken, authorize, getPhoneNumber } from "zmp-sdk";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import type { UserDoc, UserRole } from "@/types";
@@ -37,12 +37,15 @@ export async function signIn(): Promise<UserDoc> {
   let uid: string;
   let name = "Zalo User";
   let avatar = "";
+  let followedOA: boolean | undefined;
+  let phone: string | undefined;
 
   try {
     const { userInfo } = await getUserInfo({});
     uid = userInfo.id || (await getUserID({})).toString();
     name = userInfo.name || name;
     avatar = userInfo.avatar || avatar;
+    followedOA = (userInfo as any).followedOA ?? undefined;
   } catch {
     try {
       uid = (await getUserID({})).toString();
@@ -51,7 +54,16 @@ export async function signIn(): Promise<UserDoc> {
     }
   }
 
-  return await createOrUpdateUser(uid, name, avatar);
+  // Xin quyền và lấy SĐT từ Zalo
+  try {
+    await authorize({ scopes: ["scope.userPhonenumber"] });
+    const { number } = await getPhoneNumber({});
+    if (number) phone = number;
+  } catch {
+    // User từ chối hoặc SDK lỗi — bỏ qua
+  }
+
+  return await createOrUpdateUser(uid, name, avatar, undefined, followedOA, phone);
 }
 
 // --- Sign out ---
@@ -70,12 +82,16 @@ export async function signOutUser(): Promise<void> {
 export function initAuthState(
   callback: (userDoc: UserDoc | null, initialized: boolean) => void
 ): () => void {
-  // 1. Restore from localStorage
+  // 1. Restore from localStorage (instant render)
   const stored = localStorage.getItem("user_doc");
   if (stored) {
     try {
       const parsed = JSON.parse(stored) as UserDoc;
       callback(parsed, true);
+      // Cập nhật lại từ Zalo ở background (lấy name, avatar, phone mới nhất)
+      signIn()
+        .then((freshDoc) => callback(freshDoc, true))
+        .catch(() => {});
       return () => {};
     } catch {
       // corrupted, continue
@@ -108,7 +124,9 @@ export async function createOrUpdateUser(
   uid: string,
   name: string,
   avatar: string,
-  role?: UserRole
+  role?: UserRole,
+  followedOA?: boolean,
+  phone?: string
 ): Promise<UserDoc> {
   try {
     const ref = doc(db, "users", uid);
@@ -116,20 +134,24 @@ export async function createOrUpdateUser(
 
     if (existing.exists()) {
       const data = existing.data() as Omit<UserDoc, "id">;
-      const updates = { name, avatar, updatedAt: Date.now() };
+      const updates: Record<string, any> = { name, avatar, updatedAt: Date.now() };
+      if (followedOA !== undefined) updates.followedOA = followedOA;
+      if (phone) { updates.phone = phone; updates.zaloPhone = phone; }
       await withTimeout(setDoc(ref, updates, { merge: true }), 5000);
       const merged = { id: uid, ...data, ...updates } as UserDoc;
       localStorage.setItem("user_doc", JSON.stringify(merged));
       return merged;
     }
 
-    const userDoc = {
+    const userDoc: Record<string, any> = {
       name,
       avatar,
       role: role || ("" as any),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
+    if (followedOA !== undefined) userDoc.followedOA = followedOA;
+    if (phone) { userDoc.phone = phone; userDoc.zaloPhone = phone; }
     await withTimeout(setDoc(ref, userDoc), 5000);
     const result = { id: uid, ...userDoc } as UserDoc;
     localStorage.setItem("user_doc", JSON.stringify(result));

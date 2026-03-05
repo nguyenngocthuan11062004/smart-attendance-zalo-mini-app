@@ -16,7 +16,7 @@ export default function OfflineBanner() {
         zIndex: 9999,
         background: "#ffffff",
         color: "#1a1a1a",
-        borderRadius: 16,
+        borderRadius: 12,
         padding: "10px 16px",
         display: "flex",
         alignItems: "center",

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Avatar, Input } from "zmp-ui";
+import { Page, Box, Text, Avatar, Input, Button } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAtomValue } from "jotai";
@@ -53,7 +53,7 @@ export default function LoginPage() {
           <img
             src={logo}
             alt="logo"
-            style={{ width: 80, height: 80, borderRadius: 16, objectFit: "contain" }}
+            style={{ width: 80, height: 80, borderRadius: 12, objectFit: "contain" }}
             className="mb-4"
           />
           <Text size="small" style={{ color: "#9ca3af" }}>{"\u0110ang k\u1ebft n\u1ed1i..."}</Text>
@@ -77,7 +77,7 @@ export default function LoginPage() {
         <button
           style={{
             padding: 16,
-            borderRadius: 16,
+            borderRadius: 12,
             textAlign: "center",
             transition: "all 0.2s",
             background: selectedRole === "student" ? "#be1d2c" : "#ffffff",
@@ -110,7 +110,7 @@ export default function LoginPage() {
         <button
           style={{
             padding: 16,
-            borderRadius: 16,
+            borderRadius: 12,
             textAlign: "center",
             transition: "all 0.2s",
             background: selectedRole === "teacher" ? "#be1d2c" : "#ffffff",
@@ -148,7 +148,7 @@ export default function LoginPage() {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 16,
+              borderRadius: 12,
               padding: 16,
               border: "1px solid rgba(0,0,0,0.06)",
               boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
@@ -173,25 +173,15 @@ export default function LoginPage() {
 
       {/* Submit button */}
       {selectedRole && (
-        <button
-          style={{
-            width: "100%",
-            padding: "12px 0",
-            borderRadius: 12,
-            fontWeight: 600,
-            fontSize: 14,
-            color: "#ffffff",
-            background: "#be1d2c",
-            border: "none",
-            opacity: loading ? 0.5 : 1,
-            boxShadow: "0 2px 8px rgba(190,29,44,0.3)",
-          }}
-          className="active:opacity-90"
+        <Button
+          type="danger"
+          fullWidth
+          size="large"
           onClick={handleSubmit}
           disabled={loading}
         >
           {loading ? "\u0110ang x\u1eed l\u00fd..." : "Ti\u1ebfp t\u1ee5c"}
-        </button>
+        </Button>
       )}
     </Page>
   );

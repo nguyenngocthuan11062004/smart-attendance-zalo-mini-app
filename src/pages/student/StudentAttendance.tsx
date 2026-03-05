@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Page, Text, Header } from "zmp-ui";
+import { Page, Text, Header, Button } from "zmp-ui";
 import { useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
@@ -270,22 +270,15 @@ export default function StudentAttendance() {
 
           {myAttendance && myAttendance.peerCount >= 3 && (
             <div className="animate-bounce-in" style={{ textAlign: "center", padding: "8px 0" }}>
-              <button
-                className="btn-primary-dark glow-green press-scale"
+              <Button
                 onClick={() => setStep("done")}
                 style={{
-                  padding: "12px 32px",
-                  borderRadius: 14,
                   background: "#22c55e",
-                  color: "#fff",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  border: "none",
                   boxShadow: "0 0 20px rgba(34,197,94,0.3)",
                 }}
               >
                 Hoan tat
-              </button>
+              </Button>
             </div>
           )}
         </div>
