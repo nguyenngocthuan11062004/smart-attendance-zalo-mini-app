@@ -29,7 +29,7 @@ export async function startSession(
     teacherId,
     status: "active",
     hmacSecret: generateNonce() + generateNonce(),
-    qrRefreshInterval: 15,
+    qrRefreshInterval: 30,
     startedAt: Date.now(),
   };
   if (isMockMode()) {

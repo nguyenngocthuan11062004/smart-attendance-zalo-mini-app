@@ -5,6 +5,7 @@ import { useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { activeSessionAtom } from "@/store/session";
 import { mockStudent, mockTeacher, mockSession } from "@/utils/mock-data";
+import type { SessionDoc } from "@/types";
 import { isMockMode, setMockMode, seedMockData } from "@/utils/mock-db";
 
 export default function DevPage() {
@@ -27,9 +28,11 @@ export default function DevPage() {
     setSeeded(false);
   };
 
-  const goAs = (role: "student" | "teacher", path: string) => {
+  const goAs = (role: "student" | "teacher", path: string, sessionOverride?: SessionDoc) => {
     setUser(role === "student" ? mockStudent : mockTeacher);
-    if (path.includes("monitor") || path.includes("attendance/session")) {
+    if (sessionOverride) {
+      setSession(sessionOverride);
+    } else if (path.includes("monitor") || path.includes("attendance/session")) {
       setSession(mockSession);
     }
     navigate(path);
@@ -97,7 +100,10 @@ export default function DevPage() {
       <div className="space-y-1.5 mb-4">
         <NavButton label="Home (Student)" onClick={() => goAs("student", "/home")} />
         <NavButton label="Student Classes" onClick={() => goAs("student", "/student/classes")} />
-        <NavButton label="Student Attendance" onClick={() => goAs("student", "/student/attendance/session_001")} desc="session_001" />
+        <NavButton label="Attendance Step 1 (QR)" onClick={() => goAs("student", "/student/attendance/session_step1", { id: "session_step1", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "test_step1_secret", qrRefreshInterval: 30, startedAt: Date.now() - 600000 })} desc="scan-teacher" />
+        <NavButton label="Attendance Step 2 (Face)" onClick={() => goAs("student", "/student/attendance/session_step2", { id: "session_step2", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "test_step2_secret", qrRefreshInterval: 30, startedAt: Date.now() - 600000 })} desc="face-verify" />
+        <NavButton label="Attendance Step 3 (Peer)" onClick={() => goAs("student", "/student/attendance/session_step3", { id: "session_step3", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "test_step3_secret", qrRefreshInterval: 30, startedAt: Date.now() - 600000 })} desc="show-qr + scan-peers" />
+        <NavButton label="Attendance Step 4 (Done)" onClick={() => goAs("student", "/student/attendance/session_step4", { id: "session_step4", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "test_step4_secret", qrRefreshInterval: 30, startedAt: Date.now() - 600000 })} desc="done" />
         <NavButton label="Student History" onClick={() => goAs("student", "/student/history")} />
         <NavButton label="Face Register" onClick={() => goAs("student", "/student/face-register")} />
       </div>

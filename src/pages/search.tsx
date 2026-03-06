@@ -12,8 +12,8 @@ type SearchType = "gv" | "sv" | "hocphan" | "lop";
 const SEARCH_OPTIONS: { key: SearchType; label: string }[] = [
   { key: "gv", label: "GV" },
   { key: "sv", label: "SV" },
-  { key: "hocphan", label: "H\u1ecdc ph\u1ea7n" },
-  { key: "lop", label: "L\u1edbp" },
+  { key: "hocphan", label: "Học phần" },
+  { key: "lop", label: "Lớp" },
 ];
 
 interface SearchResult {
@@ -65,7 +65,7 @@ export default function SearchPage() {
             found.push({
               id: c.id,
               title: c.name,
-              subtitle: `M\u00e3: ${c.code} \u00b7 ${c.studentIds.length} sinh vi\u00ean`,
+              subtitle: `Mã: ${c.code} · ${c.studentIds.length} sinh viên`,
               type: "class",
               path: role === "teacher" ? `/teacher/class/${c.id}` : undefined,
             });
@@ -78,7 +78,7 @@ export default function SearchPage() {
             found.push({
               id: byCode.id,
               title: byCode.name,
-              subtitle: `M\u00e3: ${byCode.code} \u00b7 ${byCode.studentIds.length} sinh vi\u00ean`,
+              subtitle: `Mã: ${byCode.code} · ${byCode.studentIds.length} sinh viên`,
               type: "class",
               path: role === "teacher" ? `/teacher/class/${byCode.id}` : undefined,
             });
@@ -98,7 +98,7 @@ export default function SearchPage() {
               found.push({
                 id: s.id,
                 title: s.name,
-                subtitle: inClasses.length > 0 ? inClasses.join(", ") : "Sinh vi\u00ean",
+                subtitle: inClasses.length > 0 ? inClasses.join(", ") : "Sinh viên",
                 avatar: s.avatar,
                 type: "student",
               });
@@ -119,7 +119,7 @@ export default function SearchPage() {
             found.push({
               id: tid,
               title: info.name,
-              subtitle: `Gi\u1ea3ng vi\u00ean \u00b7 ${info.classes.length} l\u1edbp`,
+              subtitle: `Giảng viên · ${info.classes.length} lớp`,
               type: "teacher",
             });
           }
@@ -143,7 +143,7 @@ export default function SearchPage() {
         <div
           style={{
             background: "#be1d2c",
-            paddingTop: "calc(var(--zaui-safe-area-inset-top, 0px) + 10px)",
+            paddingTop: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px)",
             paddingBottom: 32,
             paddingLeft: 16,
             paddingRight: 16,
@@ -164,7 +164,7 @@ export default function SearchPage() {
         </div>
         <img
           src={bkLogo}
-          alt="B\u00e1ch Khoa"
+          alt="Bách Khoa"
           style={{
             position: "absolute",
             left: 16,
@@ -177,19 +177,19 @@ export default function SearchPage() {
       </div>
 
       {/* -- Search section -- */}
-      <div style={{ padding: "0 16px 100px" }}>
+      <div style={{ padding: "0 16px", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}>
         <p style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
-          T\u00ecm ki\u1ebfm
+          Tìm kiếm
         </p>
 
         <div style={{ position: "relative" }}>
           <input
             type="text"
             placeholder={
-              searchType === "gv" ? "T\u00ean gi\u1ea3ng vi\u00ean..." :
-              searchType === "sv" ? "T\u00ean sinh vi\u00ean..." :
-              searchType === "hocphan" ? "T\u00ean h\u1ecdc ph\u1ea7n..." :
-              "T\u00ean ho\u1eb7c m\u00e3 l\u1edbp..."
+              searchType === "gv" ? "Tên giảng viên..." :
+              searchType === "sv" ? "Tên sinh viên..." :
+              searchType === "hocphan" ? "Tên học phần..." :
+              "Tên hoặc mã lớp..."
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -301,8 +301,8 @@ export default function SearchPage() {
                 <circle cx="11" cy="11" r="7" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#9ca3af" }}>Kh\u00f4ng t\u00ecm th\u1ea5y k\u1ebft qu\u1ea3</p>
-              <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 4 }}>Th\u1eed t\u1eeb kh\u00f3a kh\u00e1c</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#9ca3af" }}>Không tìm thấy kết quả</p>
+              <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 4 }}>Thử từ khóa khác</p>
             </div>
           )}
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, Button, Spinner } from "zmp-ui";
 import CameraCapture from "./CameraCapture";
-import { registerFace } from "@/services/face.service";
+import { registerCCCD } from "@/services/face.service";
 
 interface FaceRegistrationProps {
   onComplete: () => void;
@@ -21,7 +21,7 @@ export default function FaceRegistration({ onComplete, onSkip }: FaceRegistratio
     setIssues([]);
 
     try {
-      const result = await registerFace(imageBase64);
+      const result = await registerCCCD(imageBase64, "", "") as any;
 
       if (!result.sanityPassed) {
         setIssues(result.issues || ["Ảnh không hợp lệ"]);

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Button, Header } from "zmp-ui";
-import { useParams } from "react-router-dom";
+import { Page } from "zmp-ui";
+import { useParams, useNavigate } from "react-router-dom";
 import { analyzeFraud, getFraudReports } from "@/services/fraud.service";
 import { getClassById } from "@/services/class.service";
 import type { FraudReport, SuspiciousPattern } from "@/types";
 
 export default function TeacherFraudReport() {
   const { classId } = useParams<{ classId: string }>();
-  const [className, setClassName] = useState("");
+  const navigate = useNavigate();
+  const [classDoc, setClassDoc] = useState<{ name: string; code: string; studentCount: number } | null>(null);
   const [reports, setReports] = useState<FraudReport[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,7 @@ export default function TeacherFraudReport() {
         getClassById(cid),
         getFraudReports(cid),
       ]);
-      if (cls) setClassName(cls.name);
+      if (cls) setClassDoc({ name: cls.name, code: cls.code, studentCount: cls.studentIds.length });
       setReports(existingReports);
     } finally {
       setLoading(false);
@@ -52,18 +53,11 @@ export default function TeacherFraudReport() {
     }
   };
 
-  const severityConfig = {
-    low: { bg: "rgba(107,114,128,0.15)", text: "#9ca3af", dot: "#6b7280", border: "#6b7280" },
-    medium: { bg: "rgba(245,158,11,0.15)", text: "#f59e0b", dot: "#f59e0b", border: "#f59e0b" },
-    high: { bg: "rgba(239,68,68,0.15)", text: "#ef4444", dot: "#ef4444", border: "#ef4444" },
-  };
-
-  const typeIcons: Record<string, string> = {
-    always_same_peers: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
-    rapid_verification: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z",
-    low_peer_count: "M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181",
-    face_mismatch: "M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z",
-    ai_detected: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z",
+  const severityLabel = (s: string) => s === "low" ? "Thấp" : s === "medium" ? "Trung bình" : "Cao";
+  const severityColors = (s: string) => {
+    if (s === "high") return { bg: "#fee2e2", text: "#ef4444", iconBg: "#fee2e2" };
+    if (s === "medium") return { bg: "#fef3c7", text: "#f59e0b", iconBg: "#fef3c7" };
+    return { bg: "#dcfce7", text: "#22c55e", iconBg: "#f0f0f5" };
   };
 
   const typeLabels: Record<string, string> = {
@@ -72,142 +66,88 @@ export default function TeacherFraudReport() {
     low_peer_count: "Ít peer xác minh",
     face_mismatch: "Không khớp khuôn mặt",
     ai_detected: "AI phát hiện",
+    location_anomaly: "Vị trí bất thường",
+    simultaneous_checkin: "Thời gian check-in trùng",
   };
-
-  const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
   const renderPatterns = (patterns: SuspiciousPattern[]) => {
     if (patterns.length === 0) {
       return (
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: 12,
-            padding: 16,
-            textAlign: "center",
-            border: "1px solid rgba(0,0,0,0.06)",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div
-            className="animate-success-pop"
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              background: "rgba(34,197,94,0.15)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 8px",
-            }}
-          >
+        <div style={{
+          background: "#ffffff", borderRadius: 12, padding: 24,
+          border: "1px solid rgba(0,0,0,0.04)", textAlign: "center",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 24, background: "rgba(34,197,94,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><path d="M22 4L12 14.01l-3-3" />
             </svg>
           </div>
-          <p style={{ color: "#22c55e", fontWeight: 600 }}>Không phát hiện gian lận</p>
-          <p style={{ color: "#6b7280", fontSize: 11, marginTop: 2 }}>Dữ liệu điểm danh bình thường</p>
+          <p style={{ color: "#22c55e", fontWeight: 600, fontSize: 15 }}>Không phát hiện gian lận</p>
+          <p style={{ color: "#6b7280", fontSize: 13 }}>Dữ liệu điểm danh bình thường</p>
         </div>
       );
     }
 
+    const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
     const sorted = [...patterns].sort(
       (a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2)
     );
 
     return sorted.map((p, i) => {
-      const severity = severityConfig[p.severity];
-      const iconPath = typeIcons[p.type] || typeIcons.ai_detected;
+      const colors = severityColors(p.severity);
       const label = typeLabels[p.type] || p.type;
+      const isHigh = p.severity === "high";
 
       return (
         <div
           key={i}
-          className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)} ${p.severity === "high" ? "glow-red" : p.severity === "medium" ? "glow-amber" : ""}`}
           style={{
-            background: "#ffffff",
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 8,
-            border: "1px solid rgba(0,0,0,0.06)",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            borderLeft: `4px solid ${severity.border}`,
+            background: "#ffffff", borderRadius: 12, padding: 16,
+            border: "1px solid rgba(0,0,0,0.04)",
+            display: "flex", flexDirection: "column", gap: 10,
           }}
         >
-          <div className="flex items-start">
-            <div
-              className="animate-breathe"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: severity.bg,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 12,
-                flexShrink: 0,
-                marginTop: 2,
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={severity.text} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d={iconPath} />
+          {/* Top row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: isHigh ? "#fee2e2" : "#fef3c7",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isHigh ? "#ef4444" : "#f59e0b"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
               </svg>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 13 }}>{label}</p>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    background: severity.bg,
-                    color: severity.text,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      background: severity.dot,
-                      marginRight: 4,
-                      display: "inline-block",
-                    }}
-                  />
-                  {p.severity === "low" ? "Thấp" : p.severity === "medium" ? "TB" : "Cao"}
-                </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{label}</span>
+              <div style={{
+                background: colors.bg, borderRadius: 8, padding: "2px 8px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: colors.text }}>{severityLabel(p.severity)}</span>
               </div>
-              <p style={{ color: "#6b7280", fontSize: 11 }}>{p.description}</p>
-              {p.studentIds.length > 0 && (
-                <div className="flex flex-wrap gap-1" style={{ marginTop: 6 }}>
-                  {p.studentIds.map((id) => (
-                    <span
-                      key={id}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "#f0f0f5",
-                        color: "#6b7280",
-                        fontSize: 10,
-                        fontFamily: "monospace",
-                        border: "1px solid rgba(0,0,0,0.06)",
-                      }}
-                    >
-                      {id}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Description */}
+          <p style={{ fontSize: 13, color: "#6b7280" }}>{p.description}</p>
+
+          {/* Student pills */}
+          {p.studentIds.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {p.studentIds.map((id) => (
+                <div key={id} style={{
+                  background: "#f0f0f5", borderRadius: 6, padding: "4px 8px",
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#1a1a1a" }}>{id}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     });
@@ -215,124 +155,171 @@ export default function TeacherFraudReport() {
 
   if (loading) {
     return (
-      <Page className="page" style={{ background: "#f2f2f7" }}>
-        <Header title="Phân tích gian lận" />
-        <div className="space-y-3">
-          <div className="skeleton" style={{ height: 48, borderRadius: 12 }} />
-          <div className="skeleton" style={{ height: 120, borderRadius: 20 }} />
+      <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
+        <div style={{
+          background: "#be1d2c", borderRadius: "0 0 24px 24px",
+          padding: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px) 16px 14px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <button onClick={() => navigate(-1)} style={{
+            width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+            border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          </button>
+          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Phân tích gian lận</span>
+          <button style={{
+            width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+            border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+          </button>
+        </div>
+        <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ height: 80, borderRadius: 12, background: "#e5e7eb", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+          ))}
         </div>
       </Page>
     );
   }
 
   return (
-    <Page className="page" style={{ background: "#f2f2f7" }}>
-      <Header title="Phân tích gian lận" />
-
-      {/* Class info - dark card */}
-      <div
-        className="glass-card animate-fade-in"
-        style={{
-          background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 16,
-          border: "1px solid rgba(0,0,0,0.06)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
-      >
-        <p style={{ color: "#9ca3af", fontSize: 12, fontWeight: 500 }}>{className}</p>
-        <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700, marginTop: 2 }}>Phát hiện gian lận</p>
-        <p style={{ color: "#9ca3af", fontSize: 12, marginTop: 4 }}>Phân tích dữ liệu điểm danh để tìm mẫu đáng ngờ</p>
+    <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
+      {/* Header */}
+      <div style={{
+        background: "#be1d2c", borderRadius: "0 0 24px 24px",
+        padding: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px) 16px 14px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <button onClick={() => navigate(-1)} style={{
+          width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+          border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+        </button>
+        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Phân tích gian lận</span>
+        <button style={{
+          width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+          border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+        </button>
       </div>
 
-      {/* Analyze button */}
-      <Button
-        type="danger"
-        fullWidth
-        style={{ marginBottom: 16 }}
-        loading={analyzing}
-        disabled={analyzing}
-        onClick={handleAnalyze}
-      >
-        {analyzing ? "Đang phân tích..." : "Phân tích gian lận"}
-      </Button>
-
-      {/* Latest result */}
-      {latestResult && (
-        <div style={{ marginBottom: 20 }}>
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 12,
-              border: "1px solid rgba(0,0,0,0.06)",
-              borderLeft: "4px solid #ef4444",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            }}
-          >
-            <p style={{ color: "#6b7280", fontSize: 14 }}>{latestResult.summary}</p>
+      <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Class info card */}
+        <div style={{
+          background: "#be1d2c", borderRadius: 16, padding: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff" }}>{classDoc?.name || "..."}</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
+              {classDoc?.code || "..."} · {classDoc?.studentCount ?? 0} SV
+            </span>
           </div>
-          {renderPatterns(latestResult.patterns)}
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
         </div>
-      )}
 
-      {/* Previous reports */}
-      {reports.length > 0 && !latestResult && (
-        <div>
-          <p className="section-label">Báo cáo trước ({reports.length})</p>
-          {reports.map((report) => (
-            <div key={report.id} style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  background: "#ffffff",
-                  borderRadius: 12,
-                  padding: 12,
-                  marginBottom: 8,
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <p style={{ color: "#6b7280", fontSize: 11 }}>
-                    {new Date(report.generatedAt).toLocaleString("vi-VN")}
-                  </p>
-                  <span style={{ color: "#6b7280", fontSize: 10 }}>
-                    {report.suspiciousPatterns.length} mẫu
-                  </span>
-                </div>
-                <p style={{ color: "#6b7280", fontSize: 14, marginTop: 4 }}>{report.summary}</p>
-              </div>
-              {renderPatterns(report.suspiciousPatterns)}
+        {/* Analyze button */}
+        <button
+          onClick={handleAnalyze}
+          disabled={analyzing}
+          style={{
+            width: "100%", height: 48, borderRadius: 12,
+            background: analyzing ? "#d4d4d4" : "#be1d2c", border: "none",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+          <span style={{ color: "#ffffff", fontSize: 15, fontWeight: 700 }}>
+            {analyzing ? "Đang phân tích..." : "Phân tích gian lận"}
+          </span>
+        </button>
+
+        {/* Latest result */}
+        {latestResult && (
+          <>
+            {/* Summary card */}
+            <div style={{
+              background: "#ffffff", borderRadius: 12, padding: 16,
+              border: "1px solid rgba(239,68,68,0.25)",
+              display: "flex", flexDirection: "column", gap: 8,
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>KẾT QUẢ PHÂN TÍCH</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: latestResult.patterns.length > 0 ? "#ef4444" : "#22c55e" }}>
+                {latestResult.patterns.length > 0
+                  ? `Phát hiện ${latestResult.patterns.length} trường hợp đáng ngờ`
+                  : "Không phát hiện gian lận"}
+              </span>
+              <span style={{ fontSize: 13, color: "#6b7280" }}>
+                Trên tổng số {classDoc?.studentCount ?? 0} sinh viên
+              </span>
             </div>
-          ))}
-        </div>
-      )}
 
-      {reports.length === 0 && !latestResult && (
-        <div className="empty-state" style={{ paddingTop: 32, paddingBottom: 32 }}>
-          <div
-            className="animate-float"
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              background: "#f0f0f5",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 12px",
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
+            {/* Section label */}
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>CÁC MẪU PHÁT HIỆN</span>
+
+            {renderPatterns(latestResult.patterns)}
+          </>
+        )}
+
+        {/* Previous reports */}
+        {reports.length > 0 && !latestResult && (
+          <>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>
+              BÁO CÁO TRƯỚC ({reports.length})
+            </span>
+            {reports.map((report) => (
+              <div key={report.id} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{
+                  background: "#ffffff", borderRadius: 12, padding: 16,
+                  border: "1px solid rgba(0,0,0,0.04)",
+                  display: "flex", flexDirection: "column", gap: 6,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                      {new Date(report.generatedAt).toLocaleString("vi-VN")}
+                    </span>
+                    <span style={{ fontSize: 11, color: "#6b7280" }}>
+                      {report.suspiciousPatterns.length} mẫu
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 14, color: "#6b7280" }}>{report.summary}</p>
+                </div>
+                {renderPatterns(report.suspiciousPatterns)}
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Empty state */}
+        {reports.length === 0 && !latestResult && (
+          <div style={{
+            background: "#ffffff", borderRadius: 16, padding: 32,
+            border: "1px solid rgba(0,0,0,0.04)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 28, background: "#f0f0f5",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>Chưa có báo cáo</p>
+            <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Nhấn "Phân tích gian lận" để bắt đầu</p>
           </div>
-          <p style={{ color: "#1a1a1a", fontWeight: 600, marginBottom: 4 }}>Chưa có báo cáo</p>
-          <p style={{ color: "#9ca3af", fontSize: 12 }}>Nhấn "Phân tích gian lận" để bắt đầu</p>
-        </div>
-      )}
+        )}
+      </div>
     </Page>
   );
 }

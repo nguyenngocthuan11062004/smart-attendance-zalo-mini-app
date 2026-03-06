@@ -15,7 +15,7 @@ export function useQRGenerator(options: UseQRGeneratorOptions | null) {
   const intervalRef = useRef<number>();
   const countdownRef = useRef<number>();
 
-  const refreshInterval = options?.refreshIntervalMs ?? 15000;
+  const refreshInterval = options?.refreshIntervalMs ?? 30000;
   const refreshSeconds = Math.floor(refreshInterval / 1000);
 
   const generateQR = useCallback(async () => {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Page, Avatar, Input, Box, Button } from "zmp-ui";
+import { Page } from "zmp-ui";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,7 +49,7 @@ export default function ProfilePage() {
     setEditModal(true);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     setPhoneError("");
     setEmailError("");
 
@@ -62,17 +62,27 @@ export default function ProfilePage() {
       return;
     }
 
-    setUser({
-      ...user,
-      phone: editPhone || undefined,
-      email: editEmail || undefined,
-      birthdate: editBirthdate || undefined,
-      department: editDepartment || undefined,
-      program: editProgram || undefined,
-      className: editClassName || undefined,
-      updatedAt: Date.now(),
-    });
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+    if (editPhone) updates.phone = editPhone;
+    if (editEmail) updates.email = editEmail;
+    if (editBirthdate) updates.birthdate = editBirthdate;
+    if (editDepartment) updates.department = editDepartment;
+    if (editProgram) updates.program = editProgram;
+    if (editClassName) updates.className = editClassName;
+
+    const updated = { ...user, ...updates };
+    setUser(updated);
+    localStorage.setItem("user_doc", JSON.stringify(updated));
     setEditModal(false);
+
+    // Persist to Firestore in background
+    try {
+      const { doc, setDoc } = await import("firebase/firestore");
+      const { db } = await import("@/config/firebase");
+      await setDoc(doc(db, "users", user.id), updates, { merge: true });
+    } catch {
+      // Firestore unavailable — changes saved locally
+    }
   };
 
   return (
@@ -82,7 +92,7 @@ export default function ProfilePage() {
         <div
           style={{
             background: "#be1d2c",
-            paddingTop: "calc(var(--zaui-safe-area-inset-top, 0px) + 10px)",
+            paddingTop: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px)",
             paddingBottom: 32,
             paddingLeft: 16,
             paddingRight: 16,
@@ -139,7 +149,21 @@ export default function ProfilePage() {
             boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
         >
-          <Avatar src={user.avatar} size={80} style={{ borderRadius: 12, flexShrink: 0 }} />
+          {user.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.name}
+              style={{ width: 80, height: 80, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div style={{
+              width: 80, height: 80, borderRadius: 12, background: "#be1d2c",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <span style={{ color: "#fff", fontSize: 32, fontWeight: 700 }}>{user.name?.charAt(0)?.toUpperCase() || "?"}</span>
+            </div>
+          )}
           <div className="ml-4 min-w-0 flex-1">
             <p style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 6 }}>
               {user.name}
@@ -187,38 +211,97 @@ export default function ProfilePage() {
         <MicrosoftLinkCard />
       </div>
 
-      {/* -- Edit + Logout -- */}
-      <div style={{ padding: "20px 16px 100px" }}>
-        <Button variant="secondary" fullWidth size="large" style={{ marginBottom: 10 }} onClick={openEditModal}>
+      {/* -- Edit + Switch Role + Logout -- */}
+      <div style={{ padding: "20px 16px", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
+        <button
+          onClick={openEditModal}
+          style={{
+            width: "100%", height: 48, borderRadius: 12,
+            background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)",
+            fontSize: 15, fontWeight: 600, color: "#1a1a1a",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
           Chỉnh sửa thông tin
-        </Button>
-        <Button
-          variant="secondary"
-          fullWidth
-          size="large"
-          style={{ color: "#ef4444" }}
+        </button>
+        <button
+          onClick={() => {
+            const updated = { ...user, role: "" as any, updatedAt: Date.now() };
+            setUser(updated);
+            localStorage.setItem("user_doc", JSON.stringify(updated));
+            navigate("/login", { replace: true });
+          }}
+          style={{
+            width: "100%", height: 48, borderRadius: 12,
+            background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)",
+            fontSize: 15, fontWeight: 600, color: "#f59e0b",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" />
+          </svg>
+          Đổi vai trò
+        </button>
+        <button
           onClick={() => {
             logout();
             navigate("/login", { replace: true });
           }}
+          style={{
+            width: "100%", height: 48, borderRadius: 12,
+            background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)",
+            fontSize: 15, fontWeight: 600, color: "#ef4444",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
         >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
           Đăng xuất
-        </Button>
+        </button>
       </div>
 
       {/* -- Edit modal -- */}
       <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
-        <Box className="p-4 space-y-3">
-          <Input label="Số điện thoại" placeholder="VD: 0986447465" value={editPhone} onChange={(e) => { setEditPhone(e.target.value); setPhoneError(""); }} status={phoneError ? "error" : undefined} errorText={phoneError} />
-          <Input label="Email cá nhân" placeholder="VD: email@gmail.com" value={editEmail} onChange={(e) => { setEditEmail(e.target.value); setEmailError(""); }} status={emailError ? "error" : undefined} errorText={emailError} />
-          <Input label="Ngày sinh" placeholder="VD: 11/06/2004" value={editBirthdate} onChange={(e) => setEditBirthdate(e.target.value)} />
-          <Input label="Khoa/Viện" placeholder="VD: Trường CNTT&TT" value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} />
-          <Input label="Hệ" placeholder="VD: Cử nhân - K67" value={editProgram} onChange={(e) => setEditProgram(e.target.value)} />
-          <Input label="Lớp" placeholder="VD: KTMT 03-K67" value={editClassName} onChange={(e) => setEditClassName(e.target.value)} />
-          <Button type="danger" fullWidth size="large" onClick={handleSaveProfile}>
+        <div style={{ padding: "0 4px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {[
+            { label: "Số điện thoại", placeholder: "VD: 0986447465", value: editPhone, onChange: (v: string) => { setEditPhone(v); setPhoneError(""); }, error: phoneError },
+            { label: "Email cá nhân", placeholder: "VD: email@gmail.com", value: editEmail, onChange: (v: string) => { setEditEmail(v); setEmailError(""); }, error: emailError },
+            { label: "Ngày sinh", placeholder: "VD: 11/06/2004", value: editBirthdate, onChange: setEditBirthdate },
+            { label: "Khoa/Viện", placeholder: "VD: Trường CNTT&TT", value: editDepartment, onChange: setEditDepartment },
+            { label: "Hệ", placeholder: "VD: Cử nhân - K67", value: editProgram, onChange: setEditProgram },
+            { label: "Lớp", placeholder: "VD: KTMT 03-K67", value: editClassName, onChange: setEditClassName },
+          ].map((f) => (
+            <div key={f.label}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, display: "block" }}>{f.label}</label>
+              <input
+                placeholder={f.placeholder}
+                value={f.value}
+                onChange={(e) => f.onChange(e.target.value)}
+                style={{
+                  width: "100%", height: 44, borderRadius: 10, padding: "0 14px",
+                  background: "#f0f0f5", border: f.error ? "1px solid #ef4444" : "1px solid rgba(0,0,0,0.06)",
+                  fontSize: 15, color: "#1a1a1a", outline: "none", boxSizing: "border-box",
+                }}
+              />
+              {f.error && <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>{f.error}</p>}
+            </div>
+          ))}
+          <button
+            onClick={handleSaveProfile}
+            style={{
+              width: "100%", height: 48, borderRadius: 12,
+              background: "#be1d2c", border: "none",
+              color: "#ffffff", fontSize: 15, fontWeight: 700,
+            }}
+          >
             Lưu thay đổi
-          </Button>
-        </Box>
+          </button>
+        </div>
       </DarkModal>
     </Page>
   );

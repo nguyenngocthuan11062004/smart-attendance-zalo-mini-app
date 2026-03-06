@@ -156,9 +156,9 @@ export function seedMockData() {
 
   // Sessions
   const sessionsData: SessionDoc[] = [
-    { id: "session_001", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "ended", hmacSecret: "s1", qrRefreshInterval: 15, startedAt: NOW - DAY * 7, endedAt: NOW - DAY * 7 + 3600000 },
-    { id: "session_002", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "ended", hmacSecret: "s2", qrRefreshInterval: 15, startedAt: NOW - DAY * 3, endedAt: NOW - DAY * 3 + 2700000 },
-    { id: "session_003", classId: "class_002", className: "CNTT K68 - Co so du lieu", teacherId: "teacher_001", status: "ended", hmacSecret: "s3", qrRefreshInterval: 15, startedAt: NOW - DAY * 5, endedAt: NOW - DAY * 5 + 3000000 },
+    { id: "session_001", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "ended", hmacSecret: "s1", qrRefreshInterval: 30, startedAt: NOW - DAY * 7, endedAt: NOW - DAY * 7 + 3600000 },
+    { id: "session_002", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "ended", hmacSecret: "s2", qrRefreshInterval: 30, startedAt: NOW - DAY * 3, endedAt: NOW - DAY * 3 + 2700000 },
+    { id: "session_003", classId: "class_002", className: "CNTT K68 - Co so du lieu", teacherId: "teacher_001", status: "ended", hmacSecret: "s3", qrRefreshInterval: 30, startedAt: NOW - DAY * 5, endedAt: NOW - DAY * 5 + 3000000 },
   ];
   sessionsData.forEach(s => mockDb.setSession(s));
 
@@ -226,6 +226,30 @@ export function seedMockData() {
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s3Base + 450000, qrNonce: "s3n2" },
     ], peerCount: 1, trustScore: "review" },
   );
+
+  // ── Active test sessions for dev page step testing ──
+  const testSessions: SessionDoc[] = [
+    { id: "session_step1", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step1_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
+    { id: "session_step2", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step2_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
+    { id: "session_step3", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step3_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
+    { id: "session_step4", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step4_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
+  ];
+  testSessions.forEach(s => mockDb.setSession(s));
+
+  // Step 2: checked in, no face verification
+  att.push({ id: "att_step2", sessionId: "session_step2", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustScore: "absent" });
+
+  // Step 3: checked in + face verified, 1 peer
+  att.push({ id: "att_step3", sessionId: "session_step3", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [
+    { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 200000, qrNonce: "test_n1" },
+  ], peerCount: 1, trustScore: "review", faceVerification: { matched: true, confidence: 0.88, selfieImagePath: "", verifiedAt: NOW - 280000 } });
+
+  // Step 4: checked in + face + 3 peers = done
+  att.push({ id: "att_step4", sessionId: "session_step4", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [
+    { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 200000, qrNonce: "test_n2" },
+    { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - 180000, qrNonce: "test_n3" },
+    { peerId: "student_004", peerName: "Hoang Van E", verifiedAt: NOW - 160000, qrNonce: "test_n4" },
+  ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: NOW - 280000 } });
 
   att.forEach(a => mockDb.setAttendance(a));
 }

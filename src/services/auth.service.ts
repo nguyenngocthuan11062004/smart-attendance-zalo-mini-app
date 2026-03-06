@@ -1,6 +1,7 @@
-import { getUserID, getUserInfo, getAccessToken as zmpGetAccessToken, authorize, getPhoneNumber } from "zmp-sdk";
+import { getUserID, getUserInfo, getAccessToken as zmpGetAccessToken, authorize, getPhoneNumber } from "zmp-sdk/apis";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "@/config/firebase";
 import type { UserDoc, UserRole } from "@/types";
 
 /**
@@ -40,8 +41,16 @@ export async function signIn(): Promise<UserDoc> {
   let followedOA: boolean | undefined;
   let phone: string | undefined;
 
+  // Xin quyền info + SĐT cùng lúc (1 popup duy nhất)
   try {
-    const { userInfo } = await getUserInfo({});
+    await authorize({ scopes: ["scope.userInfo", "scope.userPhonenumber"] });
+  } catch {
+    // User từ chối hoặc SDK lỗi — tiếp tục với dữ liệu có thể lấy được
+  }
+
+  // Lấy thông tin người dùng (name, avatar)
+  try {
+    const { userInfo } = await getUserInfo({ autoRequestPermission: true });
     uid = userInfo.id || (await getUserID({})).toString();
     name = userInfo.name || name;
     avatar = userInfo.avatar || avatar;
@@ -54,13 +63,30 @@ export async function signIn(): Promise<UserDoc> {
     }
   }
 
-  // Xin quyền và lấy SĐT từ Zalo
+  // Lấy SĐT từ Zalo
   try {
-    await authorize({ scopes: ["scope.userPhonenumber"] });
-    const { number } = await getPhoneNumber({});
-    if (number) phone = number;
+    const phoneResult = await getPhoneNumber({});
+    if (phoneResult.number) {
+      phone = phoneResult.number;
+    } else if (phoneResult.token) {
+      // Token cần decode server-side qua Zalo Social API
+      try {
+        const accessToken = await zmpGetAccessToken({});
+        const resolve = httpsCallable<
+          { token: string; accessToken: string },
+          { phone: string }
+        >(functions, "resolveZaloPhoneToken");
+        const { data } = await resolve({
+          token: phoneResult.token,
+          accessToken: accessToken || "",
+        });
+        if (data.phone) phone = data.phone;
+      } catch {
+        // Cloud Function chưa deploy hoặc token hết hạn — bỏ qua
+      }
+    }
   } catch {
-    // User từ chối hoặc SDK lỗi — bỏ qua
+    // Không lấy được SĐT — bỏ qua
   }
 
   return await createOrUpdateUser(uid, name, avatar, undefined, followedOA, phone);

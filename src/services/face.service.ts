@@ -1,10 +1,15 @@
 import { callWithFallback } from "@/utils/cloudFallback";
+import { getAccessToken } from "@/services/auth.service";
 import type { FaceVerificationResult } from "@/types";
 
-interface RegisterFaceResponse {
+interface RegisterCCCDResponse {
   success: boolean;
-  sanityPassed: boolean;
+  step?: string;
+  ocrData?: Record<string, any>;
+  faceMatched?: boolean;
+  faceMatchConfidence?: number;
   issues?: string[];
+  message?: string;
 }
 
 interface VerifyFaceResponse {
@@ -15,19 +20,38 @@ interface VerifyFaceResponse {
 
 const isDevMode = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
-export async function registerFace(imageBase64: string): Promise<RegisterFaceResponse> {
+export async function registerCCCD(
+  frontBase64: string,
+  backBase64: string,
+  selfieBase64: string
+): Promise<RegisterCCCDResponse> {
   if (isDevMode) {
-    await new Promise((r) => setTimeout(r, 1500));
-    return { success: true, sanityPassed: true };
+    await new Promise((r) => setTimeout(r, 2000));
+    return {
+      success: true,
+      ocrData: {
+        id_number: "001234567890",
+        full_name: "NGUYEN VAN A",
+        date_of_birth: "01/01/2002",
+        gender: "Nam",
+        place_of_residence: "Ha Noi",
+      },
+      faceMatched: true,
+      faceMatchConfidence: 0.95,
+    };
   }
 
+  const accessToken = await getAccessToken();
+
   return callWithFallback(
-    "registerFace",
-    { imageBase64 },
+    "registerCCCD",
+    { frontBase64, backBase64, selfieBase64, accessToken },
     async () => {
-      // Cloud function unavailable — save a "pending" status so the user can continue.
-      // The face will be processed when the cloud function becomes available.
-      return { success: true, sanityPassed: true, issues: ["pending:cloud_unavailable"] };
+      return {
+        success: false,
+        step: "cloud_unavailable",
+        message: "Dich vu tam thoi khong kha dung",
+      };
     }
   );
 }
@@ -42,16 +66,16 @@ export async function verifyFace(
     return { matched: true, confidence: 0.92 };
   }
 
+  const accessToken = await getAccessToken();
+
   return callWithFallback(
     "verifyFace",
-    { imageBase64, sessionId, attendanceId },
+    { imageBase64, sessionId, attendanceId, accessToken },
     async () => {
-      // Cloud function unavailable — let the student skip face verification
-      // and continue with peer-based attendance.
       return {
         matched: false,
         confidence: 0,
-        error: "Dịch vụ xác minh khuôn mặt tạm thời không khả dụng. Bạn có thể tiếp tục điểm danh.",
+        error: "Dich vu xac minh khuon mat tam thoi khong kha dung.",
       };
     }
   );

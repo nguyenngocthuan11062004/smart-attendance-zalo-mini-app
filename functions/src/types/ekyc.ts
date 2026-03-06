@@ -1,19 +1,22 @@
-// --- Zalo eKYC API types ---
+// --- Zalo eKYC API types (fiza.ai) ---
 
 export interface EKYCUploadResponse {
-  error: number;
+  code: number;
   message: string;
-  data: string; // encrypted JSON string
+  data: string; // encrypted base64
+  sign?: string;
+  request_id?: string;
 }
 
 export interface EKYCDecryptedUploadData {
-  img: string; // image ID on Zalo eKYC server
+  photo_id: number;
 }
 
 export interface EKYCSanityCheckResponse {
-  error: number;
+  code: number;
   message: string;
-  data: string; // encrypted JSON string
+  data: string; // encrypted base64
+  sign?: string;
 }
 
 export interface EKYCDecryptedSanityData {
@@ -24,16 +27,38 @@ export interface EKYCDecryptedSanityData {
 }
 
 export interface EKYCFaceMatchResponse {
-  error: number;
+  code: number;
   message: string;
-  data: string; // encrypted JSON string
+  data: string; // encrypted base64
+  sign?: string;
+  request_id?: string;
 }
 
 export interface EKYCDecryptedFaceMatchData {
-  result: {
-    match: "true" | "false";
-    score: number; // 0-100
-  };
+  status: number;
+  msg: string;
+  issame: boolean;
+  prob: number; // 0.0 - 1.0
+}
+
+export interface EKYCOCRResponse {
+  code: number;
+  message: string;
+  data: string; // encrypted base64
+  sign?: string;
+  request_id?: string;
+}
+
+export interface EKYCDecryptedOCRData {
+  id_number: string;
+  full_name: string;
+  date_of_birth: string;
+  gender: string;
+  nationality?: string;
+  place_of_origin?: string;
+  place_of_residence?: string;
+  date_of_expiry?: string;
+  id_type?: string;
 }
 
 // --- Internal types ---
@@ -42,8 +67,12 @@ export interface FaceRegistrationDoc {
   id: string;
   studentId: string;
   referenceImagePath: string; // Firebase Storage: "faces/{studentId}/reference.jpg"
-  ekycImageId: string; // Zalo eKYC image ID for matching
+  ekycImageId: string; // eKYC photo_id or "pending"
   sanityCheckPassed: boolean;
+  cccdFrontPath?: string;
+  cccdBackPath?: string;
+  ocrData?: Record<string, any>;
+  faceMatchConfidence?: number;
   registeredAt: number;
   updatedAt: number;
 }

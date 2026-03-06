@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Page, Avatar } from "zmp-ui";
+import { Page } from "zmp-ui";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
@@ -152,7 +152,7 @@ export default function HomePage() {
         <div
           style={{
             background: "#be1d2c",
-            paddingTop: "calc(var(--zaui-safe-area-inset-top, 0px) + 10px)",
+            paddingTop: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px)",
             paddingBottom: 32,
             paddingLeft: 16,
             paddingRight: 16,
@@ -197,10 +197,24 @@ export default function HomePage() {
         />
       </div>
 
-      <div style={{ padding: "0 16px 100px 16px" }}>
+      <div style={{ padding: "0 16px", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}>
         {/* ── Profile section ── */}
         <div className="flex items-center" style={{ padding: "0 0 12px" }}>
-          <Avatar src={user.avatar} size={48} />
+          {user.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.name}
+              style={{ width: 48, height: 48, borderRadius: 24, objectFit: "cover", flexShrink: 0 }}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div style={{
+              width: 48, height: 48, borderRadius: 24, background: "#be1d2c",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <span style={{ color: "#fff", fontSize: 20, fontWeight: 700 }}>{user.name?.charAt(0)?.toUpperCase() || "?"}</span>
+            </div>
+          )}
           <div className="flex-1 ml-3 min-w-0">
             <p className="truncate" style={{ fontSize: 17, fontWeight: 700, color: "#1a1a1a" }}>
               {user.name}

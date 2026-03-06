@@ -14,6 +14,12 @@ export interface UserDoc {
   program?: string;
   className?: string;
   faceRegistered?: boolean;
+  cccdNumber?: string;
+  cccdName?: string;
+  cccdDob?: string;
+  cccdGender?: string;
+  cccdAddress?: string;
+  cccdRegistered?: boolean;
   microsoftEmail?: string;
   hustVerified?: boolean;
   hustStudentId?: string;
@@ -119,6 +125,10 @@ export interface FaceRegistrationDoc {
   referenceImagePath: string;
   ekycImageId: string;
   sanityCheckPassed: boolean;
+  cccdFrontPath?: string;
+  cccdBackPath?: string;
+  ocrData?: Record<string, any>;
+  faceMatchConfidence?: number;
   registeredAt: number;
   updatedAt: number;
 }

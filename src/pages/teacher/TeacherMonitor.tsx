@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Page, Box, Text, Button, Header } from "zmp-ui";
+import { Page } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeSessionAtom } from "@/store/session";
@@ -9,13 +9,15 @@ import { getSession, endSession } from "@/services/session.service";
 import { getClassById } from "@/services/class.service";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "@/config/firebase";
-import AttendanceCard from "@/components/attendance/AttendanceCard";
-import ScoreRing from "@/components/ui/ScoreRing";
-import DarkStatCard from "@/components/ui/DarkStatCard";
-import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc } from "@/types";
 
 type FilterType = "all" | "present" | "review" | "absent";
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  present: { label: "Có mặt", color: "#22c55e", bg: "#dcfce7" },
+  review: { label: "Xem xét", color: "#f59e0b", bg: "#fef3c7" },
+  absent: { label: "Vắng", color: "#ef4444", bg: "#fee2e2" },
+};
 
 export default function TeacherMonitor() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -84,144 +86,264 @@ export default function TeacherMonitor() {
     { key: "absent", label: "Vắng", count: records.filter((r) => r.trustScore === "absent").length },
   ];
 
-  return (
-    <Page className="page" style={{ background: "#f2f2f7" }}>
-      <Header title="Theo dõi điểm danh" />
+  // SVG score ring arc
+  const r = 27; const cx = 32; const cy = 32; const strokeW = 5;
+  const sweep = (progressPercent / 100) * 360;
+  const startRad = -Math.PI / 2;
+  const endRad = startRad + (sweep * Math.PI) / 180;
+  const largeArc = sweep > 180 ? 1 : 0;
+  const x1 = cx + r * Math.cos(startRad);
+  const y1 = cy + r * Math.sin(startRad);
+  const x2 = cx + r * Math.cos(endRad);
+  const y2 = cy + r * Math.sin(endRad);
+  const arcPath = sweep >= 360
+    ? `M${cx},${cy - r} A${r},${r} 0 1,1 ${cx - 0.01},${cy - r}`
+    : `M${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2}`;
 
-      {/* Progress section with ScoreRing */}
-      {totalStudents > 0 && (
-        <div
-          className="glass-card"
-          style={{
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 16,
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span style={{ color: "#1a1a1a", fontSize: 20, fontWeight: 700 }}>{checkedIn}</span>
-                <span style={{ color: "#9ca3af", fontSize: 13 }}>/ {totalStudents} sinh viên</span>
-              </div>
+  return (
+    <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
+      {/* Header */}
+      <div style={{
+        background: "#be1d2c", borderRadius: "0 0 24px 24px",
+        padding: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px) 16px 14px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <button onClick={() => navigate(-1)} style={{
+          background: "rgba(255,255,255,0.13)", border: "none",
+          width: 36, height: 36, borderRadius: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+        </button>
+        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Theo dõi realtime</span>
+        <button style={{
+          background: "rgba(255,255,255,0.13)", border: "none",
+          width: 36, height: 36, borderRadius: 12,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+        </button>
+      </div>
+
+      <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* Progress card */}
+        {totalStudents > 0 && (
+          <div style={{
+            background: "#ffffff", borderRadius: 16, padding: 20,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            border: "1px solid rgba(0,0,0,0.04)",
+          }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a1a" }}>
+                {checkedIn}/{totalStudents} <span style={{ fontSize: 14, fontWeight: 500, color: "#6b7280" }}>SV</span>
+              </span>
               {session?.status === "active" && (
-                <div className="flex items-center space-x-1" style={{ marginTop: 4 }}>
-                  <span
-                    className="animate-breathe"
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      background: "#22c55e",
-                      display: "inline-block",
-                    }}
-                  />
-                  <span style={{ color: "#22c55e", fontSize: 11, fontWeight: 500 }}>Realtime</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: 4, background: "#22c55e",
+                    boxShadow: "0 0 6px rgba(34,197,94,0.5)",
+                  }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#22c55e" }}>Realtime</span>
                 </div>
               )}
             </div>
-            <ScoreRing percentage={progressPercent} size={64} color="#a78bfa" glow animated>
-              <span style={{ color: "#a78bfa", fontSize: 13, fontWeight: 700 }}>{progressPercent}%</span>
-            </ScoreRing>
+
+            {/* Score ring */}
+            <div style={{ width: 64, height: 64, position: "relative", flexShrink: 0 }}>
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                <circle cx={cx} cy={cy} r={r} stroke="#e5e5e5" strokeWidth={strokeW} fill="none" />
+                {sweep > 0 && (
+                  <path d={arcPath} stroke="#a78bfa" strokeWidth={strokeW} fill="none" strokeLinecap="round" />
+                )}
+              </svg>
+              <div style={{
+                position: "absolute", inset: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#a78bfa" }}>{progressPercent}%</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="animate-bounce-in animate-stagger-1">
-          <DarkStatCard value={present} label="Có mặt" color="#22c55e" enhanced />
+        {/* Stat cards row */}
+        <div style={{ display: "flex", gap: 10 }}>
+          {[
+            { value: present, label: "Có mặt", color: "#22c55e" },
+            { value: review, label: "Xem xét", color: "#f59e0b" },
+            { value: absentCount, label: "Vắng", color: "#ef4444" },
+          ].map((s) => (
+            <div key={s.label} style={{
+              flex: 1, background: "#ffffff", borderRadius: 12,
+              padding: "14px 10px", textAlign: "center",
+              border: "1px solid rgba(0,0,0,0.04)",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.value}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}>{s.label}</span>
+            </div>
+          ))}
         </div>
-        <div className="animate-bounce-in animate-stagger-2">
-          <DarkStatCard value={review} label="Xem xét" color="#f59e0b" enhanced />
-        </div>
-        <div className="animate-bounce-in animate-stagger-3">
-          <DarkStatCard value={absentCount} label="Vắng" color="#ef4444" enhanced />
-        </div>
-      </div>
 
-      {/* Filter chips */}
-      <div className="flex space-x-2 mb-3 overflow-x-auto pb-1">
-        {filterButtons.map((f) => (
+        {/* Filter chips */}
+        <div style={{ display: "flex", gap: 8 }}>
+          {filterButtons.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              style={{
+                height: 32, borderRadius: 16,
+                padding: "0 14px",
+                background: filter === f.key ? "#1a1a1a" : "#ffffff",
+                color: filter === f.key ? "#ffffff" : "#6b7280",
+                fontSize: 13, fontWeight: 600,
+                border: filter === f.key ? "none" : "1px solid rgba(0,0,0,0.08)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {f.label} {f.count}
+            </button>
+          ))}
+        </div>
+
+        {/* Attendance list */}
+        {filteredRecords.length === 0 ? (
+          <div style={{
+            background: "#ffffff", borderRadius: 16, padding: 32,
+            border: "1px solid rgba(0,0,0,0.04)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 28, background: "#f0f0f5",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+              </svg>
+            </div>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>
+              {filter === "all" ? "Chưa có sinh viên điểm danh" : "Không có sinh viên"}
+            </p>
+            <p style={{ fontSize: 13, color: "#9ca3af" }}>Dữ liệu sẽ cập nhật realtime</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filteredRecords.map((rec) => {
+              const status = STATUS_CONFIG[rec.trustScore] || STATUS_CONFIG.absent;
+              const name = rec.studentName || rec.studentId;
+              const initial = name.charAt(0).toUpperCase();
+
+              return (
+                <div key={rec.id} style={{
+                  background: "#ffffff", borderRadius: 12, padding: 14,
+                  border: "1px solid rgba(0,0,0,0.04)",
+                  display: "flex", alignItems: "center", gap: 12,
+                }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 14, background: "#be1d2c",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <span style={{ color: "#ffffff", fontSize: 14, fontWeight: 700 }}>{initial}</span>
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{name}</span>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>{rec.peerCount} peers · {new Date(rec.checkedInAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+
+                  {/* Status badge */}
+                  <div style={{
+                    background: status.bg, borderRadius: 8, padding: "4px 10px",
+                  }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: status.color }}>{status.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* End session button */}
+        {session?.status === "active" && (
           <button
-            key={f.key}
-            className={`filter-chip state-transition ${filter === f.key ? "active" : ""}`}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label} ({f.count})
-          </button>
-        ))}
-      </div>
-
-      {/* List header */}
-      <div className="flex justify-between items-center mb-3">
-        <p style={{ color: "#1a1a1a", fontWeight: 600, fontSize: 15 }}>Danh sách ({filteredRecords.length})</p>
-      </div>
-
-      {/* Records list */}
-      {filteredRecords.length === 0 ? (
-        <div className="empty-state" style={{ paddingTop: 32, paddingBottom: 32 }}>
-          <p style={{ color: "#9ca3af", fontSize: 14 }}>
-            {filter === "all" ? "Chưa có sinh viên điểm danh" : "Không có sinh viên"}
-          </p>
-        </div>
-      ) : (
-        filteredRecords.map((r, i) => (
-          <div key={r.id} className={`animate-slide-up animate-stagger-${Math.min(i + 1, 10)}`}>
-            <AttendanceCard record={r} />
-          </div>
-        ))
-      )}
-
-      {/* End session button */}
-      {session?.status === "active" && (
-        <div style={{ marginTop: 16, paddingBottom: 16 }}>
-          <Button
-            type="danger"
-            fullWidth
             onClick={() => setShowEndConfirm(true)}
+            style={{
+              width: "100%", height: 48, borderRadius: 12,
+              background: "#be1d2c", border: "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
           >
-            Kết thúc phiên điểm danh
-          </Button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="9" x2="15" y2="15" /><line x1="15" y1="9" x2="9" y2="15" />
+            </svg>
+            <span style={{ color: "#ffffff", fontSize: 15, fontWeight: 700 }}>Kết thúc phiên</span>
+          </button>
+        )}
+      </div>
+
+      {/* Confirm end modal */}
+      {showEndConfirm && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "flex-end", justifyContent: "center",
+        }} onClick={() => setShowEndConfirm(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 420, background: "#ffffff",
+              borderRadius: "20px 20px 0 0", padding: "24px 20px 32px",
+              display: "flex", flexDirection: "column", gap: 16,
+            }}
+          >
+            {/* Handle */}
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto" }} />
+
+            <span style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", textAlign: "center" }}>Kết thúc phiên?</span>
+
+            {/* Warning */}
+            <div style={{
+              background: "#fef3c7", borderRadius: 12, padding: 14,
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+              </svg>
+              <span style={{ fontSize: 14, color: "#92400e", lineHeight: 1.5 }}>
+                Đã có {checkedIn}/{totalStudents} sinh viên check-in. Hệ thống sẽ tính điểm tin cậy sau khi kết thúc.
+              </span>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: "#f2f2f7", border: "none",
+                  fontSize: 15, fontWeight: 600, color: "#1a1a1a",
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleEndSession}
+                disabled={ending}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: ending ? "#d4d4d4" : "#ef4444", border: "none",
+                  fontSize: 15, fontWeight: 600, color: "#ffffff",
+                }}
+              >
+                {ending ? "Đang kết thúc..." : "Kết thúc"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Confirm modal */}
-      <DarkModal
-        visible={showEndConfirm}
-        onClose={() => setShowEndConfirm(false)}
-        title="Kết thúc phiên?"
-      >
-        <div
-          style={{
-            background: "rgba(245,158,11,0.15)",
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 12,
-          }}
-        >
-          <p style={{ color: "#f59e0b", fontSize: 14 }}>
-            Đã có {checkedIn}/{totalStudents} sinh viên check-in. Hệ thống sẽ tính điểm tin cậy sau khi kết thúc.
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          <Button
-            variant="secondary"
-            style={{ flex: 1 }}
-            onClick={() => setShowEndConfirm(false)}
-          >
-            Hủy
-          </Button>
-          <Button
-            type="danger"
-            style={{ flex: 1 }}
-            loading={ending}
-            onClick={handleEndSession}
-          >
-            {ending ? "Đang kết thúc..." : "Kết thúc"}
-          </Button>
-        </div>
-      </DarkModal>
     </Page>
   );
 }

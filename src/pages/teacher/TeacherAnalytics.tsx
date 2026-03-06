@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Page, Text, Header } from "zmp-ui";
-import { useParams } from "react-router-dom";
+import { Page, Text } from "zmp-ui";
+import { useParams, useNavigate } from "react-router-dom";
 import { getClassById } from "@/services/class.service";
 import { getClassSessions } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
@@ -19,6 +19,7 @@ interface SessionStat {
 
 export default function TeacherAnalytics() {
   const { classId } = useParams<{ classId: string }>();
+  const navigate = useNavigate();
   const [classDoc, setClassDoc] = useState<ClassDoc | null>(null);
   const [stats, setStats] = useState<SessionStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,8 +79,28 @@ export default function TeacherAnalytics() {
   const maxBarHeight = 80;
 
   return (
-    <Page className="page" style={{ background: "#f2f2f7" }}>
-      <Header title="Thống kê điểm danh" />
+    <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
+      <div style={{
+        background: "#be1d2c", borderRadius: "0 0 24px 24px",
+        padding: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px) 16px 14px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <button onClick={() => navigate(-1)} style={{
+          width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+          border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+        </button>
+        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Thống kê điểm danh</span>
+        <button style={{
+          width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+          border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+        </button>
+      </div>
+
+      <div style={{ padding: "20px 16px" }}>
 
       {loading ? (
         <div className="space-y-3">
@@ -320,6 +341,7 @@ export default function TeacherAnalytics() {
           )}
         </>
       )}
+      </div>
     </Page>
   );
 }

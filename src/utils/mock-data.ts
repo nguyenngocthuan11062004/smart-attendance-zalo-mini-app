@@ -81,7 +81,7 @@ export const mockSession: SessionDoc = {
   teacherId: "teacher_001",
   status: "active",
   hmacSecret: "mock_secret_key_for_testing_12345678",
-  qrRefreshInterval: 15,
+  qrRefreshInterval: 30,
   startedAt: Date.now() - 300000,
 };
 

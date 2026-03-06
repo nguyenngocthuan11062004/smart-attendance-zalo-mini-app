@@ -1,7 +1,7 @@
 import type { QRPayload, AttendanceDoc } from "@/types";
 import { verifySignature } from "./crypto";
 
-const QR_EXPIRY_MS = 60_000; // QR valid for 60 seconds
+const QR_EXPIRY_MS = 90_000; // QR valid for 90 seconds
 
 export interface ValidationResult {
   valid: boolean;

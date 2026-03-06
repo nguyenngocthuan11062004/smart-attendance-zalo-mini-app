@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { scanQRCode } from "zmp-sdk";
+import { scanQRCode, requestCameraPermission } from "zmp-sdk/apis";
 import { parseScannedQR } from "@/services/qr.service";
 import type { QRPayload } from "@/types";
 
@@ -11,6 +11,15 @@ export function useQRScanner() {
     try {
       setScanning(true);
       setError(null);
+
+      // Xin quyền camera trước khi quét
+      try {
+        await requestCameraPermission({});
+      } catch {
+        setError("Vui lòng cấp quyền camera để quét QR");
+        return null;
+      }
+
       const { content } = await scanQRCode({});
       if (!content) {
         setError("Không đọc được QR");
@@ -23,6 +32,10 @@ export function useQRScanner() {
       }
       return payload;
     } catch (err: any) {
+      if (err.code === -201 || err.message?.includes("cancel")) {
+        // User đóng scanner, không phải lỗi
+        return null;
+      }
       setError(err.message || "Lỗi quét QR");
       return null;
     } finally {
@@ -30,5 +43,5 @@ export function useQRScanner() {
     }
   }, []);
 
-  return { scan, scanning, error };
+  return { scan, scanning, error, clearError: () => setError(null) };
 }

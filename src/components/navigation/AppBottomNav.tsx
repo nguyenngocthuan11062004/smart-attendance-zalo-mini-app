@@ -52,18 +52,19 @@ export default function AppBottomNav() {
     <div
       style={{
         position: "fixed",
-        bottom: 10,
-        left: 30,
-        right: 30,
+        bottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "calc(100% - 32px)",
+        maxWidth: 400,
         background: "#ffffff",
         borderRadius: 999,
         border: "1px solid rgba(0,0,0,0.06)",
-        boxShadow: "0 -1px 8px rgba(0,0,0,0.08)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
         zIndex: 1000,
       }}
     >
-      <div className="flex">
+      <div style={{ display: "flex" }}>
         {TABS.map((tab) => {
           const isActive = activePath === tab.key;
           return (

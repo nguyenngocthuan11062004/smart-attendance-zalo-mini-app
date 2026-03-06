@@ -37,7 +37,7 @@ export const startSession = functions.region("asia-southeast1").https.onCall(
       teacherId: userId,
       status: "active",
       hmacSecret,
-      qrRefreshInterval: 15,
+      qrRefreshInterval: 30,
       startedAt: Date.now(),
     };
 

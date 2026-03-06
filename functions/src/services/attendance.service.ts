@@ -7,7 +7,7 @@ import { checkRateLimit } from "../middleware/rateLimit";
 const db = admin.firestore();
 
 // --- Nonce tracking to prevent QR replay attacks ---
-// In-memory Map with TTL 120s (longer than QR expiry 60s).
+// In-memory Map with TTL 120s (longer than QR expiry 90s).
 // Upgrade path: use Firestore subcollection `used_nonces` if horizontal scaling needed.
 const usedNonces = new Map<string, number>();
 const NONCE_TTL_MS = 120_000;
@@ -71,7 +71,7 @@ export const scanTeacher = functions.region("asia-southeast1").https.onCall(
       throw new functions.https.HttpsError("invalid-argument", "Invalid QR signature");
     }
 
-    if (Date.now() - qrPayload.timestamp > 60_000) {
+    if (Date.now() - qrPayload.timestamp > 90_000) {
       throw new functions.https.HttpsError("invalid-argument", "QR expired");
     }
 
@@ -148,7 +148,7 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
       throw new functions.https.HttpsError("invalid-argument", "Invalid QR signature");
     }
 
-    if (Date.now() - qrPayload.timestamp > 60_000) {
+    if (Date.now() - qrPayload.timestamp > 90_000) {
       throw new functions.https.HttpsError("invalid-argument", "QR expired");
     }
 
