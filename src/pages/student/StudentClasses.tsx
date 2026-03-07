@@ -261,47 +261,58 @@ export default function StudentClasses() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {classes.map((c) => (
-                <div
-                  key={c.id}
-                  onClick={() => handleClassClick(c)}
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: 14,
-                    padding: 16,
-                    border: "1px solid rgba(0,0,0,0.04)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    cursor: "pointer",
-                  }}
-                >
-                  <p style={{ fontSize: 15, fontWeight: 700, color: "#000000" }}>{c.name}</p>
-                  <p style={{ fontSize: 12, fontFamily: "Roboto Mono, monospace", color: "#6b7280" }}>{c.code}</p>
-                  <p style={{ fontSize: 13, color: "#6b7280" }}>GV: {c.teacherName}</p>
-                  <p style={{ fontSize: 12, color: "#9ca3af" }}>{c.studentIds.length} sinh viên</p>
-                  {activeSessions[c.id] && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/student/attendance/${activeSessions[c.id].id}`);
-                      }}
-                      style={{
-                        width: "100%",
-                        height: 36,
-                        borderRadius: 10,
-                        background: "#22c55e",
-                        border: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>Điểm danh ngay</span>
-                    </button>
-                  )}
-                </div>
-              ))}
+              {classes.map((c) => {
+                const session = activeSessions[c.id];
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => handleClassClick(c)}
+                    style={{
+                      background: "#fce8e8", borderRadius: 16, padding: "18px 16px",
+                      display: "flex", alignItems: "center", gap: 16,
+                      border: "none", textAlign: "left", width: "100%",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    {/* Status indicator */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      {session ? (
+                        <>
+                          <div style={{ width: 10, height: 10, borderRadius: 5, background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.4)" }} />
+                          <div style={{ width: 2, height: 20, borderRadius: 1, background: "#d1d5db" }} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#22c55e" }}>LIVE</span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{c.code}</span>
+                          <div style={{ width: 2, height: 20, borderRadius: 1, background: "#d1d5db" }} />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af" }}>{c.studentIds.length} SV</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Info column */}
+                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+                      <span className="truncate" style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{c.name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: 3, background: "#be1d2c", flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, fontWeight: 500, color: "#6b7280" }}>GV: {c.teacherName}</span>
+                      </div>
+                      {session && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 6, height: 6, borderRadius: 3, background: "#3b82f6", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#3b82f6" }}>Phiên điểm danh đang mở</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chevron */}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </button>
+                );
+              })}
             </div>
           )}
         </PullToRefresh>

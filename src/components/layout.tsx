@@ -20,6 +20,7 @@ import StudentClasses from "@/pages/student/StudentClasses";
 import StudentAttendance from "@/pages/student/StudentAttendance";
 import StudentHistory from "@/pages/student/StudentHistory";
 import FaceRegister from "@/pages/student/FaceRegister";
+import StudentSchedule from "@/pages/student/StudentSchedule";
 import TeacherClasses from "@/pages/teacher/TeacherClasses";
 import TeacherSession from "@/pages/teacher/TeacherSession";
 import TeacherMonitor from "@/pages/teacher/TeacherMonitor";
@@ -29,6 +30,7 @@ import TeacherFraudReport from "@/pages/teacher/TeacherFraudReport";
 import TeacherAnalytics from "@/pages/teacher/TeacherAnalytics";
 import ProfilePage from "@/pages/profile";
 import SearchPage from "@/pages/search";
+import AIChatPage from "@/pages/AIChatPage";
 
 import AppBottomNav from "@/components/navigation/AppBottomNav";
 import GlobalLoading from "@/components/ui/GlobalLoading";
@@ -73,12 +75,14 @@ function AppShell() {
               <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
               <Route path="/search" element={<AuthGuard><SearchPage /></AuthGuard>} />
               <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+              <Route path="/ai-chat" element={<AuthGuard><AIChatPage /></AuthGuard>} />
 
               {/* Student routes: auth + student role */}
               <Route path="/student/classes" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentClasses /></RoleGuard></AuthGuard>} />
               <Route path="/student/attendance/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentAttendance /></RoleGuard></AuthGuard>} />
               <Route path="/student/history" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentHistory /></RoleGuard></AuthGuard>} />
               <Route path="/student/face-register" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><FaceRegister /></RoleGuard></AuthGuard>} />
+              <Route path="/student/schedule" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentSchedule /></RoleGuard></AuthGuard>} />
 
               {/* Teacher routes: auth + teacher role */}
               <Route path="/teacher/classes" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClasses /></RoleGuard></AuthGuard>} />
