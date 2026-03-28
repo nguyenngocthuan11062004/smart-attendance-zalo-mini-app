@@ -36,7 +36,12 @@ Thumbs.db
 
 # Production build
 www/
+admin/dist/
+admin/node_modules/
+admin/.env
 
-# Firebase Functions
+# Firebase
+.firebase/
 functions/node_modules/
 functions/lib/
+functions/seed-admin.js
