@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Page, Box, Text, Button } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useSetAtom } from "jotai";
@@ -8,12 +8,36 @@ import { mockStudent, mockTeacher, mockSession } from "@/utils/mock-data";
 import type { SessionDoc } from "@/types";
 import { isMockMode, setMockMode, seedMockData } from "@/utils/mock-db";
 
+const SCROLL_KEY = "dev_page_scroll";
+
 export default function DevPage() {
   const navigate = useNavigate();
   const setUser = useSetAtom(currentUserAtom);
   const setSession = useSetAtom(activeSessionAtom);
   const [mockOn, setMockOn] = useState(isMockMode());
   const [seeded, setSeeded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Restore scroll position on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved && scrollRef.current) {
+      // Try the ref first, then the Page's scroll container
+      const container = scrollRef.current.closest(".zaui-page") || scrollRef.current.parentElement;
+      if (container) {
+        requestAnimationFrame(() => container.scrollTop = parseInt(saved, 10));
+      } else {
+        requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10)));
+      }
+    }
+  }, []);
+
+  // Save scroll position before navigating
+  const saveScroll = useCallback(() => {
+    const container = scrollRef.current?.closest(".zaui-page") || scrollRef.current?.parentElement;
+    const scrollY = container ? container.scrollTop : window.scrollY;
+    sessionStorage.setItem(SCROLL_KEY, String(scrollY));
+  }, []);
 
   const enableMock = () => {
     setMockMode(true);
@@ -29,6 +53,7 @@ export default function DevPage() {
   };
 
   const goAs = (role: "student" | "teacher", path: string, sessionOverride?: SessionDoc) => {
+    saveScroll();
     setUser(role === "student" ? mockStudent : mockTeacher);
     if (sessionOverride) {
       setSession(sessionOverride);
@@ -38,9 +63,14 @@ export default function DevPage() {
     navigate(path);
   };
 
+  const goTo = (path: string) => {
+    saveScroll();
+    navigate(path);
+  };
+
   return (
     <Page className="page page-no-header" style={{ background: "#f2f2f7" }}>
-      <div style={{ background: "#ffffff", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div ref={scrollRef} style={{ background: "#ffffff", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <p style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>Dev Navigation</p>
         <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>Nhay vao bat ky man hinh nao de test</p>
       </div>
@@ -90,9 +120,9 @@ export default function DevPage() {
       {/* Common */}
       <p className="section-label">Common</p>
       <div className="space-y-1.5 mb-4">
-        <NavButton label="Splash" onClick={() => navigate("/splash")} />
-        <NavButton label="Welcome" onClick={() => navigate("/welcome")} />
-        <NavButton label="Login" onClick={() => navigate("/login")} />
+        <NavButton label="Splash" onClick={() => goTo("/splash")} />
+        <NavButton label="Welcome" onClick={() => goTo("/welcome")} />
+        <NavButton label="Login" onClick={() => goTo("/login")} />
       </div>
 
       {/* Student */}
@@ -106,6 +136,29 @@ export default function DevPage() {
         <NavButton label="Attendance Step 4 (Done)" onClick={() => goAs("student", "/student/attendance/session_step4", { id: "session_step4", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "test_step4_secret", qrRefreshInterval: 30, startedAt: Date.now() - 600000 })} desc="done" />
         <NavButton label="Student History" onClick={() => goAs("student", "/student/history")} />
         <NavButton label="Face Register" onClick={() => goAs("student", "/student/face-register")} />
+      </div>
+
+      {/* Optional Steps */}
+      <p className="section-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ background: "#a78bfa", width: 8, height: 8, borderRadius: 4, display: "inline-block" }} />
+        Optional Steps (Student)
+      </p>
+      <div className="space-y-1.5 mb-4">
+        <NavButton label="Face OFF, Peer ON (3 steps)" onClick={() => goAs("student", "/student/attendance/session_noface", { id: "session_noface", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "noface_secret", qrRefreshInterval: 30, faceRequired: false, peerRequired: true, startedAt: Date.now() - 600000 })} desc="QR → Peer → Done" />
+        <NavButton label="Face ON, Peer OFF (3 steps)" onClick={() => goAs("student", "/student/attendance/session_nopeer", { id: "session_nopeer", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "nopeer_secret", qrRefreshInterval: 30, faceRequired: true, peerRequired: false, startedAt: Date.now() - 600000 })} desc="QR → Face → Done" />
+        <NavButton label="Both OFF (2 steps)" onClick={() => goAs("student", "/student/attendance/session_qronly", { id: "session_qronly", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "qronly_secret", qrRefreshInterval: 30, faceRequired: false, peerRequired: false, startedAt: Date.now() - 600000 })} desc="QR → Done" />
+        <NavButton label="Class Config (Toggle)" onClick={() => goAs("teacher", "/teacher/class/class_001")} desc="TeacherClassDetail toggles" />
+      </div>
+
+      {/* Manual Attendance */}
+      <p className="section-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ background: "#22c55e", width: 8, height: 8, borderRadius: 4, display: "inline-block" }} />
+        Manual Attendance (Teacher)
+      </p>
+      <div className="space-y-1.5 mb-4">
+        <NavButton label="Monitor (Live, 4 SV vang)" onClick={() => goAs("teacher", "/teacher/monitor/session_active", { id: "session_active", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active" as const, hmacSecret: "active_secret", qrRefreshInterval: 30, startedAt: Date.now() - 1200000 })} desc="3/7 checked in, manual btn" />
+        <NavButton label="Review (Co manual record)" onClick={() => goAs("teacher", "/teacher/review/session_manual")} desc="1 SV thu cong, 3 vang" />
+        <NavButton label="Review (2 SV vang)" onClick={() => goAs("teacher", "/teacher/review/session_001")} desc="session_001, 5/7 SV" />
       </div>
 
       {/* Teacher */}

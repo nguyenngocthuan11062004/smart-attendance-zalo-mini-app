@@ -1,0 +1,188 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T5]{fontenc}
+
+\usepackage[vietnamese]{babel}
+
+\usepackage{enumitem}
+
+\usepackage{tabularx}
+
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 16/03/2026 đến ngày 21/03/2026}
+
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+
+\date{22 tháng 3 năm 2026}
+
+\begin{document}
+
+\maketitle
+
+
+% ── Color definitions ──
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{sectionblue!80}}{\thesubsection.}{0.5em}{}
+
+% ═══════════════════════════════════════════════════════
+\section{Thông tin chung}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Xây dựng hệ thống điểm danh thông minh trên nền tảng Zalo Mini App \\
+\textbf{GVHD:} & [Tên giảng viên hướng dẫn] \\
+\textbf{Tuần báo cáo:} & Tuần 16/03 -- 21/03/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusgreen}{\textbf{Đúng tiến độ}} \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Tóm tắt công việc tuần này}
+% ═══════════════════════════════════════════════════════
+
+Trong tuần này, em đã hoàn thành \textbf{2 tính năng quan trọng} theo đề xuất cải tiến của giảng viên, đồng thời bổ sung dữ liệu test và cải thiện trải nghiệm phát triển (dev page).
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Các bước điểm danh optional & GV tùy chọn bật/tắt Face/Peer khi tạo session & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+2 & Điểm danh thủ công cho GV & GV điểm danh thủ công cho SV + lý do + log & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+3 & Bổ sung test trong trang /dev & Mock data + buttons test cho 2 feature mới & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+4 & Sửa lỗi scroll trang /dev & Lưu/khôi phục scroll position khi navigate & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ═══════════════════════════════════════════════════════
+\section{Chi tiết công việc}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Feature 1: Các bước điểm danh optional}
+
+\textbf{Bối cảnh:} Hiện tại flow điểm danh gồm 4 bước cứng (QR $\rightarrow$ Face $\rightarrow$ Peer $\rightarrow$ Done). Giảng viên đề xuất cho phép tùy chọn bật/tắt bước Face Verification và Peer Exchange.
+
+\textbf{Giải pháp đã triển khai:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Thêm \texttt{faceRequired}, \texttt{peerRequired} vào \texttt{ClassDoc} và \texttt{SessionDoc}
+  \item Cloud Function \texttt{startSession} đọc config từ ClassDoc $\rightarrow$ ghi vào SessionDoc (server-side source of truth)
+  \item Cập nhật trust score logic trên cả CF (\texttt{scanPeer}, \texttt{submitFaceResult}, \texttt{calculateTrustScores}) và client (\texttt{computeTrustScore})
+  \item \textbf{Teacher UI:} Thêm section ``Cài đặt điểm danh'' trong TeacherClassDetail với 2 toggle switch
+  \item \textbf{Student UI:} StepIndicatorBar dynamic (2--4 bước tùy config), skip logic, adaptive done screen
+\end{itemize}
+
+\textbf{Files đã sửa:} 8 files (types, services, CF, hooks, pages)
+
+\subsection{Feature 2: Điểm danh thủ công cho GV}
+
+\textbf{Bối cảnh:} GV cần có khả năng điểm danh thủ công cho SV không thể check-in (hết pin, quên điện thoại...), với lý do và audit log.
+
+\textbf{Giải pháp đã triển khai:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Thêm \texttt{manualBy}, \texttt{manualReason}, \texttt{manualAt} vào \texttt{AttendanceDoc}
+  \item Cloud Function \texttt{manualAttendance}: validate teacher permission, require reason, tạo/cập nhật attendance record
+  \item Client service \texttt{manualCheckIn()} gọi CF
+  \item \textbf{TeacherReview:} Modal nhập lý do, hiển thị badge ``Có mặt (GV)'' + lý do, nút hủy điểm danh
+  \item \textbf{TeacherMonitor:} Nút ``Điểm danh thủ công'' $\rightarrow$ student picker $\rightarrow$ reason modal (cho phiên đang active)
+  \item CSV export thêm cột ``Lý do thủ công''
+\end{itemize}
+
+\textbf{Files đã sửa:} 6 files (types, CF, index, service, 2 pages)
+
+\subsection{Bổ sung test và cải thiện DX}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Thêm mock sessions: \texttt{session\_noface}, \texttt{session\_nopeer}, \texttt{session\_qronly}, \texttt{session\_active}, \texttt{session\_manual}
+  \item Thêm attendance records tương ứng (bao gồm record có \texttt{manualBy/manualReason})
+  \item Trang /dev: 2 section mới ``Optional Steps'' (4 buttons) và ``Manual Attendance'' (3 buttons)
+  \item Fix scroll restore khi navigate back về trang /dev (sessionStorage)
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Kết quả kiểm thử}
+% ═══════════════════════════════════════════════════════
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{npx tsc --noEmit}: \textcolor{statusgreen}{\textbf{Pass}} (chỉ 3 lỗi pre-existing không liên quan)
+  \item Cloud Functions \texttt{npx tsc --noEmit}: \textcolor{statusgreen}{\textbf{0 errors}}
+  \item Mock mode test: Tất cả 4 combo optional steps hoạt động đúng
+  \item Backward compatible: Session cũ không có config $\rightarrow$ mặc định tất cả bước bật
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Tiến độ tổng thể -- Đề xuất cải tiến của GV}
+% ═══════════════════════════════════════════════════════
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c X c c@{}}
+\toprule
+\textbf{STT} & \textbf{Đề xuất} & \textbf{Ưu tiên} & \textbf{Trạng thái} \\
+\midrule
+1 & Các bước điểm danh optional (GV bật/tắt Face/Peer) & Cao & \textcolor{statusgreen}{\textbf{DONE}} \\
+2 & Điểm danh thủ công cho GV (lý do + log) & Cao & \textcolor{statusgreen}{\textbf{DONE}} \\
+3 & Vai trò Admin (phòng đào tạo, quản lý lớp/GV/SV) & Trung bình & \textcolor{statusamber}{\textbf{Chưa}} \\
+4 & Đơn xin phép \& sửa lịch sử (AbsenceRequest flow) & Trung bình & \textcolor{statusamber}{\textbf{Chưa}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Nhận xét:} Đã hoàn thành 2/4 đề xuất ưu tiên cao. Còn 2 đề xuất ưu tiên trung bình sẽ triển khai trong các tuần tới.
+
+% ═══════════════════════════════════════════════════════
+\section{Kế hoạch tuần tới (23/03 -- 28/03)}
+% ═══════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Vai trò Admin:} Thêm role \texttt{admin}, permission table, UI quản lý lớp/GV/SV
+  \item \textbf{Đơn xin phép:} AbsenceRequest flow (SV gửi đơn $\rightarrow$ GV duyệt), Firestore rules mới
+  \item \textbf{Fix bug:} Camera crash khi bấm take photo ở trang Face Register
+  \item \textbf{Viết báo cáo:} Cập nhật tài liệu Notion cho 2 feature mới
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════
+\section{Khó khăn \& kiến nghị}
+% ═══════════════════════════════════════════════════════
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Chưa có khó khăn lớn trong tuần này. Hai feature được triển khai suôn sẻ.
+  \item \textbf{Kiến nghị:} Xin ý kiến thầy về mức độ ưu tiên giữa feature Admin và AbsenceRequest để sắp xếp thứ tự triển khai hợp lý.
+\end{itemize}
+
+\vspace{1.5em}
+\begin{flushright}
+\textit{Hà Nội, ngày 22 tháng 3 năm 2026}\\[1em]
+\textbf{Sinh viên thực hiện}\\[2em]
+Nguyễn Ngọc Thuận
+\end{flushright}
+
+
+\end{document}

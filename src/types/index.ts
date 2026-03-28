@@ -38,6 +38,8 @@ export interface ClassDoc {
   teacherId: string;
   teacherName: string;
   studentIds: string[];
+  faceRequired?: boolean;  // default true
+  peerRequired?: boolean;  // default true
   createdAt: number;
 }
 
@@ -55,6 +57,8 @@ export interface SessionDoc {
   status: "active" | "ended";
   hmacSecret: string;
   qrRefreshInterval: number;
+  faceRequired?: boolean;  // default true
+  peerRequired?: boolean;  // default true
   startedAt: number;
   endedAt?: number;
   location?: GeoLocation;
@@ -83,6 +87,9 @@ export interface AttendanceDoc {
   trustScore: TrustScore;
   teacherOverride?: "present" | "absent";
   faceVerification?: FaceVerificationResult;
+  manualBy?: string;      // teacherId who marked manually
+  manualReason?: string;   // reason for manual attendance
+  manualAt?: number;       // timestamp of manual action
 }
 
 export interface PeerVerification {
@@ -135,17 +142,21 @@ export interface FaceRegistrationDoc {
 
 export function computeTrustScore(
   peerCount: number,
-  faceVerification?: FaceVerificationResult
+  faceVerification?: FaceVerificationResult,
+  config?: { faceRequired?: boolean; peerRequired?: boolean }
 ): TrustScore {
-  const peerOk = peerCount >= 3;
+  const faceReq = config?.faceRequired !== false; // default true
+  const peerReq = config?.peerRequired !== false; // default true
+
   const faceOk =
     faceVerification?.matched === true && (faceVerification.confidence ?? 0) >= 0.7;
   const faceSkipped = faceVerification?.skipped === true;
   const faceAttempted = !!faceVerification && !faceSkipped;
 
-  if (peerOk && (faceOk || faceSkipped || !faceAttempted)) return "present";
-  if (peerOk && faceAttempted && !faceOk) return "review";
-  if (peerCount >= 1 && faceOk) return "review";
-  if (peerCount >= 1) return "review";
+  const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
+  const peerPass = !peerReq || peerCount >= 3;
+
+  if (facePass && peerPass) return "present";
+  if (facePass || peerPass) return "review";
   return "absent";
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Page } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
-import { getClassById, getClassStudents } from "@/services/class.service";
+import { getClassById, getClassStudents, updateClassConfig } from "@/services/class.service";
 import { getClassSessions } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
 import type { ClassDoc, SessionDoc } from "@/types";
@@ -17,6 +17,8 @@ export default function TeacherClassDetail() {
   const [sessions, setSessions] = useState<SessionWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [faceRequired, setFaceRequired] = useState(true);
+  const [peerRequired, setPeerRequired] = useState(true);
 
   useEffect(() => {
     if (!classId) return;
@@ -28,6 +30,8 @@ export default function TeacherClassDetail() {
       const cls = await getClassById(cid);
       if (!cls) return;
       setClassDoc(cls);
+      setFaceRequired(cls.faceRequired !== false);
+      setPeerRequired(cls.peerRequired !== false);
 
       const sessionList = await getClassSessions(cid);
       const sessionsWithCounts = await Promise.all(
@@ -41,6 +45,17 @@ export default function TeacherClassDetail() {
       setLoading(false);
     }
   }
+
+  const handleToggleConfig = async (field: "faceRequired" | "peerRequired", value: boolean) => {
+    if (!classDoc) return;
+    if (field === "faceRequired") setFaceRequired(value);
+    else setPeerRequired(value);
+    const newConfig = {
+      faceRequired: field === "faceRequired" ? value : faceRequired,
+      peerRequired: field === "peerRequired" ? value : peerRequired,
+    };
+    await updateClassConfig(classDoc.id, newConfig).catch(() => {});
+  };
 
   const handleCopyCode = () => {
     if (!classDoc) return;
@@ -184,6 +199,72 @@ export default function TeacherClassDetail() {
               <span style={{ fontSize: 22, fontWeight: 800, color: "#a78bfa" }}>{sessions.length}</span>
               <span style={{ fontSize: 12, color: "#6b7280" }}>Phien</span>
             </div>
+          </div>
+        </div>
+
+        {/* Attendance config */}
+        <div style={{
+          background: "#fff", borderRadius: 12, overflow: "hidden",
+          border: "1px solid rgba(0,0,0,0.06)",
+        }}>
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>CAI DAT DIEM DANH</span>
+          </div>
+          {/* Face toggle */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: "#f0f0f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4" /><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" /></svg>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>Xac minh khuon mat</span>
+            </div>
+            <button
+              onClick={() => handleToggleConfig("faceRequired", !faceRequired)}
+              style={{
+                width: 44, height: 26, borderRadius: 13, border: "none",
+                background: faceRequired ? "#22c55e" : "#e5e7eb",
+                position: "relative", transition: "background 0.2s",
+              }}
+            >
+              <div style={{
+                width: 22, height: 22, borderRadius: 11, background: "#fff",
+                position: "absolute", top: 2,
+                left: faceRequired ? 20 : 2,
+                transition: "left 0.2s",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+              }} />
+            </button>
+          </div>
+          {/* Peer toggle */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 14px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: "#f0f0f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>Xac minh ngang hang</span>
+            </div>
+            <button
+              onClick={() => handleToggleConfig("peerRequired", !peerRequired)}
+              style={{
+                width: 44, height: 26, borderRadius: 13, border: "none",
+                background: peerRequired ? "#22c55e" : "#e5e7eb",
+                position: "relative", transition: "background 0.2s",
+              }}
+            >
+              <div style={{
+                width: 22, height: 22, borderRadius: 11, background: "#fff",
+                position: "absolute", top: 2,
+                left: peerRequired ? 20 : 2,
+                transition: "left 0.2s",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+              }} />
+            </button>
           </div>
         </div>
 

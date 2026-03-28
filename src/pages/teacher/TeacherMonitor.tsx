@@ -4,12 +4,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeSessionAtom } from "@/store/session";
 import { globalErrorAtom } from "@/store/ui";
-import { subscribeToSessionAttendance } from "@/services/attendance.service";
+import { subscribeToSessionAttendance, manualCheckIn } from "@/services/attendance.service";
 import { getSession, endSession } from "@/services/session.service";
-import { getClassById } from "@/services/class.service";
+import { getClassById, getClassStudents } from "@/services/class.service";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "@/config/firebase";
-import type { AttendanceDoc } from "@/types";
+import DarkModal from "@/components/ui/DarkModal";
+import type { AttendanceDoc, ClassDoc } from "@/types";
 
 type FilterType = "all" | "present" | "review" | "absent";
 
@@ -30,14 +31,25 @@ export default function TeacherMonitor() {
   const [filter, setFilter] = useState<FilterType>("all");
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [classDoc, setClassDoc] = useState<ClassDoc | null>(null);
+  const [allStudents, setAllStudents] = useState<{ id: string; name: string }[]>([]);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualTarget, setManualTarget] = useState<{ id: string; name: string } | null>(null);
+  const [manualReason, setManualReason] = useState("");
+  const [manualSubmitting, setManualSubmitting] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
 
     getSession(sessionId).then((sess) => {
       if (sess) {
-        getClassById(sess.classId).then((cls) => {
-          if (cls) setTotalStudents(cls.studentIds.length);
+        getClassById(sess.classId).then(async (cls) => {
+          if (cls) {
+            setClassDoc(cls);
+            setTotalStudents(cls.studentIds.length);
+            const students = await getClassStudents(cls.studentIds);
+            setAllStudents(students.map((s) => ({ id: s.id, name: s.name })));
+          }
         });
       }
     });
@@ -76,6 +88,24 @@ export default function TeacherMonitor() {
     } finally {
       setEnding(false);
       setShowEndConfirm(false);
+    }
+  };
+
+  const checkedInIds = new Set(records.map((r) => r.studentId));
+  const absentStudentList = allStudents.filter((s) => !checkedInIds.has(s.id));
+
+  const handleManualSubmit = async () => {
+    if (!manualTarget || !manualReason.trim() || !sessionId) return;
+    setManualSubmitting(true);
+    try {
+      await manualCheckIn(sessionId, manualTarget.id, manualTarget.name, manualReason.trim(), "present");
+      setManualTarget(null);
+      setManualReason("");
+      setShowManualModal(false);
+    } catch {
+      setError("Lỗi khi điểm danh thủ công");
+    } finally {
+      setManualSubmitting(false);
     }
   };
 
@@ -266,6 +296,23 @@ export default function TeacherMonitor() {
           </div>
         )}
 
+        {/* Manual attendance button */}
+        {session?.status === "active" && absentStudentList.length > 0 && (
+          <button
+            onClick={() => setShowManualModal(true)}
+            style={{
+              width: "100%", height: 48, borderRadius: 12,
+              background: "#fff", border: "1px solid rgba(34,197,94,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round">
+              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
+            </svg>
+            <span style={{ color: "#22c55e", fontSize: 14, fontWeight: 700 }}>Điểm danh thủ công ({absentStudentList.length} SV vắng)</span>
+          </button>
+        )}
+
         {/* End session button */}
         {session?.status === "active" && (
           <button
@@ -283,6 +330,107 @@ export default function TeacherMonitor() {
           </button>
         )}
       </div>
+
+      {/* Manual attendance - student picker modal */}
+      <DarkModal
+        visible={showManualModal && !manualTarget}
+        onClose={() => setShowManualModal(false)}
+        title="Chọn sinh viên"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 400, overflowY: "auto" }}>
+          {absentStudentList.length === 0 ? (
+            <p style={{ color: "#9ca3af", fontSize: 14, textAlign: "center", padding: 20 }}>Tất cả SV đã điểm danh</p>
+          ) : absentStudentList.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { setManualTarget(s); setManualReason(""); }}
+              style={{
+                background: "#f8f9fa", borderRadius: 12, padding: 12, border: "none",
+                display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+              }}
+            >
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: "linear-gradient(180deg, #6b7280, #9ca3af)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>{s.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{s.name}</p>
+                <p style={{ fontSize: 11, color: "#9ca3af" }}>Chưa điểm danh</p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          ))}
+        </div>
+      </DarkModal>
+
+      {/* Manual attendance - reason modal */}
+      <DarkModal
+        visible={!!manualTarget}
+        onClose={() => setManualTarget(null)}
+        title="Điểm danh thủ công"
+      >
+        {manualTarget && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: "#f8f9fa", borderRadius: 12, padding: 12,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 12,
+                background: "linear-gradient(180deg, #be1d2c, #dc2626)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>{manualTarget.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{manualTarget.name}</p>
+                <p style={{ fontSize: 12, color: "#9ca3af" }}>{manualTarget.id}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Lý do *</label>
+              <textarea
+                value={manualReason}
+                onChange={(e) => setManualReason(e.target.value)}
+                placeholder="VD: SV có mặt nhưng điện thoại hết pin..."
+                rows={3}
+                style={{
+                  width: "100%", borderRadius: 12, border: "1px solid #e5e7eb",
+                  padding: "10px 14px", fontSize: 14, resize: "none",
+                  outline: "none", background: "#fff", fontFamily: "inherit",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => setManualTarget(null)}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: "#f2f2f7", border: "none",
+                  fontSize: 15, fontWeight: 600, color: "#6b7280",
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleManualSubmit}
+                disabled={manualSubmitting || !manualReason.trim()}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: manualSubmitting || !manualReason.trim() ? "#d4d4d4" : "#22c55e",
+                  border: "none",
+                  fontSize: 15, fontWeight: 700, color: "#fff",
+                }}
+              >
+                {manualSubmitting ? "Đang lưu..." : "Xác nhận"}
+              </button>
+            </div>
+          </div>
+        )}
+      </DarkModal>
 
       {/* Confirm end modal */}
       {showEndConfirm && (

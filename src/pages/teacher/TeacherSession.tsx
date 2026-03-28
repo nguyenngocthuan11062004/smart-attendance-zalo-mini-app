@@ -8,7 +8,7 @@ import { globalErrorAtom } from "@/store/ui";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
 import DarkModal from "@/components/ui/DarkModal";
 import { getClassById } from "@/services/class.service";
-import { getActiveSessionForClass, getClassSessions } from "@/services/session.service";
+import { getActiveSessionForClass, getClassSessions, getSessionSecret } from "@/services/session.service";
 import { startSession, endSession } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
 import { httpsCallable } from "firebase/functions";
@@ -32,14 +32,15 @@ export default function TeacherSession() {
   const [attendance, setAttendance] = useState<AttendanceDoc[]>([]);
   const { location: gpsLocation, loading: gpsLoading, requestLocation } = useGeolocation();
   const [locationSet, setLocationSet] = useState(false);
+  const [sessionSecret, setSessionSecret] = useState<string>("");
 
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(
-    session?.status === "active" && user
+    session?.status === "active" && user && sessionSecret
       ? {
           type: "teacher",
           sessionId: session.id,
           userId: user.id,
-          secret: session.hmacSecret,
+          secret: sessionSecret,
           refreshIntervalMs: session.qrRefreshInterval * 1000,
         }
       : null
@@ -50,10 +51,13 @@ export default function TeacherSession() {
     getClassById(classId).then((cls) => {
       if (cls) setClassDoc(cls);
     });
-    getActiveSessionForClass(classId).then((sess) => {
+    getActiveSessionForClass(classId).then(async (sess) => {
       if (sess) {
         setSession(sess);
         setActiveSession(sess);
+        // Load hmacSecret from subcollection (teacher-only access)
+        const secret = sess.hmacSecret || await getSessionSecret(sess.id);
+        if (secret) setSessionSecret(secret);
       }
     });
     getClassSessions(classId).then((all) => {
@@ -82,6 +86,7 @@ export default function TeacherSession() {
       const newSession = await startSession(classDoc.id, classDoc.name, user.id);
       setSession(newSession);
       setActiveSession(newSession);
+      if (newSession.hmacSecret) setSessionSecret(newSession.hmacSecret);
     } catch {
       setError("Khong the bat dau phien diem danh");
     } finally {

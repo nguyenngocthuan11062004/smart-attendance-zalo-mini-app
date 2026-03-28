@@ -67,7 +67,11 @@ export const scanTeacher = functions.region("asia-southeast1").https.onCall(
       throw new functions.https.HttpsError("failed-precondition", "Session is not active");
     }
 
-    if (!verifyHMAC(qrPayload, session.hmacSecret)) {
+    // Read hmacSecret from subcollection (fallback to main doc for old sessions)
+    const secretSnap = await db.collection("sessions").doc(sessionId).collection("secrets").doc("hmac").get();
+    const hmacSecret = secretSnap.exists ? secretSnap.data()!.hmacSecret : session.hmacSecret;
+
+    if (!verifyHMAC(qrPayload, hmacSecret)) {
       throw new functions.https.HttpsError("invalid-argument", "Invalid QR signature");
     }
 
@@ -119,7 +123,8 @@ export const scanTeacher = functions.region("asia-southeast1").https.onCall(
       trustScore: "absent",
     };
     await ref.set(record);
-    return { id: ref.id, ...record };
+    // Return hmacSecret so student can generate peer QR codes after check-in
+    return { id: ref.id, ...record, hmacSecret };
   })
 );
 
@@ -144,7 +149,12 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
     }
 
     const session = sessionSnap.data()!;
-    if (!verifyHMAC(qrPayload, session.hmacSecret)) {
+
+    // Read hmacSecret from subcollection (fallback to main doc for old sessions)
+    const peerSecretSnap = await db.collection("sessions").doc(sessionId).collection("secrets").doc("hmac").get();
+    const hmacSecret = peerSecretSnap.exists ? peerSecretSnap.data()!.hmacSecret : session.hmacSecret;
+
+    if (!verifyHMAC(qrPayload, hmacSecret)) {
       throw new functions.https.HttpsError("invalid-argument", "Invalid QR signature");
     }
 
@@ -167,6 +177,11 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
       }
       const att = attSnap.data()!;
 
+      // Verify the attendance record belongs to the calling user
+      if (att.studentId !== userId) {
+        throw new functions.https.HttpsError("permission-denied", "Not your attendance record");
+      }
+
       // 1) Update scanner's record (A scans B → A gets B as peer)
       const alreadyVerified = att.peerVerifications?.some(
         (v: any) => v.peerId === qrPayload.userId
@@ -176,7 +191,16 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
       }
 
       const newCount = (att.peerCount || 0) + 1;
-      const trustScore = newCount >= 3 ? "present" : newCount >= 1 ? "review" : "absent";
+      // Compute trust score considering optional steps config
+      const faceReq = session.faceRequired !== false;
+      const peerReq = session.peerRequired !== false;
+      const face = att.faceVerification;
+      const faceOk = face?.matched === true && (face?.confidence ?? 0) >= 0.7;
+      const faceSkipped = face?.skipped === true;
+      const faceAttempted = !!face && !faceSkipped;
+      const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
+      const peerPass = !peerReq || newCount >= 3;
+      const trustScore = (facePass && peerPass) ? "present" : (facePass || peerPass) ? "review" : "absent";
       const now = Date.now();
 
       transaction.update(attRef, {
@@ -205,7 +229,13 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
         );
         if (!peerAlreadyHas) {
           const peerNewCount = (peerData.peerCount || 0) + 1;
-          const peerTrustScore = peerNewCount >= 3 ? "present" : peerNewCount >= 1 ? "review" : "absent";
+          const pFace = peerData.faceVerification;
+          const pFaceOk = pFace?.matched === true && (pFace?.confidence ?? 0) >= 0.7;
+          const pFaceSkipped = pFace?.skipped === true;
+          const pFaceAttempted = !!pFace && !pFaceSkipped;
+          const pFacePass = !faceReq || pFaceOk || pFaceSkipped || !pFaceAttempted;
+          const pPeerPass = !peerReq || peerNewCount >= 3;
+          const peerTrustScore = (pFacePass && pPeerPass) ? "present" : (pFacePass || pPeerPass) ? "review" : "absent";
           transaction.update(peerDocRef, {
             peerVerifications: admin.firestore.FieldValue.arrayUnion({
               peerId: userId,
@@ -223,6 +253,112 @@ export const scanPeer = functions.region("asia-southeast1").https.onCall(
     });
 
     return result;
+  })
+);
+
+export const submitFaceResult = functions.region("asia-southeast1").https.onCall(
+  requireAuth(async (data, context, userId) => {
+    if (!checkRateLimit(`face_${userId}`, 10, 60_000)) {
+      throw new functions.https.HttpsError("resource-exhausted", "Too many requests");
+    }
+
+    const { attendanceId, faceResult } = data;
+    if (!attendanceId || !faceResult) {
+      throw new functions.https.HttpsError("invalid-argument", "Missing data");
+    }
+
+    const attRef = db.collection("attendance").doc(attendanceId);
+    const attSnap = await attRef.get();
+    if (!attSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Attendance record not found");
+    }
+
+    const att = attSnap.data()!;
+    // Only the student who owns this attendance can submit face result
+    if (att.studentId !== userId) {
+      throw new functions.https.HttpsError("permission-denied", "Not your attendance record");
+    }
+
+    // Read session config for optional steps
+    const sessionSnap = await db.collection("sessions").doc(att.sessionId).get();
+    const sessionData = sessionSnap.exists ? sessionSnap.data()! : {};
+    const faceReq = sessionData.faceRequired !== false;
+    const peerReq = sessionData.peerRequired !== false;
+
+    // Compute trust score server-side considering config
+    const peerCount = att.peerCount || 0;
+    const faceOk = faceResult.matched && faceResult.confidence >= 0.7;
+    const facePass = !faceReq || faceOk;
+    const peerPass = !peerReq || peerCount >= 3;
+    let trustScore: string;
+    if (facePass && peerPass) trustScore = "present";
+    else if (facePass || peerPass) trustScore = "review";
+    else trustScore = "absent";
+
+    await attRef.update({ faceVerification: faceResult, trustScore });
+    return { success: true, trustScore };
+  })
+);
+
+export const manualAttendance = functions.region("asia-southeast1").https.onCall(
+  requireAuth(async (data, context, userId) => {
+    const { sessionId, studentId, studentName, reason, decision } = data;
+    if (!sessionId || !studentId) {
+      throw new functions.https.HttpsError("invalid-argument", "Missing sessionId or studentId");
+    }
+    if (!reason || reason.trim().length === 0) {
+      throw new functions.https.HttpsError("invalid-argument", "Reason is required for manual attendance");
+    }
+
+    const sessionSnap = await db.collection("sessions").doc(sessionId).get();
+    if (!sessionSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Session not found");
+    }
+    if (sessionSnap.data()!.teacherId !== userId) {
+      throw new functions.https.HttpsError("permission-denied", "Only session teacher can mark manual attendance");
+    }
+
+    const effectiveDecision = decision === "absent" ? "absent" : "present";
+    const now = Date.now();
+
+    // Check if student already has an attendance record
+    const existing = await db.collection("attendance")
+      .where("sessionId", "==", sessionId)
+      .where("studentId", "==", studentId)
+      .get();
+
+    if (!existing.empty) {
+      // Update existing record
+      const docRef = existing.docs[0].ref;
+      await docRef.update({
+        teacherOverride: effectiveDecision,
+        trustScore: effectiveDecision,
+        manualBy: userId,
+        manualReason: reason.trim(),
+        manualAt: now,
+      });
+      return { id: existing.docs[0].id, updated: true };
+    }
+
+    // Create new attendance record for absent student
+    const session = sessionSnap.data()!;
+    const ref = db.collection("attendance").doc();
+    const record = {
+      sessionId,
+      classId: session.classId,
+      studentId,
+      studentName: studentName || studentId,
+      checkedInAt: now,
+      peerVerifications: [],
+      peerCount: 0,
+      trustScore: effectiveDecision,
+      teacherOverride: effectiveDecision,
+      manualBy: userId,
+      manualReason: reason.trim(),
+      manualAt: now,
+    };
+    await ref.set(record);
+    return { id: ref.id, created: true };
   })
 );
 

@@ -1,30 +1,24 @@
 import {
   collection,
-  doc,
-  getDoc,
   getDocs,
-  setDoc,
-  updateDoc,
   query,
   where,
   onSnapshot,
-  arrayUnion,
   type Unsubscribe,
 } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "@/config/firebase";
 import { computeTrustScore } from "@/types";
 import { isMockMode, mockDb } from "@/utils/mock-db";
-import { withRetry } from "@/utils/retry";
-import { callWithFallback } from "@/utils/cloudFallback";
 import { getAccessToken } from "@/services/auth.service";
-import { enqueueOperation, registerQueueHandler } from "@/utils/offlineQueue";
-import type { AttendanceDoc, FaceVerificationResult, PeerVerification, QRPayload, TrustScore } from "@/types";
+import type { AttendanceDoc, FaceVerificationResult, PeerVerification, QRPayload } from "@/types";
 
 const ATTENDANCE = "attendance";
 
 /**
  * Check in student via Cloud Function (server validates QR).
- * Falls back to direct Firestore write if CF unavailable.
+ * No client-side fallback — all attendance creates go through Cloud Functions
+ * to enforce server-side QR/HMAC validation.
  */
 export async function checkInStudent(
   sessionId: string,
@@ -43,38 +37,9 @@ export async function checkInStudent(
   }
 
   const accessToken = await getAccessToken();
-
-  return callWithFallback(
-    "scanTeacher",
-    { qrPayload, sessionId, accessToken },
-    async () => {
-      // Fallback: direct Firestore write (client-side validation already done)
-      const q = query(
-        collection(db, ATTENDANCE),
-        where("sessionId", "==", sessionId),
-        where("studentId", "==", studentId)
-      );
-      const existing = await getDocs(q);
-      if (!existing.empty) {
-        const d = existing.docs[0];
-        return { id: d.id, ...d.data() } as AttendanceDoc;
-      }
-
-      const ref = doc(collection(db, ATTENDANCE));
-      const record: Omit<AttendanceDoc, "id"> = {
-        sessionId, classId, studentId, studentName,
-        checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
-      };
-      try {
-        await setDoc(ref, record);
-      } catch {
-        // Both CF and Firestore failed — enqueue for later
-        enqueueOperation("checkIn", { sessionId, classId, studentId, studentName });
-        return { id: ref.id, ...record };
-      }
-      return { id: ref.id, ...record };
-    }
-  );
+  const fn = httpsCallable<any, AttendanceDoc>(functions, "scanTeacher");
+  const result = await fn({ qrPayload, sessionId, accessToken });
+  return result.data;
 }
 
 export async function addPeerVerification(
@@ -91,22 +56,15 @@ export async function addPeerVerification(
     return;
   }
 
-  const ref = doc(db, ATTENDANCE, attendanceId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-  const data = snap.data() as Omit<AttendanceDoc, "id">;
-  if (data.peerVerifications.some((v) => v.peerId === peer.peerId)) return;
-  const newCount = data.peerCount + 1;
-  await updateDoc(ref, {
-    peerVerifications: arrayUnion(peer),
-    peerCount: newCount,
-    trustScore: computeTrustScore(newCount, data.faceVerification),
-  });
+  // Peer verification now goes through scanPeer Cloud Function (server-side validation)
+  // Direct client writes are blocked by Firestore rules
+  console.warn("addPeerVerification: Direct client writes disabled. Use scanPeer Cloud Function.");
 }
 
 /**
  * Bidirectional peer verification via Cloud Function.
- * Falls back to direct Firestore writes if CF unavailable.
+ * No client-side fallback — all peer verification goes through Cloud Functions
+ * to enforce server-side QR/HMAC validation.
  */
 export async function addBidirectionalPeerVerification(
   sessionId: string,
@@ -138,41 +96,9 @@ export async function addBidirectionalPeerVerification(
   }
 
   const accessToken = await getAccessToken();
-
-  return callWithFallback(
-    "scanPeer",
-    { qrPayload, sessionId, attendanceId, accessToken },
-    async () => {
-      // Fallback: direct Firestore writes
-      const result = { scannerUpdated: false, peerUpdated: false };
-
-      const scannerAtt = await getMyAttendance(sessionId, scannerId);
-      if (scannerAtt) {
-        const alreadyHasPeer = scannerAtt.peerVerifications.some((v) => v.peerId === peerId);
-        if (!alreadyHasPeer) {
-          await withRetry(
-            () => addPeerVerification(scannerAtt.id, { peerId, peerName, verifiedAt: Date.now(), qrNonce }),
-            { maxRetries: 3, baseDelay: 500 }
-          );
-          result.scannerUpdated = true;
-        }
-      }
-
-      const peerAtt = await getMyAttendance(sessionId, peerId);
-      if (peerAtt) {
-        const alreadyHasScanner = peerAtt.peerVerifications.some((v) => v.peerId === scannerId);
-        if (!alreadyHasScanner) {
-          await withRetry(
-            () => addPeerVerification(peerAtt.id, { peerId: scannerId, peerName: scannerName, verifiedAt: Date.now(), qrNonce }),
-            { maxRetries: 3, baseDelay: 500 }
-          );
-          result.peerUpdated = true;
-        }
-      }
-
-      return result;
-    }
-  );
+  const fn = httpsCallable<any, { peerCount: number; trustScore: string; bidirectional: boolean }>(functions, "scanPeer");
+  const result = await fn({ qrPayload, sessionId, attendanceId, accessToken });
+  return { scannerUpdated: true, peerUpdated: result.data.bidirectional };
 }
 
 export async function getMyAttendance(
@@ -253,12 +179,9 @@ export async function updateFaceVerification(
     return;
   }
 
-  const ref = doc(db, ATTENDANCE, attendanceId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-  const data = snap.data() as Omit<AttendanceDoc, "id">;
-  const newTrustScore = computeTrustScore(data.peerCount, faceResult);
-  await updateDoc(ref, { faceVerification: faceResult, trustScore: newTrustScore });
+  const accessToken = await getAccessToken();
+  const fn = httpsCallable(functions, "submitFaceResult");
+  await fn({ attendanceId, faceResult, accessToken });
 }
 
 export async function teacherOverride(
@@ -272,29 +195,38 @@ export async function teacherOverride(
     a.trustScore = decision === "present" ? "present" : "absent";
     return;
   }
-  await updateDoc(doc(db, ATTENDANCE, attendanceId), {
-    teacherOverride: decision,
-    trustScore: decision === "present" ? "present" : "absent",
-  });
+
+  const accessToken = await getAccessToken();
+  const fn = httpsCallable(functions, "reviewAttendance");
+  await fn({ attendanceId, decision, accessToken });
 }
 
-// --- Offline queue handler registration ---
-// Re-process queued check-ins when network restores
-registerQueueHandler("checkIn", async (payload) => {
-  const { sessionId, classId, studentId, studentName } = payload as {
-    sessionId: string; classId: string; studentId: string; studentName: string;
-  };
-  const q = query(
-    collection(db, ATTENDANCE),
-    where("sessionId", "==", sessionId),
-    where("studentId", "==", studentId)
-  );
-  const existing = await getDocs(q);
-  if (!existing.empty) return; // Already checked in
+export async function manualCheckIn(
+  sessionId: string,
+  studentId: string,
+  studentName: string,
+  reason: string,
+  decision: "present" | "absent" = "present"
+): Promise<{ id: string; created?: boolean; updated?: boolean }> {
+  if (isMockMode()) {
+    const existing = mockDb.getMyAttendance(sessionId, studentId);
+    if (existing) {
+      existing.teacherOverride = decision;
+      existing.trustScore = decision;
+      (existing as any).manualReason = reason;
+      (existing as any).manualAt = Date.now();
+      return { id: existing.id, updated: true };
+    }
+    const record = mockDb.createAttendance({
+      sessionId, classId: "", studentId, studentName,
+      checkedInAt: Date.now(), peerVerifications: [], peerCount: 0,
+      trustScore: decision, teacherOverride: decision,
+    });
+    return { id: record.id, created: true };
+  }
 
-  const ref = doc(collection(db, ATTENDANCE));
-  await setDoc(ref, {
-    sessionId, classId, studentId, studentName,
-    checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
-  });
-});
+  const accessToken = await getAccessToken();
+  const fn = httpsCallable<any, { id: string; created?: boolean; updated?: boolean }>(functions, "manualAttendance");
+  const result = await fn({ sessionId, studentId, studentName, reason, decision, accessToken });
+  return result.data;
+}

@@ -8,7 +8,7 @@ import { globalErrorAtom } from "@/store/ui";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useQRScanner } from "@/hooks/useQRScanner";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
-import { validateTeacherQR, validatePeerQR } from "@/utils/validation";
+// Client-side QR validation removed — Cloud Functions handle HMAC verification server-side
 import { addBidirectionalPeerVerification } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
 import { getUserDoc } from "@/services/auth.service";
@@ -22,22 +22,34 @@ import type { FaceVerificationResult } from "@/types";
 
 /* ── Step Indicator ─────────────────────────────── */
 type StepKey = "idle" | "scan-teacher" | "face-verify" | "show-qr" | "scan-peers" | "done";
-const STEP_LABELS = ["Quét QR", "Khuôn mặt", "Ngang hàng", "Hoàn tất"];
 
-function getStepIndex(step: StepKey): number {
-  if (step === "idle" || step === "scan-teacher") return 0;
-  if (step === "face-verify") return 1;
-  if (step === "show-qr" || step === "scan-peers") return 2;
-  return 3; // done
+function getStepLabels(faceReq: boolean, peerReq: boolean): string[] {
+  const labels = ["Quét QR"];
+  if (faceReq) labels.push("Khuôn mặt");
+  if (peerReq) labels.push("Ngang hàng");
+  labels.push("Hoàn tất");
+  return labels;
 }
 
-function StepIndicatorBar({ step }: { step: StepKey }) {
-  const activeIdx = getStepIndex(step);
+function getStepIndex(step: StepKey, faceReq: boolean, peerReq: boolean): number {
+  if (step === "idle" || step === "scan-teacher") return 0;
+  let idx = 1;
+  if (step === "face-verify") return faceReq ? idx : 0;
+  if (faceReq) idx++;
+  if (step === "show-qr" || step === "scan-peers") return peerReq ? idx : idx;
+  // done
+  return getStepLabels(faceReq, peerReq).length - 1;
+}
+
+function StepIndicatorBar({ step, faceRequired, peerRequired }: { step: StepKey; faceRequired: boolean; peerRequired: boolean }) {
+  const labels = getStepLabels(faceRequired, peerRequired);
+  const activeIdx = getStepIndex(step, faceRequired, peerRequired);
+  const count = labels.length;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
       {/* Circles + lines */}
       <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-        {[0, 1, 2, 3].map((i) => {
+        {labels.map((_, i) => {
           const isCompleted = i < activeIdx;
           const isActive = i === activeIdx;
           const circleBg = isCompleted || isActive ? "#be1d2c" : "#e5e7eb";
@@ -54,7 +66,7 @@ function StepIndicatorBar({ step }: { step: StepKey }) {
                   <span style={{ fontSize: 14, fontWeight: 700, color: textColor }}>{i + 1}</span>
                 )}
               </div>
-              {i < 3 && (
+              {i < count - 1 && (
                 <div style={{ flex: 1, height: 2.5, borderRadius: 1, background: i < activeIdx ? "#be1d2c" : "#e5e7eb" }} />
               )}
             </React.Fragment>
@@ -63,7 +75,7 @@ function StepIndicatorBar({ step }: { step: StepKey }) {
       </div>
       {/* Labels */}
       <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-        {STEP_LABELS.map((label, i) => (
+        {labels.map((label, i) => (
           <span key={i} style={{
             fontSize: 10,
             fontWeight: i === activeIdx ? 600 : 500,
@@ -116,6 +128,11 @@ export default function StudentAttendance() {
 
   const setError = useSetAtom(globalErrorAtom);
   const { scan, scanning, error: scanError } = useQRScanner();
+  const [peerSecret, setPeerSecret] = useState<string>("");
+
+  // Session config for optional steps (default true)
+  const faceReq = session?.faceRequired !== false;
+  const peerReq = session?.peerRequired !== false;
 
   useEffect(() => {
     if (!sessionId || session) return;
@@ -126,21 +143,27 @@ export default function StudentAttendance() {
 
   useEffect(() => {
     if (myAttendance) {
-      if (myAttendance.peerCount >= 3) setStep("done");
-      else if (myAttendance.checkedInAt && myAttendance.faceVerification) setStep("show-qr");
-      else if (myAttendance.checkedInAt) setStep("face-verify");
+      const peerDone = !peerReq || myAttendance.peerCount >= 3;
+      const faceDone = !faceReq || !!myAttendance.faceVerification;
+      if (peerDone && faceDone) setStep("done");
+      else if (myAttendance.checkedInAt && faceDone && peerReq) setStep("show-qr");
+      else if (myAttendance.checkedInAt && faceReq) setStep("face-verify");
+      else if (myAttendance.checkedInAt && !faceReq && peerReq) setStep("show-qr");
+      else if (myAttendance.checkedInAt && !faceReq && !peerReq) setStep("done");
     } else {
       setStep("scan-teacher");
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (myAttendance && myAttendance.peerCount >= 3 && step !== "done") setStep("done");
-  }, [myAttendance?.peerCount, step, setStep]);
+    const peerDone = !peerReq || (myAttendance?.peerCount ?? 0) >= 3;
+    const faceDone = !faceReq || !!myAttendance?.faceVerification;
+    if (myAttendance && peerDone && faceDone && step !== "done") setStep("done");
+  }, [myAttendance?.peerCount, myAttendance?.faceVerification, step, setStep, faceReq, peerReq]);
 
   const qrOptions =
-    (step === "show-qr" || step === "scan-peers") && session
-      ? { type: "peer" as const, sessionId: sessionId || "", userId: user?.id || "", secret: session.hmacSecret, refreshIntervalMs: 30000 }
+    (step === "show-qr" || step === "scan-peers") && session && peerSecret
+      ? { type: "peer" as const, sessionId: sessionId || "", userId: user?.id || "", secret: peerSecret, refreshIntervalMs: 30000 }
       : null;
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(qrOptions);
 
@@ -158,21 +181,23 @@ export default function StudentAttendance() {
         teacherScannedRef.current = false;
         return;
       }
-      const result = validateTeacherQR(payload, session.hmacSecret);
-      if (!result.valid) {
+      // Server-side validation via Cloud Function (no client-side HMAC check needed)
+      const record = await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq });
+      // Store hmacSecret from CF response for peer QR generation
+      if ((record as any)?.hmacSecret) setPeerSecret((record as any).hmacSecret);
+    } catch (err: any) {
+      const code = err?.code?.replace("functions/", "") || "";
+      if (code === "invalid-argument") {
         setTeacherScanError("QR giang vien khong hop le hoac het han");
-        teacherScannedRef.current = false;
-        return;
+      } else {
+        setTeacherScanError("Loi khi quet QR giang vien. Vui long thu lai.");
       }
-      await checkIn(session.classId, user?.name || "", payload);
-    } catch {
-      setTeacherScanError("Loi khi quet QR giang vien. Vui long thu lai.");
       teacherScannedRef.current = false;
     }
   }, [session, checkIn, user]);
 
   const handleFaceComplete = async (result: FaceVerificationResult) => {
-    await completeFaceVerification(result);
+    await completeFaceVerification(result, { peerRequired: peerReq });
   };
 
   const [peerScanError, setPeerScanError] = useState<string | null>(null);
@@ -190,19 +215,32 @@ export default function StudentAttendance() {
         peerScannedRef.current = false;
         return;
       }
-      const result = validatePeerQR(payload, user.id, myAttendance.peerVerifications, session.hmacSecret);
-      if (!result.valid) {
-        setPeerScanError("QR ban be khong hop le hoac da quet");
+      // Basic client-side checks (no HMAC — server validates signature)
+      if (payload.userId === user.id) {
+        setPeerScanError("Khong the quet QR cua chinh minh");
+        peerScannedRef.current = false;
+        return;
+      }
+      if (myAttendance.peerVerifications.some(v => v.peerId === payload.userId)) {
+        setPeerScanError("Da xac minh ban nay roi");
         peerScannedRef.current = false;
         return;
       }
       let peerName = payload.userId;
       try { const peerDoc = await getUserDoc(payload.userId); if (peerDoc) peerName = peerDoc.name; } catch {}
+      // Server-side validation via scanPeer Cloud Function
       await addBidirectionalPeerVerification(sessionId, user.id, user.name, payload.userId, peerName, payload.nonce, payload, myAttendance.id);
       setPeerScanActive(false);
       peerScannedRef.current = false;
-    } catch {
-      setError("Loi khi quet QR ban be. Vui long thu lai.");
+    } catch (err: any) {
+      const code = err?.code?.replace("functions/", "") || "";
+      if (code === "already-exists") {
+        setPeerScanError("Da xac minh ban nay roi");
+      } else if (code === "invalid-argument") {
+        setPeerScanError("QR ban be khong hop le hoac het han");
+      } else {
+        setError("Loi khi quet QR ban be. Vui long thu lai.");
+      }
       peerScannedRef.current = false;
     }
   }, [session, myAttendance, user, sessionId, setError]);
@@ -240,7 +278,7 @@ export default function StudentAttendance() {
       <AttendanceHeader onBack={() => navigate(-1)} />
 
       <div style={{ padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
-        <StepIndicatorBar step={step} />
+        <StepIndicatorBar step={step} faceRequired={faceReq} peerRequired={peerReq} />
 
         {/* ── Step 1: Quét QR giảng viên ── */}
         {step === "scan-teacher" && (
@@ -278,8 +316,8 @@ export default function StudentAttendance() {
           </>
         )}
 
-        {/* ── Step 2: Face verification ── */}
-        {step === "face-verify" && myAttendance && (
+        {/* ── Step 2: Face verification (only when faceRequired) ── */}
+        {step === "face-verify" && faceReq && myAttendance && (
           <FaceVerification
             sessionId={sessionId || ""}
             attendanceId={myAttendance.id}
@@ -494,24 +532,27 @@ export default function StudentAttendance() {
 
               <div style={{ height: 1, background: "#f0f0f5" }} />
 
-              {/* Verification rows */}
+              {/* Verification rows — only show enabled steps */}
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {[
                   {
                     icon: <><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" /><line x1="12" y1="3" x2="12" y2="21" /></>,
                     label: "QR Code", value: "Verified", ok: true,
+                    show: true,
                   },
                   {
                     icon: <><circle cx="12" cy="8" r="4" /><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" /></>,
                     label: "Khuôn mặt",
                     value: myAttendance.faceVerification?.matched ? `${Math.round((myAttendance.faceVerification.confidence ?? 0) * 100)}% match` : (myAttendance.faceVerification?.skipped ? "Bỏ qua" : "N/A"),
                     ok: !!myAttendance.faceVerification?.matched,
+                    show: faceReq,
                   },
                   {
                     icon: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>,
                     label: "Ngang hàng", value: `${myAttendance.peerCount}/3 peers`, ok: myAttendance.peerCount >= 3,
+                    show: peerReq,
                   },
-                ].map((row, i) => (
+                ].filter(row => row.show).map((row, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f8f9fa", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

@@ -90,6 +90,26 @@ export async function joinClass(classId: string, studentId: string): Promise<voi
   cacheRemove(`student_classes_${studentId}`);
 }
 
+export async function updateClassConfig(
+  classId: string,
+  config: { faceRequired: boolean; peerRequired: boolean }
+): Promise<void> {
+  if (isMockMode()) {
+    const cls = mockDb.getClass(classId);
+    if (cls) {
+      (cls as any).faceRequired = config.faceRequired;
+      (cls as any).peerRequired = config.peerRequired;
+    }
+    return;
+  }
+  await updateDoc(doc(db, CLASSES, classId), {
+    faceRequired: config.faceRequired,
+    peerRequired: config.peerRequired,
+  });
+  // Clear teacher class cache so updated config is reflected
+  cacheRemove(`teacher_classes_`);
+}
+
 export async function getClassStudents(
   studentIds: string[]
 ): Promise<{ id: string; name: string; avatar: string }[]> {

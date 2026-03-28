@@ -36,8 +36,26 @@ export async function startSession(
     return mockDb.createSession(data);
   }
   const ref = doc(collection(db, SESSIONS));
-  await setDoc(ref, data);
+  // Write session WITHOUT hmacSecret (secret stored in subcollection)
+  const { hmacSecret: secret, ...sessionData } = data;
+  await setDoc(ref, sessionData);
+  // Write hmacSecret to subcollection (only readable by teacher via rules)
+  await setDoc(doc(db, SESSIONS, ref.id, "secrets", "hmac"), { hmacSecret: secret });
   return { id: ref.id, ...data };
+}
+
+/**
+ * Read the HMAC secret for a session (teacher-only via Firestore rules).
+ * Used for QR code generation on the teacher side.
+ */
+export async function getSessionSecret(sessionId: string): Promise<string | null> {
+  if (isMockMode()) {
+    const s = mockDb.getSession(sessionId);
+    return s?.hmacSecret || null;
+  }
+  const snap = await getDoc(doc(db, SESSIONS, sessionId, "secrets", "hmac"));
+  if (!snap.exists()) return null;
+  return snap.data().hmacSecret;
 }
 
 export async function endSession(sessionId: string): Promise<void> {

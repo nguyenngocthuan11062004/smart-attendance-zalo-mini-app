@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Page, useSnackbar } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSessionAttendance, teacherOverride } from "@/services/attendance.service";
+import { getSessionAttendance, teacherOverride, manualCheckIn } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
+import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc } from "@/types";
 
 interface AbsentStudent {
   id: string;
   name: string;
   markedPresent?: boolean;
+  manualReason?: string;
 }
 
 export default function TeacherReview() {
@@ -18,6 +20,10 @@ export default function TeacherReview() {
   const [records, setRecords] = useState<AttendanceDoc[]>([]);
   const [absentStudents, setAbsentStudents] = useState<AbsentStudent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionId2, setSessionId2] = useState<string>("");
+  const [manualTarget, setManualTarget] = useState<AbsentStudent | null>(null);
+  const [manualReason, setManualReason] = useState("");
+  const [manualSubmitting, setManualSubmitting] = useState(false);
   const { openSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -33,6 +39,7 @@ export default function TeacherReview() {
       ]);
       const sorted = attendanceData.sort((a, b) => a.peerCount - b.peerCount);
       setRecords(sorted);
+      setSessionId2(sid);
 
       if (sessionDoc) {
         const classDoc = await getClassById(sessionDoc.classId);
@@ -61,10 +68,39 @@ export default function TeacherReview() {
     await teacherOverride(attendanceId, decision);
   };
 
-  const handleAbsentOverride = (studentId: string) => {
-    setAbsentStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, markedPresent: !s.markedPresent } : s))
-    );
+  const handleOpenManual = (student: AbsentStudent) => {
+    setManualTarget(student);
+    setManualReason("");
+  };
+
+  const handleManualSubmit = async () => {
+    if (!manualTarget || !manualReason.trim() || !sessionId2) return;
+    setManualSubmitting(true);
+    try {
+      await manualCheckIn(sessionId2, manualTarget.id, manualTarget.name, manualReason.trim(), "present");
+      setAbsentStudents((prev) =>
+        prev.map((s) => s.id === manualTarget.id ? { ...s, markedPresent: true, manualReason: manualReason.trim() } : s)
+      );
+      openSnackbar({ type: "success", text: `Đã điểm danh thủ công cho ${manualTarget.name}` });
+      setManualTarget(null);
+    } catch {
+      openSnackbar({ type: "default", text: "Lỗi khi điểm danh thủ công. Vui lòng thử lại." });
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
+  const handleUndoManual = async (student: AbsentStudent) => {
+    if (!sessionId2) return;
+    try {
+      await manualCheckIn(sessionId2, student.id, student.name, "Hủy điểm danh thủ công", "absent");
+      setAbsentStudents((prev) =>
+        prev.map((s) => s.id === student.id ? { ...s, markedPresent: false, manualReason: undefined } : s)
+      );
+      openSnackbar({ type: "success", text: `Đã hủy điểm danh cho ${student.name}` });
+    } catch {
+      openSnackbar({ type: "default", text: "Lỗi khi hủy. Vui lòng thử lại." });
+    }
   };
 
   const handleExport = async () => {
@@ -79,12 +115,13 @@ export default function TeacherReview() {
       if (fv.matched && fv.confidence >= 0.7) return "Khớp";
       return "Không khớp";
     };
-    const header = "STT,Tên,MSSV,Trạng thái,Peer Count,Khuôn mặt,Thời gian check-in";
+    const header = "STT,Tên,MSSV,Trạng thái,Peer Count,Khuôn mặt,Thời gian check-in,Lý do thủ công";
     const rows = records.map((r, i) => {
       const effectiveStatus = r.teacherOverride ? (r.teacherOverride === "present" ? "present" : "absent") : r.trustScore;
-      return [i + 1, `"${r.studentName}"`, r.studentId, statusMap[effectiveStatus] || effectiveStatus, r.peerCount, faceLabel(r.faceVerification), new Date(r.checkedInAt).toLocaleString("vi-VN")].join(",");
+      const manualNote = r.manualReason ? `"${r.manualReason}"` : "";
+      return [i + 1, `"${r.studentName}"`, r.studentId, statusMap[effectiveStatus] || effectiveStatus, r.peerCount, faceLabel(r.faceVerification), new Date(r.checkedInAt).toLocaleString("vi-VN"), manualNote].join(",");
     });
-    const absentRows = absentStudents.map((s, i) => [records.length + i + 1, `"${s.name}"`, s.id, s.markedPresent ? "Có mặt (GV)" : "Vắng", 0, "N/A", "N/A"].join(","));
+    const absentRows = absentStudents.map((s, i) => [records.length + i + 1, `"${s.name}"`, s.id, s.markedPresent ? "Có mặt (GV)" : "Vắng", 0, "N/A", "N/A", s.manualReason ? `"${s.manualReason}"` : ""].join(","));
     const csv = "\uFEFF" + [header, ...rows, ...absentRows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const date = new Date().toISOString().slice(0, 10);
@@ -283,40 +320,76 @@ export default function TeacherReview() {
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{
                         width: 40, height: 40, borderRadius: 14,
-                        background: "linear-gradient(180deg, #6b7280, #9ca3af)",
+                        background: s.markedPresent
+                          ? "linear-gradient(180deg, #22c55e, #10b981)"
+                          : "linear-gradient(180deg, #6b7280, #9ca3af)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                       }}>
                         <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>{s.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{s.name}</p>
-                        <p style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>0 peers · --:--</p>
+                        <p style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
+                          {s.markedPresent ? "Thủ công bởi GV" : "0 peers · --:--"}
+                        </p>
                       </div>
-                      <div style={{ background: "#fee2e2", borderRadius: 12, padding: "4px 12px" }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>
-                          {s.markedPresent ? "Có mặt" : "Vắng"}
+                      <div style={{
+                        background: s.markedPresent ? "#dcfce7" : "#fee2e2",
+                        borderRadius: 12, padding: "4px 12px",
+                      }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: s.markedPresent ? "#22c55e" : "#ef4444" }}>
+                          {s.markedPresent ? "Có mặt (GV)" : "Vắng"}
                         </span>
                       </div>
                     </div>
 
+                    {/* Reason display */}
+                    {s.markedPresent && s.manualReason && (
+                      <div style={{
+                        background: "#f0fdf4", borderRadius: 12, padding: "10px 14px",
+                        display: "flex", alignItems: "flex-start", gap: 8,
+                      }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                        </svg>
+                        <span style={{ fontSize: 13, color: "#166534" }}>{s.manualReason}</span>
+                      </div>
+                    )}
+
                     <div style={{ height: 1, background: "#f3f4f6" }} />
 
-                    {/* Toggle row */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0" }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>Đánh dấu có mặt</span>
+                    {/* Action row */}
+                    {!s.markedPresent ? (
                       <button
-                        onClick={() => handleAbsentOverride(s.id)}
+                        onClick={() => handleOpenManual(s)}
                         style={{
-                          width: 52, height: 28, borderRadius: 14, border: "none", padding: 3,
-                          background: s.markedPresent ? "#22c55e" : "#e5e7eb",
-                          display: "flex", alignItems: s.markedPresent ? "center" : "center",
-                          justifyContent: s.markedPresent ? "flex-end" : "flex-start",
-                          transition: "background 0.2s",
+                          height: 40, borderRadius: 14, border: "none",
+                          background: "linear-gradient(90deg, #22c55e, #10b981)",
+                          boxShadow: "0 3px 10px rgba(34,197,94,0.25)",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                         }}
                       >
-                        <div style={{ width: 22, height: 22, borderRadius: 11, background: "#ffffff" }} />
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                        <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>Điểm danh thủ công</span>
                       </button>
-                    </div>
+                    ) : (
+                      <button
+                        onClick={() => handleUndoManual(s)}
+                        style={{
+                          height: 40, borderRadius: 14,
+                          border: "1px solid rgba(239,68,68,0.3)",
+                          background: "#fff",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
+                          <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                        </svg>
+                        <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>Hủy điểm danh</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </>
@@ -324,6 +397,89 @@ export default function TeacherReview() {
           </>
         )}
       </div>
+
+      {/* Manual attendance modal */}
+      <DarkModal
+        visible={!!manualTarget}
+        onClose={() => setManualTarget(null)}
+        title="Điểm danh thủ công"
+      >
+        {manualTarget && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Student info */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: "#f8f9fa", borderRadius: 12, padding: 12,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 12,
+                background: "linear-gradient(180deg, #be1d2c, #dc2626)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>{manualTarget.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{manualTarget.name}</p>
+                <p style={{ fontSize: 12, color: "#9ca3af" }}>{manualTarget.id}</p>
+              </div>
+            </div>
+
+            {/* Reason input */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Lý do điểm danh thủ công *</label>
+              <textarea
+                value={manualReason}
+                onChange={(e) => setManualReason(e.target.value)}
+                placeholder="VD: SV có mặt nhưng điện thoại hết pin, SV quên mang điện thoại..."
+                rows={3}
+                style={{
+                  width: "100%", borderRadius: 12, border: "1px solid #e5e7eb",
+                  padding: "10px 14px", fontSize: 14, resize: "none",
+                  outline: "none", background: "#fff",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+
+            {/* Warning */}
+            <div style={{
+              background: "#fef3c7", borderRadius: 12, padding: "10px 14px",
+              display: "flex", alignItems: "flex-start", gap: 8,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+              </svg>
+              <span style={{ fontSize: 12, color: "#92400e" }}>Hành động này sẽ được ghi log. Lý do sẽ hiển thị trong báo cáo.</span>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => setManualTarget(null)}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: "#f2f2f7", border: "none",
+                  fontSize: 15, fontWeight: 600, color: "#6b7280",
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleManualSubmit}
+                disabled={manualSubmitting || !manualReason.trim()}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: manualSubmitting || !manualReason.trim() ? "#d4d4d4" : "#22c55e",
+                  border: "none",
+                  fontSize: 15, fontWeight: 700, color: "#fff",
+                }}
+              >
+                {manualSubmitting ? "Đang lưu..." : "Xác nhận"}
+              </button>
+            </div>
+          </div>
+        )}
+      </DarkModal>
     </Page>
   );
 }

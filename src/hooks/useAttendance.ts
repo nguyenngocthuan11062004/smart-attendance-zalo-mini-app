@@ -23,21 +23,27 @@ export function useAttendance(sessionId: string | undefined, studentId: string |
   }, [sessionId, studentId, setMyAttendance]);
 
   const checkIn = useCallback(
-    async (classId: string, studentName: string, qrPayload?: QRPayload) => {
+    async (classId: string, studentName: string, qrPayload?: QRPayload, config?: { faceRequired?: boolean; peerRequired?: boolean }) => {
       if (!sessionId || !studentId) return null;
       const record = await checkInStudent(sessionId, classId, studentId, studentName, qrPayload);
       setMyAttendance(record);
-      setStep("face-verify");
-      return record;
+      const faceReq = config?.faceRequired !== false;
+      const peerReq = config?.peerRequired !== false;
+      if (!faceReq && !peerReq) setStep("done");
+      else if (!faceReq) setStep("show-qr");
+      else setStep("face-verify");
+      return record; // May include hmacSecret from Cloud Function response
     },
     [sessionId, studentId, setMyAttendance, setStep]
   );
 
   const completeFaceVerification = useCallback(
-    async (result: FaceVerificationResult) => {
+    async (result: FaceVerificationResult, config?: { peerRequired?: boolean }) => {
       if (!myAttendance) return;
       await updateFaceVerification(myAttendance.id, result);
-      setStep("show-qr");
+      const peerReq = config?.peerRequired !== false;
+      if (!peerReq) setStep("done");
+      else setStep("show-qr");
     },
     [myAttendance, setStep]
   );

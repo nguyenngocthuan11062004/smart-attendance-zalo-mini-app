@@ -169,10 +169,12 @@ export async function createOrUpdateUser(
       return merged;
     }
 
+    // Only allow empty or student role on client-side creation
+    const safeRole = (role === "student") ? "student" : "";
     const userDoc: Record<string, any> = {
       name,
       avatar,
-      role: role || ("" as any),
+      role: safeRole,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -188,23 +190,53 @@ export async function createOrUpdateUser(
 }
 
 export async function updateUserRole(userId: string, role: UserRole, mssv?: string): Promise<void> {
+  // Client can only self-assign "student" role. Teacher role requires Cloud Function (assignTeacherRole).
+  if (role === "teacher") {
+    throw new Error("Teacher role must be assigned via server. Use requestTeacherRole() instead.");
+  }
+
   const updates: Record<string, any> = { role, updatedAt: Date.now() };
   if (mssv) updates.mssv = mssv;
 
-  try {
-    await withTimeout(
-      setDoc(doc(db, "users", userId), updates, { merge: true }),
-      5000
-    );
-  } catch {
-    // Firestore unavailable
-  }
+  await withTimeout(
+    setDoc(doc(db, "users", userId), updates, { merge: true }),
+    5000
+  );
+
   const stored = localStorage.getItem("user_doc");
   if (stored) {
     const parsed = JSON.parse(stored) as UserDoc;
     if (parsed.id === userId) {
       parsed.role = role;
       if (mssv) parsed.mssv = mssv;
+      parsed.updatedAt = Date.now();
+      localStorage.setItem("user_doc", JSON.stringify(parsed));
+    }
+  }
+}
+
+/**
+ * Request teacher role via Cloud Function (server-side validation).
+ * The server verifies the user's identity (e.g., Microsoft email domain)
+ * before granting teacher role.
+ */
+export async function requestTeacherRole(userId: string): Promise<void> {
+  const accessToken = await getAccessToken();
+  const assignRole = httpsCallable<
+    { userId: string; accessToken: string },
+    { success: boolean; message?: string }
+  >(functions, "assignTeacherRole");
+  const { data } = await assignRole({ userId, accessToken });
+  if (!data.success) {
+    throw new Error(data.message || "Không thể xác minh vai trò giảng viên");
+  }
+
+  // Update local state after server confirms
+  const stored = localStorage.getItem("user_doc");
+  if (stored) {
+    const parsed = JSON.parse(stored) as UserDoc;
+    if (parsed.id === userId) {
+      parsed.role = "teacher";
       parsed.updatedAt = Date.now();
       localStorage.setItem("user_doc", JSON.stringify(parsed));
     }
@@ -241,12 +273,14 @@ function _getLocalUserDoc(userId: string): UserDoc | null {
 }
 
 function _createLocalUser(uid: string, name: string, avatar: string, role?: UserRole): UserDoc {
+  // Never allow teacher role in local fallback — teacher must come from server
+  const safeRole = (role === "student") ? "student" : ("" as any);
   const stored = localStorage.getItem("user_doc");
   if (stored) {
     const parsed = JSON.parse(stored) as UserDoc;
     if (parsed.id === uid) {
       const updated = { ...parsed, name, avatar, updatedAt: Date.now() };
-      if (role) updated.role = role;
+      if (safeRole) updated.role = safeRole;
       localStorage.setItem("user_doc", JSON.stringify(updated));
       return updated;
     }
@@ -255,7 +289,7 @@ function _createLocalUser(uid: string, name: string, avatar: string, role?: User
     id: uid,
     name,
     avatar,
-    role: role || ("" as any),
+    role: safeRole,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

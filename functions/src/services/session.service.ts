@@ -29,24 +29,33 @@ export const startSession = functions.region("asia-southeast1").https.onCall(
       throw new functions.https.HttpsError("already-exists", "Active session already exists");
     }
 
+    // Read class config for optional attendance steps
+    const classData = classDoc.data()!;
+    const faceRequired = classData.faceRequired !== false; // default true
+    const peerRequired = classData.peerRequired !== false; // default true
+
     const hmacSecret = CryptoJS.lib.WordArray.random(32).toString();
     const ref = db.collection("sessions").doc();
-    const session = {
+    const session: Record<string, any> = {
       classId,
       className,
       teacherId: userId,
       status: "active",
-      hmacSecret,
       qrRefreshInterval: 30,
+      faceRequired,
+      peerRequired,
       startedAt: Date.now(),
     };
 
+    // Write session doc WITHOUT hmacSecret
     await ref.set(session);
+    // Write hmacSecret to subcollection (protected by Firestore rules)
+    await ref.collection("secrets").doc("hmac").set({ hmacSecret });
 
     // Fire-and-forget: notify students (don't block session start)
     notifySessionStarted(classId, className, ref.id).catch(() => {});
 
-    return { id: ref.id, ...session };
+    return { id: ref.id, ...session, hmacSecret };
   })
 );
 

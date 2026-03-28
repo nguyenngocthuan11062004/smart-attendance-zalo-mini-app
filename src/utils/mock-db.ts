@@ -233,6 +233,14 @@ export function seedMockData() {
     { id: "session_step2", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step2_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
     { id: "session_step3", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step3_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
     { id: "session_step4", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "test_step4_secret", qrRefreshInterval: 30, startedAt: NOW - 600000 },
+    // Optional steps sessions
+    { id: "session_noface", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "noface_secret", qrRefreshInterval: 30, faceRequired: false, peerRequired: true, startedAt: NOW - 600000 },
+    { id: "session_nopeer", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "nopeer_secret", qrRefreshInterval: 30, faceRequired: true, peerRequired: false, startedAt: NOW - 600000 },
+    { id: "session_qronly", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "qronly_secret", qrRefreshInterval: 30, faceRequired: false, peerRequired: false, startedAt: NOW - 600000 },
+    // Active session for monitor manual attendance test
+    { id: "session_active", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "active", hmacSecret: "active_secret", qrRefreshInterval: 30, startedAt: NOW - 1200000 },
+    // Ended session with manual attendance record
+    { id: "session_manual", classId: "class_001", className: "CNTT K68 - Lap trinh Web", teacherId: "teacher_001", status: "ended", hmacSecret: "manual_secret", qrRefreshInterval: 30, startedAt: NOW - DAY * 1, endedAt: NOW - DAY * 1 + 3600000 },
   ];
   testSessions.forEach(s => mockDb.setSession(s));
 
@@ -250,6 +258,46 @@ export function seedMockData() {
     { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - 180000, qrNonce: "test_n3" },
     { peerId: "student_004", peerName: "Hoang Van E", verifiedAt: NOW - 160000, qrNonce: "test_n4" },
   ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: NOW - 280000 } });
+
+  // ── Optional steps: Face OFF — checked in, skip to peer step
+  att.push({ id: "att_noface", sessionId: "session_noface", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [
+    { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 200000, qrNonce: "nf_n1" },
+  ], peerCount: 1, trustScore: "review" });
+
+  // ── Optional steps: Peer OFF — checked in + face, skip to done
+  att.push({ id: "att_nopeer", sessionId: "session_nopeer", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustScore: "present", faceVerification: { matched: true, confidence: 0.90, selfieImagePath: "", verifiedAt: NOW - 280000 } });
+
+  // ── Optional steps: QR only — checked in, straight to done
+  att.push({ id: "att_qronly", sessionId: "session_qronly", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustScore: "present" });
+
+  // ── Active session for monitor: 3/7 checked in, 4 absent
+  att.push(
+    { id: "att_active_1", sessionId: "session_active", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 900000, peerVerifications: [
+      { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 800000, qrNonce: "act_n1" },
+      { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - 700000, qrNonce: "act_n2" },
+      { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: NOW - 600000, qrNonce: "act_n3" },
+    ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.91, selfieImagePath: "", verifiedAt: NOW - 850000 } },
+    { id: "att_active_2", sessionId: "session_active", classId: "class_001", studentId: "student_002", studentName: "Le Van C", checkedInAt: NOW - 880000, peerVerifications: [
+      { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: NOW - 800000, qrNonce: "act_n4" },
+    ], peerCount: 1, trustScore: "review" },
+    { id: "att_active_3", sessionId: "session_active", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: NOW - 860000, peerVerifications: [], peerCount: 0, trustScore: "absent" },
+  );
+
+  // ── Manual attendance session: 4/7, 1 manual, 2 absent
+  const mBase = NOW - DAY * 1;
+  att.push(
+    { id: "att_man_1", sessionId: "session_manual", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: mBase + 300000, peerVerifications: [
+      { peerId: "student_002", peerName: "Le Van C", verifiedAt: mBase + 400000, qrNonce: "mn1" },
+      { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: mBase + 500000, qrNonce: "mn2" },
+      { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: mBase + 600000, qrNonce: "mn3" },
+    ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.93, selfieImagePath: "", verifiedAt: mBase + 350000 } },
+    { id: "att_man_2", sessionId: "session_manual", classId: "class_001", studentId: "student_002", studentName: "Le Van C", checkedInAt: mBase + 320000, peerVerifications: [
+      { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: mBase + 400000, qrNonce: "mn4" },
+    ], peerCount: 1, trustScore: "review" },
+    { id: "att_man_3", sessionId: "session_manual", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: mBase + 340000, peerVerifications: [], peerCount: 0, trustScore: "absent" },
+    // Manual attendance record — student_004 was manually marked present by teacher
+    { id: "att_man_4", sessionId: "session_manual", classId: "class_001", studentId: "student_004", studentName: "Hoang Van E", checkedInAt: mBase + 2000000, peerVerifications: [], peerCount: 0, trustScore: "present", teacherOverride: "present", manualBy: "teacher_001", manualReason: "SV co mat nhung dien thoai het pin, khong the quet QR", manualAt: mBase + 2000000 },
+  );
 
   att.forEach(a => mockDb.setAttendance(a));
 }

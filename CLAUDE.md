@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code when working with this project.
 
+## Skills (MUST USE)
+
+**ALWAYS invoke the `zalo-mini-app` skill** when working on this project. This skill contains comprehensive reference docs for Zalo SDK APIs, ZaUI components, design guidelines, and deployment. Invoke it before writing any code that touches Zalo SDK, ZaUI components, or app configuration.
+
 ## Project Overview
 
 **inHUST Attendance** is a Zalo Mini App for smart attendance tracking at HUST (Hanoi University of Science and Technology). Students check in via a 4-step flow: QR scan -> face verification -> peer QR exchange -> done. Uses HMAC-rotating QR codes and face recognition to prevent fraud.
@@ -16,6 +20,52 @@ This file provides guidance to Claude Code when working with this project.
 - **QR**: `qrcode` + `jsqr` libraries + HMAC-SHA256 (crypto-js) for rotating QR codes (30s interval)
 - **Routing**: `react-router-dom` via ZMP's `ZMPRouter` + `AnimationRoutes`
 - **Face**: Camera capture with oval clip, auto-scan face verification
+- **AI Chat**: Groq API (Llama 3.3 70B) for AI assistant feature
+
+## Zalo SDK Capabilities
+
+Full reference in `.claude/skills/zalo-mini-app/references/`. Key APIs available:
+
+### User & Auth
+- `authorize({ scopes })` — Request permissions (userInfo, userPhonenumber, userLocation)
+- `getUserID()` — Get unique user ID (no permission needed)
+- `getUserInfo({ autoRequestPermission })` — Get name, avatar, followedOA
+- `getPhoneNumber()` — Get phone (returns `{ number }` or `{ token }`)
+- `getAccessToken()` — Auth token for backend
+- `getSetting()` — Check permission status
+- `getSystemInfo()` — Device/platform info, safe area insets
+
+### Storage
+- `setItem/getItem/removeItem/clear` — Device local storage (key-value)
+
+### UI & Navigation
+- `configAppView({ headerColor, statusBarType, actionBarHidden })` — Configure app chrome
+- `showToast()` — Toast messages
+- `openWebview(url)` — Open external URL
+- `openMiniApp({ appId, path })` — Open another mini app
+- `closeApp()` — Close mini app
+
+### Device & Media
+- `getLocation()` — GPS coordinates (requires permission)
+- `createCameraContext()` — Camera streaming (start/stop/takePhoto/flip)
+- `chooseImage({ count, sourceType })` — Pick images from gallery/camera
+- `scanQRCode()` — Native QR/barcode scanner
+- `checkNFC() / scanNFC()` — NFC tag reading
+- `getNetworkType()` — Connection type (wifi/4g/none)
+- `keepScreen({ on })` — Keep screen awake
+- `vibrate()` — Haptic feedback
+
+### Zalo Social
+- `followOA/unfollowOA` — OA follow/unfollow
+- `openChat({ type, id })` — Open chat with user or OA
+- `openShareSheet({ type, data })` — Share content (link with title, description, thumbnail)
+- `openPostFeed()` — Post to Zalo feed
+- `openProfilePicker({ maxSelection })` — Friend selector
+- `createShortcut()` — Add shortcut to home screen
+
+### Events
+- `EventName.NetworkChanged` — Network connectivity changes
+- `EventName.AppPaused/AppResumed` — Background/foreground lifecycle
 
 ## Commands
 
@@ -62,10 +112,12 @@ src/
 │   ├── profile.tsx            # User profile with edit modal
 │   ├── search.tsx             # Search page
 │   ├── dev.tsx                # Dev navigation (all screens + mock mode)
+│   ├── AIChatPage.tsx             # AI chat with Groq API (Llama 3.3 70B)
 │   ├── student/
 │   │   ├── StudentClasses.tsx     # Student class list
 │   │   ├── StudentAttendance.tsx  # 4-step attendance flow (QR -> Face -> Peer -> Done)
 │   │   ├── StudentHistory.tsx     # Attendance history
+│   │   ├── StudentSchedule.tsx    # Schedule page with calendar
 │   │   └── FaceRegister.tsx       # CCCD/face registration
 │   └── teacher/
 │       ├── TeacherClasses.tsx     # Teacher class list
@@ -95,6 +147,7 @@ src/
 │   ├── fraud.service.ts       # Fraud detection
 │   ├── qr.service.ts          # QR code utilities
 │   ├── microsoft.service.ts   # Microsoft OAuth
+│   ├── ai.service.ts          # Groq AI chat (Llama 3.3 70B)
 │   ├── report.service.ts      # Reports
 │   └── api.ts                 # API helpers
 ├── store/                     # Jotai atoms

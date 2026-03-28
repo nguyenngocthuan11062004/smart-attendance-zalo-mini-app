@@ -10,6 +10,12 @@ export const calculateTrustScores = functions.region("asia-southeast1").https.on
       throw new functions.https.HttpsError("invalid-argument", "Missing sessionId");
     }
 
+    // Read session config for optional steps
+    const sessionSnap = await db.collection("sessions").doc(sessionId).get();
+    const sessionData = sessionSnap.exists ? sessionSnap.data()! : {};
+    const faceReq = sessionData.faceRequired !== false; // default true
+    const peerReq = sessionData.peerRequired !== false; // default true
+
     const records = await db.collection("attendance")
       .where("sessionId", "==", sessionId)
       .get();
@@ -27,11 +33,12 @@ export const calculateTrustScores = functions.region("asia-southeast1").https.on
       const faceSkipped = face?.skipped === true;
       const faceAttempted = !!face && !faceSkipped;
 
+      const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
+      const peerPass = !peerReq || peerCount >= 3;
+
       let trustScore: string;
-      if (peerCount >= 3 && (faceOk || faceSkipped || !faceAttempted)) trustScore = "present";
-      else if (peerCount >= 3 && faceAttempted && !faceOk) trustScore = "review";
-      else if (peerCount >= 1 && faceOk) trustScore = "review";
-      else if (peerCount >= 1) trustScore = "review";
+      if (facePass && peerPass) trustScore = "present";
+      else if (facePass || peerPass) trustScore = "review";
       else trustScore = "absent";
 
       if (record.trustScore !== trustScore) {

@@ -5,6 +5,7 @@ import { globalLoadingAtom, globalErrorAtom } from "@/store/ui";
 import {
   signOutUser,
   updateUserRole,
+  requestTeacherRole,
 } from "@/services/auth.service";
 import type { UserRole } from "@/types";
 
@@ -22,10 +23,15 @@ export function useAuth() {
       if (!currentUser) return;
       try {
         setLoading(true);
-        await updateUserRole(currentUser.id, role, mssv);
+        if (role === "teacher") {
+          // Teacher role must be assigned server-side
+          await requestTeacherRole(currentUser.id);
+        } else {
+          await updateUserRole(currentUser.id, role, mssv);
+        }
         setCurrentUser({ ...currentUser, role, mssv: mssv || currentUser.mssv, updatedAt: Date.now() });
       } catch (err: any) {
-        setError(err.message || "Cap nhat vai tro that bai");
+        setError(err.message || "Cập nhật vai trò thất bại");
       } finally {
         setLoading(false);
       }
