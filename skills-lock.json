@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "progressive-web-app": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "computedHash": "0bfeb35d5fb2072ccc5de45c674f8290a884ea7abe738c8137574712288a199f"
+    },
+    "security-review": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "computedHash": "cc631e7761e4bb8f844e931e3019e9abf8a36520137480ee60b897314776b0de"
+    }
+  }
+}

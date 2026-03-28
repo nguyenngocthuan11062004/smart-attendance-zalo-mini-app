@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "inhust-788e7"
-  }
+  },
+  "targets": {
+    "inhust-788e7": {
+      "hosting": {
+        "admin": [
+          "inhust-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
