@@ -4,6 +4,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { openWebview } from "zmp-sdk/apis";
 import { isValidPhone, isValidEmail } from "@/utils/sanitize";
 import { storageSetItem } from "@/utils/storage";
 // Microsoft OAuth hidden — requires Cloud Functions & redirects outside Zalo (causes rejection)
@@ -213,8 +214,8 @@ export default function ProfilePage() {
         <MicrosoftLinkCard />
       </div> */}
 
-      {/* -- Edit + Switch Role + Logout -- */}
-      <div style={{ padding: "20px 16px", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* -- Edit -- */}
+      <div style={{ padding: "20px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
         <button
           onClick={openEditModal}
           style={{
@@ -229,33 +230,36 @@ export default function ProfilePage() {
           </svg>
           Chỉnh sửa thông tin
         </button>
+      </div>
+
+      {/* -- Bottom section: Terms + Logout -- */}
+      <div style={{
+        padding: "16px 16px calc(100px + env(safe-area-inset-bottom, 0px))",
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", marginBottom: 4 }} />
         <button
-          onClick={async () => {
-            const updated = { ...user, role: "" as any, updatedAt: Date.now() };
-            setUser(updated);
-            await storageSetItem("user_doc", JSON.stringify(updated));
-            navigate("/login", { replace: true });
-          }}
+          onClick={() => openWebview({ url: "https://inhust-legal.web.app/terms.html" })}
           style={{
             width: "100%", height: 48, borderRadius: 12,
             background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)",
-            fontSize: 15, fontWeight: 600, color: "#f59e0b",
+            fontSize: 15, fontWeight: 600, color: "#6b7280",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" />
           </svg>
-          Đổi vai trò
+          Điều khoản sử dụng
         </button>
         <button
-          onClick={() => {
-            logout();
-            navigate("/login", { replace: true });
+          onClick={async () => {
+            await logout();
+            navigate("/splash", { replace: true });
           }}
           style={{
             width: "100%", height: 48, borderRadius: 12,
-            background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)",
+            background: "#ffffff", border: "2px solid #ef4444",
             fontSize: 15, fontWeight: 600, color: "#ef4444",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
@@ -269,7 +273,7 @@ export default function ProfilePage() {
 
       {/* -- Edit modal -- */}
       <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
-        <div style={{ padding: "0 4px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: "0 4px", paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 14 }}>
           {[
             { label: "Số điện thoại", placeholder: "VD: 0986447465", value: editPhone, onChange: (v: string) => { setEditPhone(v); setPhoneError(""); }, error: phoneError },
             { label: "Email cá nhân", placeholder: "VD: email@gmail.com", value: editEmail, onChange: (v: string) => { setEditEmail(v); setEmailError(""); }, error: emailError },

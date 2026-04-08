@@ -45,3 +45,4 @@ admin/.env
 functions/node_modules/
 functions/lib/
 functions/seed-admin.js
+.playwright-mcp/

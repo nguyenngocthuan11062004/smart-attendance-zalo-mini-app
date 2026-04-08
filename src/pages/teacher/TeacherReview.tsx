@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Page, useSnackbar } from "zmp-ui";
+import { openWebview } from "zmp-sdk/apis";
 import { useParams, useNavigate } from "react-router-dom";
 import { getSessionAttendance, teacherOverride, manualCheckIn } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
@@ -141,7 +142,7 @@ export default function TeacherReview() {
         await uploadBytes(storageRef, blob);
         const downloadUrl = await getDownloadURL(storageRef);
         if (navigator.clipboard) { await navigator.clipboard.writeText(downloadUrl); openSnackbar({ type: "success", text: "Link tải đã được sao chép!" }); }
-        else { window.open(downloadUrl, "_blank"); }
+        else { openWebview({ url: downloadUrl }); }
       } catch { openSnackbar({ type: "default", text: "Không thể xuất file. Vui lòng thử lại." }); }
     }
   };

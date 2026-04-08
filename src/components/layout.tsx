@@ -64,7 +64,9 @@ function AppShell() {
             <AnimationRoutes>
               {/* Default: redirect to splash */}
               <Route path="/" element={<Navigate to="/splash" replace />} />
-              <Route path="/dev" element={<DevPage />} />
+              {import.meta.env.DEV && (
+                <Route path="/dev" element={<DevPage />} />
+              )}
 
               {/* Public routes */}
               <Route path="/splash" element={<SplashPage />} />
