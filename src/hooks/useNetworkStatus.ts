@@ -9,10 +9,14 @@ export function useNetworkStatus() {
     const handleOnline = () => {
       setOnline(true);
       // Process offline queue when connection is restored
-      if (!processingRef.current && getQueueSize() > 0) {
-        processingRef.current = true;
-        processOfflineQueue().finally(() => {
-          processingRef.current = false;
+      if (!processingRef.current) {
+        getQueueSize().then((size) => {
+          if (size > 0 && !processingRef.current) {
+            processingRef.current = true;
+            processOfflineQueue().finally(() => {
+              processingRef.current = false;
+            });
+          }
         });
       }
     };

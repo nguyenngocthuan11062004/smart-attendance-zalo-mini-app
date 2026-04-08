@@ -58,7 +58,7 @@ export default function TeacherClasses() {
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
         </button>
-        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Quan ly lop hoc</span>
+        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Quản lý lớp học</span>
         <button style={{
           width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
           border: "none", display: "flex", alignItems: "center", justifyContent: "center",
@@ -76,7 +76,7 @@ export default function TeacherClasses() {
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 500 }}>Tong so lop</span>
+              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 500 }}>Tổng số lớp</span>
               <span style={{ color: "#fff", fontSize: 36, fontWeight: 800 }}>
                 {loading ? "..." : classes.length}
               </span>
@@ -96,7 +96,7 @@ export default function TeacherClasses() {
           </div>
 
           {/* Section label */}
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>LOP HOC</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>LỚP HỌC</span>
 
           {/* Class list */}
           {loading ? (
@@ -116,8 +116,8 @@ export default function TeacherClasses() {
                   <rect x="4" y="6" width="16" height="12" rx="2" /><path d="M9 6V4a2 2 0 012-2h2a2 2 0 012 2v2" />
                 </svg>
               </div>
-              <p style={{ color: "#1a1a1a", fontWeight: 600 }}>Chua co lop hoc</p>
-              <p style={{ color: "#9ca3af", fontSize: 12 }}>Tao lop hoc dau tien de bat dau</p>
+              <p style={{ color: "#1a1a1a", fontWeight: 600 }}>Chưa có lớp học</p>
+              <p style={{ color: "#9ca3af", fontSize: 12 }}>Tạo lớp học đầu tiên để bắt đầu</p>
               <button
                 onClick={() => setCreateModal(true)}
                 style={{
@@ -126,7 +126,7 @@ export default function TeacherClasses() {
                   color: "#fff", fontSize: 14, fontWeight: 700,
                 }}
               >
-                Tao lop moi
+                Tạo lớp mới
               </button>
             </div>
           ) : (
@@ -150,13 +150,13 @@ export default function TeacherClasses() {
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
                       </svg>
-                      <span style={{ color: "#9ca3af", fontSize: 12 }}>{c.studentIds.length} sinh vien</span>
+                      <span style={{ color: "#9ca3af", fontSize: 12 }}>{c.studentIds.length} sinh viên</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round">
                         <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
                       </svg>
-                      <span style={{ color: "#9ca3af", fontSize: 12 }}>-- phien</span>
+                      <span style={{ color: "#9ca3af", fontSize: 12 }}>-- phiên</span>
                     </div>
                   </div>
                 </button>
@@ -167,14 +167,14 @@ export default function TeacherClasses() {
       </PullToRefresh>
 
       {/* Create modal */}
-      <DarkModal visible={createModal} onClose={() => setCreateModal(false)} title="Tao lop moi">
+      <DarkModal visible={createModal} onClose={() => setCreateModal(false)} title="Tạo lớp mới">
         <div style={{ padding: "0 4px" }}>
           <label style={{ display: "block", color: "#6b7280", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-            Ten lop
+            Tên lớp
           </label>
           <input
             className="input-dark"
-            placeholder="VD: Lap trinh Web..."
+            placeholder="VD: Lập trình Web..."
             value={className}
             onChange={(e) => setClassName(e.target.value)}
             style={{ width: "100%", marginBottom: 16 }}
@@ -188,7 +188,7 @@ export default function TeacherClasses() {
               border: "none", color: "#fff", fontSize: 15, fontWeight: 700,
             }}
           >
-            {creating ? "Dang tao..." : "Tao lop"}
+            {creating ? "Đang tạo..." : "Tạo lớp"}
           </button>
         </div>
       </DarkModal>

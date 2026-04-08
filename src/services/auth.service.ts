@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "@/config/firebase";
 import type { UserDoc, UserRole } from "@/types";
+import { storageSetItem, storageGetItem, storageRemoveItem } from "@/utils/storage";
 
 /**
  * Get Zalo access token for Cloud Function authentication.
@@ -39,11 +40,11 @@ export async function signIn(): Promise<UserDoc> {
   let name = "Zalo User";
   let avatar = "";
   let followedOA: boolean | undefined;
-  let phone: string | undefined;
 
-  // Xin quyền info + SĐT cùng lúc (1 popup duy nhất)
+  // Chỉ xin quyền userInfo khi đăng nhập (name, avatar)
+  // scope.userPhonenumber sẽ được xin riêng khi cần (profile page)
   try {
-    await authorize({ scopes: ["scope.userInfo", "scope.userPhonenumber"] });
+    await authorize({ scopes: ["scope.userInfo"] });
   } catch {
     // User từ chối hoặc SDK lỗi — tiếp tục với dữ liệu có thể lấy được
   }
@@ -63,13 +64,29 @@ export async function signIn(): Promise<UserDoc> {
     }
   }
 
-  // Lấy SĐT từ Zalo
+  return await createOrUpdateUser(uid, name, avatar, undefined, followedOA);
+}
+
+// --- Request phone number (separate permission) ---
+
+/**
+ * Request phone number permission and retrieve phone.
+ * Called on-demand (e.g., profile page) — NOT during sign-in.
+ * Returns phone string or null if user denies / error.
+ */
+export async function requestPhoneNumber(): Promise<string | null> {
+  try {
+    await authorize({ scopes: ["scope.userPhonenumber"] });
+  } catch {
+    return null;
+  }
+
   try {
     const phoneResult = await getPhoneNumber({});
     if (phoneResult.number) {
-      phone = phoneResult.number;
-    } else if (phoneResult.token) {
-      // Token cần decode server-side qua Zalo Social API
+      return phoneResult.number;
+    }
+    if (phoneResult.token) {
       try {
         const accessToken = await zmpGetAccessToken({});
         const resolve = httpsCallable<
@@ -80,56 +97,68 @@ export async function signIn(): Promise<UserDoc> {
           token: phoneResult.token,
           accessToken: accessToken || "",
         });
-        if (data.phone) phone = data.phone;
+        if (data.phone) return data.phone;
       } catch {
-        // Cloud Function chưa deploy hoặc token hết hạn — bỏ qua
+        // Cloud Function chưa deploy hoặc token hết hạn
       }
     }
   } catch {
-    // Không lấy được SĐT — bỏ qua
+    // Không lấy được SĐT
   }
 
-  return await createOrUpdateUser(uid, name, avatar, undefined, followedOA, phone);
+  return null;
 }
 
 // --- Sign out ---
 
 export async function signOutUser(): Promise<void> {
-  localStorage.removeItem("user_doc");
+  await storageRemoveItem("user_doc");
 }
 
 // --- Auth state initialization ---
 
 /**
  * Restores session on app load.
- * 1. Try localStorage first (instant)
+ * 1. Try Zalo SDK storage first (async)
  * 2. If nothing stored, auto sign-in with Zalo SDK
  */
 export function initAuthState(
   callback: (userDoc: UserDoc | null, initialized: boolean) => void
 ): () => void {
-  // 1. Restore from localStorage (instant render)
-  const stored = localStorage.getItem("user_doc");
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as UserDoc;
-      callback(parsed, true);
-      // Cập nhật lại từ Zalo ở background (lấy name, avatar, phone mới nhất)
+  let cancelled = false;
+
+  // 1. Restore from Zalo SDK storage (async)
+  storageGetItem("user_doc")
+    .then((stored) => {
+      if (cancelled) return;
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as UserDoc;
+          callback(parsed, true);
+          // Refresh from Zalo in background (get latest name, avatar)
+          signIn()
+            .then((freshDoc) => { if (!cancelled) callback(freshDoc, true); })
+            .catch(() => {});
+          return;
+        } catch {
+          // corrupted, continue to sign-in
+        }
+      }
+
+      // 2. Auto sign-in with Zalo
       signIn()
-        .then((freshDoc) => callback(freshDoc, true))
-        .catch(() => {});
-      return () => {};
-    } catch {
-      // corrupted, continue
-    }
-  }
+        .then((userDoc) => { if (!cancelled) callback(userDoc, true); })
+        .catch(() => { if (!cancelled) callback(null, true); });
+    })
+    .catch(() => {
+      // Storage read failed -- fall back to sign-in
+      if (cancelled) return;
+      signIn()
+        .then((userDoc) => { if (!cancelled) callback(userDoc, true); })
+        .catch(() => { if (!cancelled) callback(null, true); });
+    });
 
-  // 2. Auto sign-in with Zalo
-  signIn()
-    .then((userDoc) => callback(userDoc, true))
-    .catch(() => callback(null, true));
-
-  return () => {};
+  return () => { cancelled = true; };
 }
 
 // --- Firestore user doc ---
@@ -139,10 +168,10 @@ export async function getUserDoc(userId: string): Promise<UserDoc | null> {
     const snap = await withTimeout(getDoc(doc(db, "users", userId)), 5000);
     if (!snap.exists()) return null;
     const userDoc = { id: snap.id, ...snap.data() } as UserDoc;
-    localStorage.setItem("user_doc", JSON.stringify(userDoc));
+    await storageSetItem("user_doc", JSON.stringify(userDoc));
     return userDoc;
   } catch {
-    return _getLocalUserDoc(userId);
+    return await _getLocalUserDoc(userId);
   }
 }
 
@@ -165,7 +194,7 @@ export async function createOrUpdateUser(
       if (phone) { updates.phone = phone; updates.zaloPhone = phone; }
       await withTimeout(setDoc(ref, updates, { merge: true }), 5000);
       const merged = { id: uid, ...data, ...updates } as UserDoc;
-      localStorage.setItem("user_doc", JSON.stringify(merged));
+      await storageSetItem("user_doc", JSON.stringify(merged));
       return merged;
     }
 
@@ -182,10 +211,10 @@ export async function createOrUpdateUser(
     if (phone) { userDoc.phone = phone; userDoc.zaloPhone = phone; }
     await withTimeout(setDoc(ref, userDoc), 5000);
     const result = { id: uid, ...userDoc } as UserDoc;
-    localStorage.setItem("user_doc", JSON.stringify(result));
+    await storageSetItem("user_doc", JSON.stringify(result));
     return result;
   } catch {
-    return _createLocalUser(uid, name, avatar, role);
+    return await _createLocalUser(uid, name, avatar, role);
   }
 }
 
@@ -203,42 +232,36 @@ export async function updateUserRole(userId: string, role: UserRole, mssv?: stri
     5000
   );
 
-  const stored = localStorage.getItem("user_doc");
+  const stored = await storageGetItem("user_doc");
   if (stored) {
     const parsed = JSON.parse(stored) as UserDoc;
     if (parsed.id === userId) {
       parsed.role = role;
       if (mssv) parsed.mssv = mssv;
       parsed.updatedAt = Date.now();
-      localStorage.setItem("user_doc", JSON.stringify(parsed));
+      await storageSetItem("user_doc", JSON.stringify(parsed));
     }
   }
 }
 
 /**
- * Request teacher role via Cloud Function (server-side validation).
- * The server verifies the user's identity (e.g., Microsoft email domain)
- * before granting teacher role.
+ * Assign teacher role — writes directly to Firestore (open rules).
+ * TODO: Khi có Blaze plan, chuyển lại dùng Cloud Function assignTeacherRole
+ * để validate server-side.
  */
 export async function requestTeacherRole(userId: string): Promise<void> {
-  const accessToken = await getAccessToken();
-  const assignRole = httpsCallable<
-    { userId: string; accessToken: string },
-    { success: boolean; message?: string }
-  >(functions, "assignTeacherRole");
-  const { data } = await assignRole({ userId, accessToken });
-  if (!data.success) {
-    throw new Error(data.message || "Không thể xác minh vai trò giảng viên");
-  }
+  await withTimeout(
+    setDoc(doc(db, "users", userId), { role: "teacher", updatedAt: Date.now() }, { merge: true }),
+    5000
+  );
 
-  // Update local state after server confirms
-  const stored = localStorage.getItem("user_doc");
+  const stored = await storageGetItem("user_doc");
   if (stored) {
     const parsed = JSON.parse(stored) as UserDoc;
     if (parsed.id === userId) {
       parsed.role = "teacher";
       parsed.updatedAt = Date.now();
-      localStorage.setItem("user_doc", JSON.stringify(parsed));
+      await storageSetItem("user_doc", JSON.stringify(parsed));
     }
   }
 }
@@ -252,36 +275,36 @@ export async function markFaceRegistered(userId: string): Promise<void> {
   } catch {
     // Firestore unavailable
   }
-  const stored = localStorage.getItem("user_doc");
+  const stored = await storageGetItem("user_doc");
   if (stored) {
     const parsed = JSON.parse(stored) as UserDoc;
     if (parsed.id === userId) {
       parsed.faceRegistered = true;
       parsed.updatedAt = Date.now();
-      localStorage.setItem("user_doc", JSON.stringify(parsed));
+      await storageSetItem("user_doc", JSON.stringify(parsed));
     }
   }
 }
 
-// --- localStorage helpers ---
+// --- Storage helpers ---
 
-function _getLocalUserDoc(userId: string): UserDoc | null {
-  const stored = localStorage.getItem("user_doc");
+async function _getLocalUserDoc(userId: string): Promise<UserDoc | null> {
+  const stored = await storageGetItem("user_doc");
   if (!stored) return null;
   const parsed = JSON.parse(stored) as UserDoc;
   return parsed.id === userId ? parsed : null;
 }
 
-function _createLocalUser(uid: string, name: string, avatar: string, role?: UserRole): UserDoc {
+async function _createLocalUser(uid: string, name: string, avatar: string, role?: UserRole): Promise<UserDoc> {
   // Never allow teacher role in local fallback — teacher must come from server
   const safeRole = (role === "student") ? "student" : ("" as any);
-  const stored = localStorage.getItem("user_doc");
+  const stored = await storageGetItem("user_doc");
   if (stored) {
     const parsed = JSON.parse(stored) as UserDoc;
     if (parsed.id === uid) {
       const updated = { ...parsed, name, avatar, updatedAt: Date.now() };
       if (safeRole) updated.role = safeRole;
-      localStorage.setItem("user_doc", JSON.stringify(updated));
+      await storageSetItem("user_doc", JSON.stringify(updated));
       return updated;
     }
   }
@@ -293,11 +316,13 @@ function _createLocalUser(uid: string, name: string, avatar: string, role?: User
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
-  localStorage.setItem("user_doc", JSON.stringify(newUser));
+  await storageSetItem("user_doc", JSON.stringify(newUser));
   return newUser;
 }
 
 function _getOrCreateLocalId(): string {
+  // Dev-only fallback: use sync localStorage directly since this is only
+  // called when Zalo SDK is unavailable (browser dev mode)
   let id = localStorage.getItem("dev_user_id");
   if (!id) {
     id = "local_" + Math.random().toString(36).substring(2, 10);

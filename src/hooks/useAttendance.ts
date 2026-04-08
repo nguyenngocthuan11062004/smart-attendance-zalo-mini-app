@@ -8,7 +8,7 @@ import {
   subscribeToMyAttendance,
   getMyAttendance,
 } from "@/services/attendance.service";
-import type { FaceVerificationResult, PeerVerification, QRPayload } from "@/types";
+import type { FaceVerificationResult, GeoLocation, PeerVerification, QRPayload } from "@/types";
 
 export function useAttendance(sessionId: string | undefined, studentId: string | undefined) {
   const [myAttendance, setMyAttendance] = useAtom(myAttendanceAtom);
@@ -23,9 +23,9 @@ export function useAttendance(sessionId: string | undefined, studentId: string |
   }, [sessionId, studentId, setMyAttendance]);
 
   const checkIn = useCallback(
-    async (classId: string, studentName: string, qrPayload?: QRPayload, config?: { faceRequired?: boolean; peerRequired?: boolean }) => {
+    async (classId: string, studentName: string, qrPayload?: QRPayload, config?: { faceRequired?: boolean; peerRequired?: boolean }, location?: GeoLocation) => {
       if (!sessionId || !studentId) return null;
-      const record = await checkInStudent(sessionId, classId, studentId, studentName, qrPayload);
+      const record = await checkInStudent(sessionId, classId, studentId, studentName, qrPayload, location);
       setMyAttendance(record);
       const faceReq = config?.faceRequired !== false;
       const peerReq = config?.peerRequired !== false;

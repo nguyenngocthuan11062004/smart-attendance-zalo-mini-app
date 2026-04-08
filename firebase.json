@@ -15,19 +15,24 @@
         "firebase-debug.log",
         "firebase-debug.*.log"
       ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
+      "predeploy": []
     }
   ],
-  "hosting": {
-    "target": "admin",
-    "public": "admin/dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      { "source": "**", "destination": "/index.html" }
-    ]
-  },
+  "hosting": [
+    {
+      "target": "admin",
+      "public": "admin/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        { "source": "**", "destination": "/index.html" }
+      ]
+    },
+    {
+      "target": "legal",
+      "public": "legal",
+      "ignore": ["firebase.json", "**/.*"]
+    }
+  ],
   "storage": {
     "rules": "storage.rules"
   },

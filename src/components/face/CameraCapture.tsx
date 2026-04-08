@@ -44,8 +44,8 @@ export default function CameraCapture({
       }
     } catch (err: any) {
       const msg = err.name === "NotAllowedError"
-        ? "Vui long cho phep truy cap camera"
-        : "Khong the mo camera";
+        ? "Vui lòng cho phép truy cập camera"
+        : "Không thể mở camera";
       setCameraError(msg);
       onError?.(msg);
     }
@@ -108,7 +108,7 @@ export default function CameraCapture({
             fontSize: 14, fontWeight: 600, color: "#1a1a1a",
           }}
         >
-          Thu lai
+          Thử lại
         </button>
       </div>
     );
@@ -214,7 +214,7 @@ export default function CameraCapture({
             boxShadow: "0 0 8px rgba(34,197,94,0.5)",
           }} />
           <span style={{ color: "#22c55e", fontSize: 12 }}>
-            {isRect ? "Dat CCCD vao khung" : "Dat khuon mat trong khung tron"}
+            {isRect ? "Đặt tài liệu vào khung" : "Đặt khuôn mặt trong khung tròn"}
           </span>
         </div>
       )}
@@ -230,7 +230,7 @@ export default function CameraCapture({
           boxShadow: cameraReady && !disabled ? "0 4px 16px rgba(190,29,44,0.3)" : "none",
         }}
       >
-        Chup
+        Chụp
       </button>
     </div>
   );

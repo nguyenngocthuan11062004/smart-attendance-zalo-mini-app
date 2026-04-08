@@ -8,9 +8,10 @@ import { globalErrorAtom } from "@/store/ui";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useQRScanner } from "@/hooks/useQRScanner";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
+import { useGeolocation } from "@/hooks/useGeolocation";
 // Client-side QR validation removed — Cloud Functions handle HMAC verification server-side
 import { addBidirectionalPeerVerification } from "@/services/attendance.service";
-import { getSession } from "@/services/session.service";
+import { getSession, getSessionSecret } from "@/services/session.service";
 import { getUserDoc } from "@/services/auth.service";
 import QRDisplay from "@/components/qr/QRDisplay";
 import QRScanner from "@/components/qr/QRScanner";
@@ -128,6 +129,7 @@ export default function StudentAttendance() {
 
   const setError = useSetAtom(globalErrorAtom);
   const { scan, scanning, error: scanError } = useQRScanner();
+  const { requestLocation } = useGeolocation();
   const [peerSecret, setPeerSecret] = useState<string>("");
 
   // Session config for optional steps (default true)
@@ -141,6 +143,16 @@ export default function StudentAttendance() {
       .catch(() => setError("Không thể tải phiên điểm danh"));
   }, [sessionId, session, setSession]);
 
+  // Load peer secret for QR generation (needed after check-in)
+  useEffect(() => {
+    if (!sessionId || !session || peerSecret) return;
+    const secret = session.hmacSecret;
+    if (secret) { setPeerSecret(secret); return; }
+    getSessionSecret(sessionId)
+      .then((s) => { if (s) setPeerSecret(s); })
+      .catch(() => {});
+  }, [sessionId, session, peerSecret]);
+
   useEffect(() => {
     if (myAttendance) {
       const peerDone = !peerReq || myAttendance.peerCount >= 3;
@@ -153,7 +165,7 @@ export default function StudentAttendance() {
     } else {
       setStep("scan-teacher");
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [myAttendance, faceReq, peerReq, setStep]);
 
   useEffect(() => {
     const peerDone = !peerReq || (myAttendance?.peerCount ?? 0) >= 3;
@@ -177,20 +189,24 @@ export default function StudentAttendance() {
     try {
       const payload = parseScannedQR(content);
       if (!payload) {
-        setTeacherScanError("QR khong hop le");
+        setTeacherScanError("QR không hợp lệ");
         teacherScannedRef.current = false;
         return;
       }
-      // Server-side validation via Cloud Function (no client-side HMAC check needed)
-      const record = await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq });
-      // Store hmacSecret from CF response for peer QR generation
-      if ((record as any)?.hmacSecret) setPeerSecret((record as any).hmacSecret);
+      // Lấy vị trí GPS khi check-in
+      const location = await requestLocation() ?? undefined;
+      const record = await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
+      // Load peer secret from session subcollection (open rules)
+      if (!peerSecret && sessionId) {
+        const secret = session.hmacSecret || await getSessionSecret(sessionId);
+        if (secret) setPeerSecret(secret);
+      }
     } catch (err: any) {
       const code = err?.code?.replace("functions/", "") || "";
       if (code === "invalid-argument") {
-        setTeacherScanError("QR giang vien khong hop le hoac het han");
+        setTeacherScanError("QR giảng viên không hợp lệ hoặc hết hạn");
       } else {
-        setTeacherScanError("Loi khi quet QR giang vien. Vui long thu lai.");
+        setTeacherScanError("Lỗi khi quét QR giảng viên. Vui lòng thử lại.");
       }
       teacherScannedRef.current = false;
     }
@@ -211,18 +227,18 @@ export default function StudentAttendance() {
     try {
       const payload = parseScannedQR(content);
       if (!payload) {
-        setPeerScanError("QR khong hop le");
+        setPeerScanError("QR không hợp lệ");
         peerScannedRef.current = false;
         return;
       }
       // Basic client-side checks (no HMAC — server validates signature)
       if (payload.userId === user.id) {
-        setPeerScanError("Khong the quet QR cua chinh minh");
+        setPeerScanError("Không thể quét QR của chính mình");
         peerScannedRef.current = false;
         return;
       }
       if (myAttendance.peerVerifications.some(v => v.peerId === payload.userId)) {
-        setPeerScanError("Da xac minh ban nay roi");
+        setPeerScanError("Đã xác minh bạn này rồi");
         peerScannedRef.current = false;
         return;
       }
@@ -235,11 +251,11 @@ export default function StudentAttendance() {
     } catch (err: any) {
       const code = err?.code?.replace("functions/", "") || "";
       if (code === "already-exists") {
-        setPeerScanError("Da xac minh ban nay roi");
+        setPeerScanError("Đã xác minh bạn này rồi");
       } else if (code === "invalid-argument") {
-        setPeerScanError("QR ban be khong hop le hoac het han");
+        setPeerScanError("QR bạn bè không hợp lệ hoặc hết hạn");
       } else {
-        setError("Loi khi quet QR ban be. Vui long thu lai.");
+        setError("Lỗi khi quét QR bạn bè. Vui lòng thử lại.");
       }
       peerScannedRef.current = false;
     }
@@ -285,7 +301,7 @@ export default function StudentAttendance() {
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <p style={{ fontSize: 24, fontWeight: 700, color: "#1a1a1a" }}>Quét mã QR</p>
-              <p style={{ fontSize: 14, color: "#6b7280" }}>Huong camera vao ma QR cua giang vien</p>
+              <p style={{ fontSize: 14, color: "#6b7280" }}>Hướng camera vào mã QR của giảng viên</p>
             </div>
 
             {/* Live camera QR scanner */}
@@ -300,7 +316,7 @@ export default function StudentAttendance() {
               />
             </div>
 
-            <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Tu dong nhan dien khi thay ma QR</p>
+            <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Tự động nhận diện khi thấy mã QR</p>
 
             {teacherScanError && (
               <div style={{
@@ -333,8 +349,8 @@ export default function StudentAttendance() {
           return (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <p style={{ fontSize: 24, fontWeight: 700, color: "#1a1a1a" }}>Xac minh ngang hang</p>
-              <p style={{ fontSize: 14, color: "#6b7280" }}>Cho ban be quet QR cua ban & quet QR cua ban be</p>
+              <p style={{ fontSize: 24, fontWeight: 700, color: "#1a1a1a" }}>Xác minh ngang hàng</p>
+              <p style={{ fontSize: 14, color: "#6b7280" }}>Cho bạn bè quét QR của bạn & quét QR của bạn bè</p>
             </div>
 
             {/* Peer progress row */}
@@ -345,7 +361,7 @@ export default function StudentAttendance() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 22, fontWeight: 800, color: "#be1d2c" }}>{pc}/3</span>
-                <span style={{ fontSize: 13, color: "#6b7280" }}>peers da xac minh</span>
+                <span style={{ fontSize: 13, color: "#6b7280" }}>peers đã xác minh</span>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {[0, 1, 2].map((i) => (
@@ -372,7 +388,7 @@ export default function StudentAttendance() {
                 boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
               }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 0.5 }}>QR CUA BAN</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 0.5 }}>QR CỦA BẠN</span>
                 {qrDataURL ? (
                   <img src={qrDataURL} alt="QR" style={{ width: "100%", aspectRatio: "1", borderRadius: 12, objectFit: "contain" }} />
                 ) : (
@@ -398,7 +414,7 @@ export default function StudentAttendance() {
                 boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
               }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 0.5 }}>QUET BAN BE</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 0.5 }}>QUÉT BẠN BÈ</span>
                 {pc < 3 ? (
                   <InlineQRScanner
                     onDetect={handlePeerQRDetected}
@@ -412,7 +428,7 @@ export default function StudentAttendance() {
                   </div>
                 )}
                 <span style={{ fontSize: 11, color: "#6b7280", textAlign: "center" }}>
-                  {pc < 3 ? "Tu dong nhan dien" : "Hoan tat!"}
+                  {pc < 3 ? "Tự động nhận diện" : "Hoàn tất!"}
                 </span>
               </div>
             </div>
@@ -441,7 +457,7 @@ export default function StudentAttendance() {
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Hoan tat</span>
+                <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Hoàn tất</span>
               </button>
             )}
           </>

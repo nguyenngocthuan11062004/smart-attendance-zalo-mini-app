@@ -5,7 +5,7 @@ import { initAuthState } from "@/services/auth.service";
 
 /**
  * Initializes auth state at the app root level.
- * Restores from localStorage or auto sign-in with Zalo SDK.
+ * Restores from Zalo SDK storage or auto sign-in with Zalo SDK.
  * Must be called inside JotaiProvider, only once (in layout).
  */
 export function useAuthInit() {

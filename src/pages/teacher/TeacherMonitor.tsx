@@ -4,11 +4,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeSessionAtom } from "@/store/session";
 import { globalErrorAtom } from "@/store/ui";
-import { subscribeToSessionAttendance, manualCheckIn } from "@/services/attendance.service";
+import { subscribeToSessionAttendance, getSessionAttendance, manualCheckIn } from "@/services/attendance.service";
 import { getSession, endSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "@/config/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/config/firebase";
+import { computeTrustScore } from "@/types";
 import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc, ClassDoc } from "@/types";
 
@@ -79,8 +80,14 @@ export default function TeacherMonitor() {
     setEnding(true);
     try {
       await endSession(sessionId);
-      const calculateTrustScores = httpsCallable(functions, "calculateTrustScores");
-      await calculateTrustScores({ sessionId }).catch(() => {});
+      // Tính trust score client-side
+      const records = await getSessionAttendance(sessionId);
+      for (const r of records) {
+        const score = computeTrustScore(r.peerCount, r.faceVerification);
+        if (score !== r.trustScore) {
+          await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
+        }
+      }
       setActiveSession(null);
       navigate(`/teacher/review/${sessionId}`);
     } catch {

@@ -2,6 +2,8 @@
  * Offline operation queue - stores failed writes and retries when online
  */
 
+import { storageSetItem, storageGetItem, storageRemoveItem } from "@/utils/storage";
+
 interface QueuedOperation {
   id: string;
   type: string;
@@ -11,49 +13,49 @@ interface QueuedOperation {
 
 const QUEUE_KEY = "inhust_offline_queue";
 
-function getQueue(): QueuedOperation[] {
+async function getQueue(): Promise<QueuedOperation[]> {
   try {
-    const raw = localStorage.getItem(QUEUE_KEY);
+    const raw = await storageGetItem(QUEUE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-function saveQueue(queue: QueuedOperation[]): void {
+async function saveQueue(queue: QueuedOperation[]): Promise<void> {
   try {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    await storageSetItem(QUEUE_KEY, JSON.stringify(queue));
   } catch {
     // ignore
   }
 }
 
-export function enqueueOperation(type: string, payload: Record<string, unknown>): void {
-  const queue = getQueue();
+export async function enqueueOperation(type: string, payload: Record<string, unknown>): Promise<void> {
+  const queue = await getQueue();
   queue.push({
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     type,
     payload,
     timestamp: Date.now(),
   });
-  saveQueue(queue);
+  await saveQueue(queue);
 }
 
-export function dequeueOperation(id: string): void {
-  const queue = getQueue().filter((op) => op.id !== id);
-  saveQueue(queue);
+export async function dequeueOperation(id: string): Promise<void> {
+  const queue = (await getQueue()).filter((op) => op.id !== id);
+  await saveQueue(queue);
 }
 
-export function getPendingOperations(): QueuedOperation[] {
-  return getQueue();
+export async function getPendingOperations(): Promise<QueuedOperation[]> {
+  return await getQueue();
 }
 
-export function clearQueue(): void {
-  localStorage.removeItem(QUEUE_KEY);
+export async function clearQueue(): Promise<void> {
+  await storageRemoveItem(QUEUE_KEY);
 }
 
-export function getQueueSize(): number {
-  return getQueue().length;
+export async function getQueueSize(): Promise<number> {
+  return (await getQueue()).length;
 }
 
 type OperationHandler = (payload: Record<string, unknown>) => Promise<void>;
@@ -73,7 +75,7 @@ export function registerQueueHandler(type: string, handler: OperationHandler): v
  * Failed operations remain for next retry.
  */
 export async function processOfflineQueue(): Promise<{ processed: number; failed: number }> {
-  const queue = getQueue();
+  const queue = await getQueue();
   if (queue.length === 0) return { processed: 0, failed: 0 };
 
   let processed = 0;
@@ -88,7 +90,7 @@ export async function processOfflineQueue(): Promise<{ processed: number; failed
     }
     try {
       await handler(op.payload);
-      dequeueOperation(op.id);
+      await dequeueOperation(op.id);
       processed++;
     } catch {
       failed++;

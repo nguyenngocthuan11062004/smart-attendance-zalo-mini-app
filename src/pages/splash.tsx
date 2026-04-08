@@ -3,6 +3,7 @@ import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom, isAuthenticatedAtom, authInitializedAtom } from "@/store/auth";
+import { storageGetItem } from "@/utils/storage";
 
 /* Circuit board SVG background pattern */
 function CircuitPattern() {
@@ -130,19 +131,22 @@ export default function SplashPage() {
     if (!readyToNavigate || !authInitialized) return;
 
     setFadeOut(true);
-    const hasSeenWelcome = localStorage.getItem("hasSeenWelcome") === "1";
     const hasRole = isAuthenticated && currentUser?.role && currentUser.role !== "";
 
-    const timer = setTimeout(() => {
-      if (!hasSeenWelcome) {
-        navigate("/welcome", { replace: true });
-      } else if (!hasRole) {
-        navigate("/login", { replace: true });
-      } else {
-        navigate("/home", { replace: true });
-      }
-    }, 600);
-    return () => clearTimeout(timer);
+    let timer: ReturnType<typeof setTimeout>;
+    storageGetItem("hasSeenWelcome").then((val) => {
+      const hasSeenWelcome = val === "1";
+      timer = setTimeout(() => {
+        if (!hasSeenWelcome) {
+          navigate("/welcome", { replace: true });
+        } else if (!hasRole) {
+          navigate("/login", { replace: true });
+        } else {
+          navigate("/home", { replace: true });
+        }
+      }, 600);
+    });
+    return () => { if (timer) clearTimeout(timer); };
   }, [readyToNavigate, authInitialized, isAuthenticated, currentUser, navigate]);
 
   // Fallback timeout
@@ -150,8 +154,10 @@ export default function SplashPage() {
     const timeout = setTimeout(() => {
       if (!authInitialized) {
         setFadeOut(true);
-        const hasSeenWelcome = localStorage.getItem("hasSeenWelcome") === "1";
-        setTimeout(() => navigate(hasSeenWelcome ? "/login" : "/welcome", { replace: true }), 600);
+        storageGetItem("hasSeenWelcome").then((val) => {
+          const hasSeenWelcome = val === "1";
+          setTimeout(() => navigate(hasSeenWelcome ? "/login" : "/welcome", { replace: true }), 600);
+        });
       }
     }, 5000);
     return () => clearTimeout(timeout);

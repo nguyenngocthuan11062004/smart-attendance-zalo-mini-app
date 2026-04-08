@@ -45,8 +45,8 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
     } catch (err: any) {
       setError(
         err.name === "NotAllowedError"
-          ? "Vui long cho phep truy cap camera"
-          : "Khong the mo camera"
+          ? "Vui lòng cho phép truy cập camera"
+          : "Không thể mở camera"
       );
     }
   }, []);
@@ -177,12 +177,12 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
               boxShadow: "0 0 6px rgba(34,197,94,0.6)",
               animation: "pulse 1.5s infinite",
             }} />
-            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>Dang quet...</span>
+            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>Đang quét...</span>
           </>
         ) : (
           <>
             <div style={{ width: 8, height: 8, borderRadius: 4, background: "#f59e0b" }} />
-            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>Dang mo camera...</span>
+            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>Đang mở camera...</span>
           </>
         )}
       </div>

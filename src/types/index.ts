@@ -87,6 +87,7 @@ export interface AttendanceDoc {
   trustScore: TrustScore;
   teacherOverride?: "present" | "absent";
   faceVerification?: FaceVerificationResult;
+  location?: GeoLocation;  // student GPS location at check-in
   manualBy?: string;      // teacherId who marked manually
   manualReason?: string;   // reason for manual attendance
   manualAt?: number;       // timestamp of manual action
@@ -132,9 +133,6 @@ export interface FaceRegistrationDoc {
   referenceImagePath: string;
   ekycImageId: string;
   sanityCheckPassed: boolean;
-  cccdFrontPath?: string;
-  cccdBackPath?: string;
-  ocrData?: Record<string, any>;
   faceMatchConfidence?: number;
   registeredAt: number;
   updatedAt: number;

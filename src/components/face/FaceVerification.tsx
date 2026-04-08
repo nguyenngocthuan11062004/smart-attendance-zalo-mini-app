@@ -49,12 +49,12 @@ export default function FaceVerification({
         videoRef.current.srcObject = stream;
         videoRef.current.play().catch(() => {});
       }
-      setStatusText("Dang nhan dien...");
+      setStatusText("Đang nhận diện...");
       setProgress(15);
     } catch {
-      setStatusText("Khong the truy cap camera");
+      setStatusText("Không thể truy cập camera");
       setState("error");
-      setErrorMsg("Khong the mo camera. Vui long cap quyen camera.");
+      setErrorMsg("Không thể mở camera. Vui lòng cấp quyền camera.");
     }
   }, []);
 
@@ -103,7 +103,7 @@ export default function FaceVerification({
 
     isVerifyingRef.current = true;
     setState("verifying");
-    setStatusText("Dang nhan dien...");
+    setStatusText("Đang nhận diện...");
     setProgress(50);
 
     try {
@@ -113,7 +113,7 @@ export default function FaceVerification({
 
       if (result.error) {
         if (result.error === "no_registration") {
-          setErrorMsg("Chua dang ky khuon mat. Vui long dang ky truoc.");
+          setErrorMsg("Chưa đăng ký khuôn mặt. Vui lòng đăng ký trước.");
           setState("error");
           stopCamera();
           return;
@@ -121,7 +121,7 @@ export default function FaceVerification({
         // Transient error — retry
         isVerifyingRef.current = false;
         setState("scanning");
-        setStatusText("Dang nhan dien...");
+        setStatusText("Đang nhận diện...");
         setProgress(25);
         captureTimerRef.current = window.setTimeout(autoVerify, 2500);
         return;
@@ -131,7 +131,7 @@ export default function FaceVerification({
 
       if (result.matched && result.confidence >= 0.7) {
         setProgress(100);
-        setStatusText("Xac minh thanh cong!");
+        setStatusText("Xác minh thành công!");
         setState("success");
         stopCamera();
         setTimeout(() => {
@@ -153,11 +153,11 @@ export default function FaceVerification({
 
         if (retryCount >= 3) {
           setState("failed");
-          setStatusText("Khong khop khuon mat");
+          setStatusText("Không khớp khuôn mặt");
           stopCamera();
         } else {
           setState("scanning");
-          setStatusText("Dang nhan dien...");
+          setStatusText("Đang nhận diện...");
           captureTimerRef.current = window.setTimeout(autoVerify, 2000);
         }
       }
@@ -166,7 +166,7 @@ export default function FaceVerification({
       isVerifyingRef.current = false;
       // Retry on transient errors
       if (retryCount >= 3) {
-        setErrorMsg(err.message || "Loi xac minh khuon mat");
+        setErrorMsg(err.message || "Lỗi xác minh khuôn mặt");
         setState("error");
         stopCamera();
       } else {
@@ -204,7 +204,7 @@ export default function FaceVerification({
     setErrorMsg(null);
     isVerifyingRef.current = false;
     setState("scanning");
-    setStatusText("Dang khoi dong camera...");
+    setStatusText("Đang khởi động camera...");
     startCamera().then(() => {
       captureTimerRef.current = window.setTimeout(autoVerify, 2000);
     });
@@ -229,8 +229,8 @@ export default function FaceVerification({
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Title section */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <p style={{ fontSize: 24, fontWeight: 700, color: "#1a1a1a" }}>Xac minh khuon mat</p>
-        <p style={{ fontSize: 14, color: "#6b7280" }}>Dat khuon mat vao khung tron</p>
+        <p style={{ fontSize: 24, fontWeight: 700, color: "#1a1a1a" }}>Xác minh khuôn mặt</p>
+        <p style={{ fontSize: 14, color: "#6b7280" }}>Đặt khuôn mặt vào khung tròn</p>
       </div>
 
       {/* Face detection card */}
@@ -380,12 +380,12 @@ export default function FaceVerification({
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 18h6M10 22h4M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 01-1 1h-6a1 1 0 01-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z" />
           </svg>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>Huong dan</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>Hướng dẫn</span>
         </div>
         {[
-          "Dam bao du anh sang xung quanh",
-          "Giu khuon mat o chinh giua khung hinh",
-          "Khong deo kinh ram hoac khau trang",
+          "Đảm bảo đủ ánh sáng xung quanh",
+          "Giữ khuôn mặt ở chính giữa khung hình",
+          "Không đeo kính râm hoặc khẩu trang",
         ].map((tip, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 6, height: 6, borderRadius: 3, background: "#a78bfa", flexShrink: 0 }} />
@@ -406,7 +406,7 @@ export default function FaceVerification({
               color: "#fff", fontSize: 15, fontWeight: 700,
             }}
           >
-            Thu lai
+            Thử lại
           </button>
           <button
             onClick={handleSkip}
@@ -415,7 +415,7 @@ export default function FaceVerification({
               border: "none", fontSize: 15, fontWeight: 600, color: "#6b7280",
             }}
           >
-            Bo qua
+            Bỏ qua
           </button>
         </div>
       )}
@@ -429,7 +429,7 @@ export default function FaceVerification({
             border: "none", fontSize: 15, fontWeight: 600, color: "#6b7280",
           }}
         >
-          Bo qua buoc nay
+          Bỏ qua bước này
         </button>
       )}
     </div>

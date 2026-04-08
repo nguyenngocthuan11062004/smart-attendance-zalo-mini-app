@@ -36,11 +36,9 @@ export async function startSession(
     return mockDb.createSession(data);
   }
   const ref = doc(collection(db, SESSIONS));
-  // Write session WITHOUT hmacSecret (secret stored in subcollection)
-  const { hmacSecret: secret, ...sessionData } = data;
-  await setDoc(ref, sessionData);
-  // Write hmacSecret to subcollection (only readable by teacher via rules)
-  await setDoc(doc(db, SESSIONS, ref.id, "secrets", "hmac"), { hmacSecret: secret });
+  // Lưu hmacSecret trực tiếp trong session doc (open rules)
+  // TODO: Khi có Firebase Auth, tách hmacSecret vào subcollection + restrict read cho teacher
+  await setDoc(ref, data);
   return { id: ref.id, ...data };
 }
 
@@ -53,9 +51,15 @@ export async function getSessionSecret(sessionId: string): Promise<string | null
     const s = mockDb.getSession(sessionId);
     return s?.hmacSecret || null;
   }
-  const snap = await getDoc(doc(db, SESSIONS, sessionId, "secrets", "hmac"));
-  if (!snap.exists()) return null;
-  return snap.data().hmacSecret;
+  // Thử đọc từ session doc trước (open rules)
+  const sessionSnap = await getDoc(doc(db, SESSIONS, sessionId));
+  if (sessionSnap.exists() && sessionSnap.data().hmacSecret) {
+    return sessionSnap.data().hmacSecret;
+  }
+  // Fallback: đọc từ subcollection (sessions cũ)
+  const secretSnap = await getDoc(doc(db, SESSIONS, sessionId, "secrets", "hmac"));
+  if (secretSnap.exists()) return secretSnap.data().hmacSecret;
+  return null;
 }
 
 export async function endSession(sessionId: string): Promise<void> {

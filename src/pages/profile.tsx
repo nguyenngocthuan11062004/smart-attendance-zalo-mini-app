@@ -5,7 +5,9 @@ import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { isValidPhone, isValidEmail } from "@/utils/sanitize";
-import MicrosoftLinkCard from "@/components/profile/MicrosoftLinkCard";
+import { storageSetItem } from "@/utils/storage";
+// Microsoft OAuth hidden — requires Cloud Functions & redirects outside Zalo (causes rejection)
+// import MicrosoftLinkCard from "@/components/profile/MicrosoftLinkCard";
 import DarkModal from "@/components/ui/DarkModal";
 import bkLogo from "@/static/bk_logo.png";
 import bgProfile from "@/static/bgprofile.jpg";
@@ -72,7 +74,7 @@ export default function ProfilePage() {
 
     const updated = { ...user, ...updates };
     setUser(updated);
-    localStorage.setItem("user_doc", JSON.stringify(updated));
+    await storageSetItem("user_doc", JSON.stringify(updated));
     setEditModal(false);
 
     // Persist to Firestore in background
@@ -206,10 +208,10 @@ export default function ProfilePage() {
         <InfoRow label="Lớp:" value={user.className || "\u2014"} />
       </div>
 
-      {/* -- Microsoft 365 Link -- */}
-      <div style={{ margin: "16px 16px 0" }}>
+      {/* -- Microsoft 365 Link (hidden — requires Cloud Functions & redirects outside Zalo) -- */}
+      {/* <div style={{ margin: "16px 16px 0" }}>
         <MicrosoftLinkCard />
-      </div>
+      </div> */}
 
       {/* -- Edit + Switch Role + Logout -- */}
       <div style={{ padding: "20px 16px", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -228,10 +230,10 @@ export default function ProfilePage() {
           Chỉnh sửa thông tin
         </button>
         <button
-          onClick={() => {
+          onClick={async () => {
             const updated = { ...user, role: "" as any, updatedAt: Date.now() };
             setUser(updated);
-            localStorage.setItem("user_doc", JSON.stringify(updated));
+            await storageSetItem("user_doc", JSON.stringify(updated));
             navigate("/login", { replace: true });
           }}
           style={{

@@ -11,8 +11,9 @@ import { getClassById } from "@/services/class.service";
 import { getActiveSessionForClass, getClassSessions, getSessionSecret } from "@/services/session.service";
 import { startSession, endSession } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "@/config/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/config/firebase";
+import { computeTrustScore } from "@/types";
 import { updateSessionLocation } from "@/services/session.service";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { ClassDoc, SessionDoc, AttendanceDoc } from "@/types";
@@ -88,7 +89,7 @@ export default function TeacherSession() {
       setActiveSession(newSession);
       if (newSession.hmacSecret) setSessionSecret(newSession.hmacSecret);
     } catch {
-      setError("Khong the bat dau phien diem danh");
+      setError("Không thể bắt đầu phiên điểm danh");
     } finally {
       setStarting(false);
     }
@@ -99,8 +100,14 @@ export default function TeacherSession() {
     setEnding(true);
     try {
       await endSession(session.id);
-      const calculateTrustScores = httpsCallable(functions, "calculateTrustScores");
-      await calculateTrustScores({ sessionId: session.id }).catch(() => {});
+      // Tính trust score client-side cho tất cả attendance records
+      const records = await getSessionAttendance(session.id);
+      for (const r of records) {
+        const score = computeTrustScore(r.peerCount, r.faceVerification);
+        if (score !== r.trustScore) {
+          await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
+        }
+      }
       const endedSession = { ...session, status: "ended" as const, endedAt: Date.now() };
       setSession(null);
       setActiveSession(null);
@@ -108,7 +115,7 @@ export default function TeacherSession() {
       setShowEndConfirm(false);
       navigate(`/teacher/review/${session.id}`);
     } catch {
-      setError("Khong the ket thuc phien. Vui long thu lai.");
+      setError("Không thể kết thúc phiên. Vui lòng thử lại.");
     } finally {
       setEnding(false);
     }
@@ -136,7 +143,7 @@ export default function TeacherSession() {
           padding: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 14px) 16px 14px",
           height: 64, display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Phien diem danh</span>
+          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Phiên điểm danh</span>
         </div>
         <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="skeleton" style={{ height: 80, borderRadius: 24 }} />
@@ -162,7 +169,7 @@ export default function TeacherSession() {
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
         </button>
-        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Phien diem danh</span>
+        <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Phiên điểm danh</span>
         <button style={{
           width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
           border: "none", display: "flex", alignItems: "center", justifyContent: "center",
@@ -236,8 +243,8 @@ export default function TeacherSession() {
                 <rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3M17 17h3v3M14 20h3" />
               </svg>
             </div>
-            <p style={{ color: "#111827", fontSize: 18, fontWeight: 700 }}>San sang diem danh</p>
-            <p style={{ color: "#6b7280", fontSize: 14 }}>Bat dau phien de tao ma QR cho sinh vien</p>
+            <p style={{ color: "#111827", fontSize: 18, fontWeight: 700 }}>Sẵn sàng điểm danh</p>
+            <p style={{ color: "#6b7280", fontSize: 14 }}>Bắt đầu phiên để tạo mã QR cho sinh viên</p>
             <button
               disabled={starting}
               onClick={handleStart}
@@ -254,7 +261,7 @@ export default function TeacherSession() {
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
               )}
-              {starting ? "Dang bat dau..." : "Bat dau diem danh"}
+              {starting ? "Đang bắt đầu..." : "Bắt đầu điểm danh"}
             </button>
           </div>
         ) : (
@@ -267,7 +274,7 @@ export default function TeacherSession() {
               border: "1px solid rgba(0,0,0,0.04)",
               display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
             }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#9ca3af", letterSpacing: 1.5 }}>QR CODE DIEM DANH</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#9ca3af", letterSpacing: 1.5 }}>QR CODE ĐIỂM DANH</span>
               {/* QR placeholder / image */}
               <div style={{
                 width: 200, height: 200, borderRadius: 20,
@@ -311,11 +318,11 @@ export default function TeacherSession() {
                 </svg>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Vi tri hien tai</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Vị trí hiện tại</span>
                 <span style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}>
                   {locationSet && gpsLocation
                     ? `${gpsLocation.latitude.toFixed(4)}° N, ${gpsLocation.longitude.toFixed(4)}° E`
-                    : gpsLoading ? "Dang lay vi tri..." : "Chua co vi tri"}
+                    : gpsLoading ? "Đang lấy vị trí..." : "Chưa có vị trí"}
                 </span>
               </div>
             </div>
@@ -337,7 +344,7 @@ export default function TeacherSession() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><path d="M22 4L12 14.01l-3-3" /></svg>
                 </div>
                 <span style={{ fontSize: 22, fontWeight: 800, color: "#22c55e" }}>{presentCount}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7280" }}>Co mat</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7280" }}>Có mặt</span>
               </div>
               {/* Review */}
               <div style={{
@@ -354,7 +361,7 @@ export default function TeacherSession() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                 </div>
                 <span style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b" }}>{reviewCount}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7280" }}>Xem xet</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7280" }}>Xem xét</span>
               </div>
               {/* Absent */}
               <div style={{
@@ -371,7 +378,7 @@ export default function TeacherSession() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>
                 </div>
                 <span style={{ fontSize: 22, fontWeight: 800, color: "#ef4444" }}>{Math.max(0, absentCount)}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7280" }}>Vang</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#6b7280" }}>Vắng</span>
               </div>
             </div>
 
@@ -389,7 +396,7 @@ export default function TeacherSession() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                 </svg>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#374151" }}>Theo doi</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#374151" }}>Theo dõi</span>
               </button>
               <button
                 onClick={() => setShowEndConfirm(true)}
@@ -404,7 +411,7 @@ export default function TeacherSession() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
                   <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Ket thuc</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Kết thúc</span>
               </button>
             </div>
           </>
@@ -413,7 +420,7 @@ export default function TeacherSession() {
         {/* Past sessions (when no active session) */}
         {!isActive && pastSessions.length > 0 && (
           <>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>PHIEN TRUOC ({pastSessions.length})</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>PHIÊN TRƯỚC ({pastSessions.length})</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {pastSessions.map((s) => (
                 <button
@@ -457,13 +464,13 @@ export default function TeacherSession() {
       <DarkModal
         visible={showEndConfirm}
         onClose={() => setShowEndConfirm(false)}
-        title="Ket thuc phien?"
+        title="Kết thúc phiên?"
       >
         <div style={{
           background: "rgba(245,158,11,0.1)", borderRadius: 12, padding: 12, marginBottom: 16,
         }}>
           <p style={{ color: "#f59e0b", fontSize: 14 }}>
-            Sau khi ket thuc, he thong se tu dong tinh diem tin cay cho tat ca sinh vien.
+            Sau khi kết thúc, hệ thống sẽ tự động tính điểm tin cậy cho tất cả sinh viên.
           </p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
@@ -475,7 +482,7 @@ export default function TeacherSession() {
               fontSize: 15, fontWeight: 600, color: "#6b7280",
             }}
           >
-            Huy
+            Hủy
           </button>
           <button
             disabled={ending}
@@ -486,7 +493,7 @@ export default function TeacherSession() {
               fontSize: 15, fontWeight: 700, color: "#fff",
             }}
           >
-            {ending ? "Dang ket thuc..." : "Ket thuc"}
+            {ending ? "Đang kết thúc..." : "Kết thúc"}
           </button>
         </div>
       </DarkModal>

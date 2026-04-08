@@ -79,7 +79,7 @@ export default function TeacherClassDetail() {
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Chi tiet lop</span>
+          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Chi tiết lớp</span>
           <button style={{
             width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
             border: "none", display: "flex", alignItems: "center", justifyContent: "center",
@@ -113,11 +113,11 @@ export default function TeacherClassDetail() {
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Chi tiet lop</span>
+          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Chi tiết lớp</span>
           <div style={{ width: 36 }} />
         </div>
         <div style={{ padding: "60px 20px", textAlign: "center" }}>
-          <p style={{ color: "#9ca3af" }}>Khong tim thay lop hoc</p>
+          <p style={{ color: "#9ca3af" }}>Không tìm thấy lớp học</p>
         </div>
       </Page>
     );
@@ -153,7 +153,7 @@ export default function TeacherClassDetail() {
           background: "#be1d2c", borderRadius: 16, padding: 20,
           display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
         }}>
-          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>MA LOP</span>
+          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>MÃ LỚP</span>
           <span style={{ color: "#fff", fontSize: 28, fontWeight: 800, letterSpacing: 4 }}>{classDoc.code}</span>
           <button
             onClick={handleCopyCode}
@@ -164,7 +164,7 @@ export default function TeacherClassDetail() {
             }}
           >
             <span style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>
-              {copied ? "Da copy!" : "Copy ma lop"}
+              {copied ? "Đã copy!" : "Copy mã lớp"}
             </span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
               {copied ? (
@@ -178,7 +178,7 @@ export default function TeacherClassDetail() {
 
         {/* Stats row */}
         <div style={{ display: "flex", gap: 12 }}>
-          {/* Sinh vien */}
+          {/* Sinh viên */}
           <div style={{
             flex: 1, background: "#fff", borderRadius: 12,
             display: "flex", overflow: "hidden",
@@ -186,10 +186,10 @@ export default function TeacherClassDetail() {
             <div style={{ width: 3, background: "#be1d2c", borderRadius: "12px 0 0 12px" }} />
             <div style={{ padding: "16px 16px 16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: "#be1d2c" }}>{classDoc.studentIds.length}</span>
-              <span style={{ fontSize: 12, color: "#6b7280" }}>Sinh vien</span>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>Sinh viên</span>
             </div>
           </div>
-          {/* Phien */}
+          {/* Phiên */}
           <div style={{
             flex: 1, background: "#fff", borderRadius: 12,
             display: "flex", overflow: "hidden",
@@ -197,7 +197,7 @@ export default function TeacherClassDetail() {
             <div style={{ width: 3, background: "#a78bfa", borderRadius: "12px 0 0 12px" }} />
             <div style={{ padding: "16px 16px 16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: "#a78bfa" }}>{sessions.length}</span>
-              <span style={{ fontSize: 12, color: "#6b7280" }}>Phien</span>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>Phiên</span>
             </div>
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function TeacherClassDetail() {
           border: "1px solid rgba(0,0,0,0.06)",
         }}>
           <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>CAI DAT DIEM DANH</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>CẤU HÌNH ĐIỂM DANH</span>
           </div>
           {/* Face toggle */}
           <div style={{
@@ -219,7 +219,7 @@ export default function TeacherClassDetail() {
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "#f0f0f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4" /><path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" /></svg>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>Xac minh khuon mat</span>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>Xác minh khuôn mặt</span>
             </div>
             <button
               onClick={() => handleToggleConfig("faceRequired", !faceRequired)}
@@ -247,7 +247,7 @@ export default function TeacherClassDetail() {
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "#f0f0f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>Xac minh ngang hang</span>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>Xác minh ngang hàng</span>
             </div>
             <button
               onClick={() => handleToggleConfig("peerRequired", !peerRequired)}
@@ -281,7 +281,7 @@ export default function TeacherClassDetail() {
               <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
               <line x1="12" y1="3" x2="12" y2="21" />
             </svg>
-            <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>Diem danh</span>
+            <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>Điểm danh</span>
           </button>
           <div style={{ display: "flex", gap: 10 }}>
             <button
@@ -295,7 +295,7 @@ export default function TeacherClassDetail() {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <path d="M12 8v4M12 16h.01" />
               </svg>
-              <span style={{ color: "#1a1a1a", fontSize: 13, fontWeight: 700 }}>Gian lan</span>
+              <span style={{ color: "#1a1a1a", fontSize: 13, fontWeight: 700 }}>Gian lận</span>
             </button>
             <button
               onClick={() => navigate(`/teacher/analytics/${classDoc.id}`)}
@@ -307,17 +307,17 @@ export default function TeacherClassDetail() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round">
                 <rect x="3" y="12" width="4" height="9" rx="1" /><rect x="10" y="8" width="4" height="13" rx="1" /><rect x="17" y="3" width="4" height="18" rx="1" />
               </svg>
-              <span style={{ color: "#1a1a1a", fontSize: 13, fontWeight: 700 }}>Thong ke</span>
+              <span style={{ color: "#1a1a1a", fontSize: 13, fontWeight: 700 }}>Thống kê</span>
             </button>
           </div>
         </div>
 
         {/* Recent sessions */}
-        <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>PHIEN GAN DAY</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>PHIÊN GẦN ĐÂY</span>
 
         {sessions.length === 0 ? (
           <div style={{ padding: "24px 0", textAlign: "center" }}>
-            <p style={{ color: "#9ca3af", fontSize: 14 }}>Chua co phien nao</p>
+            <p style={{ color: "#9ca3af", fontSize: 14 }}>Chưa có phiên nào</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -347,7 +347,7 @@ export default function TeacherClassDetail() {
                     background: s.status === "active" ? "rgba(34,197,94,0.15)" : "#dcfce7",
                     color: s.status === "active" ? "#22c55e" : "#22c55e",
                   }}>
-                    {s.status === "active" ? "Dang diem danh" : "Hoan thanh"}
+                    {s.status === "active" ? "Đang điểm danh" : "Hoàn thành"}
                   </span>
                   <span style={{ color: "#6b7280", fontSize: 12 }}>
                     {s.checkedInCount ?? 0}/{classDoc.studentIds.length} SV

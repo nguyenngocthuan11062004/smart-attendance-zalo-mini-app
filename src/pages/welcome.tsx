@@ -1,6 +1,7 @@
 import React from "react";
 import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
+import { storageSetItem } from "@/utils/storage";
 
 const FEATURES = [
   {
@@ -71,8 +72,9 @@ export default function WelcomePage() {
   const navigate = useNavigate();
 
   const onStart = () => {
-    localStorage.setItem("hasSeenWelcome", "1");
-    navigate("/login", { replace: true });
+    storageSetItem("hasSeenWelcome", "1").then(() => {
+      navigate("/login", { replace: true });
+    });
   };
 
   return (

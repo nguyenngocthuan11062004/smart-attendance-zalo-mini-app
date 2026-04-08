@@ -59,18 +59,18 @@ export async function getClassByCode(code: string): Promise<ClassDoc | null> {
 
 export async function getTeacherClasses(teacherId: string): Promise<ClassDoc[]> {
   if (isMockMode()) return mockDb.getTeacherClasses(teacherId);
-  const cached = cacheGet<ClassDoc[]>(`teacher_classes_${teacherId}`);
+  const cached = await cacheGet<ClassDoc[]>(`teacher_classes_${teacherId}`);
   if (cached) return cached;
   const q = query(collection(db, CLASSES), where("teacherId", "==", teacherId));
   const snap = await getDocs(q);
   const result = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
-  cacheSet(`teacher_classes_${teacherId}`, result, 2 * 60 * 1000);
+  await cacheSet(`teacher_classes_${teacherId}`, result, 2 * 60 * 1000);
   return result;
 }
 
 export async function getStudentClasses(studentId: string): Promise<ClassDoc[]> {
   if (isMockMode()) return mockDb.getStudentClasses(studentId);
-  const cached = cacheGet<ClassDoc[]>(`student_classes_${studentId}`);
+  const cached = await cacheGet<ClassDoc[]>(`student_classes_${studentId}`);
   if (cached) return cached;
   const q = query(
     collection(db, CLASSES),
@@ -78,7 +78,7 @@ export async function getStudentClasses(studentId: string): Promise<ClassDoc[]> 
   );
   const snap = await getDocs(q);
   const result = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
-  cacheSet(`student_classes_${studentId}`, result, 2 * 60 * 1000);
+  await cacheSet(`student_classes_${studentId}`, result, 2 * 60 * 1000);
   return result;
 }
 
@@ -87,7 +87,7 @@ export async function joinClass(classId: string, studentId: string): Promise<voi
   await updateDoc(doc(db, CLASSES, classId), {
     studentIds: arrayUnion(studentId),
   });
-  cacheRemove(`student_classes_${studentId}`);
+  await cacheRemove(`student_classes_${studentId}`);
 }
 
 export async function updateClassConfig(
@@ -107,7 +107,7 @@ export async function updateClassConfig(
     peerRequired: config.peerRequired,
   });
   // Clear teacher class cache so updated config is reflected
-  cacheRemove(`teacher_classes_`);
+  await cacheRemove(`teacher_classes_`);
 }
 
 export async function getClassStudents(

@@ -69,9 +69,6 @@ export interface FaceRegistrationDoc {
   referenceImagePath: string; // Firebase Storage: "faces/{studentId}/reference.jpg"
   ekycImageId: string; // eKYC photo_id or "pending"
   sanityCheckPassed: boolean;
-  cccdFrontPath?: string;
-  cccdBackPath?: string;
-  ocrData?: Record<string, any>;
   faceMatchConfidence?: number;
   registeredAt: number;
   updatedAt: number;
