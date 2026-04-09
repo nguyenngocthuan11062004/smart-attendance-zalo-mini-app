@@ -35,36 +35,55 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * Auto sign-in using Zalo SDK.
  * Gets Zalo user info (id, name, avatar) and creates/updates user doc.
  */
+/**
+ * Auto sign-in — chỉ lấy getUserID(), KHÔNG xin quyền.
+ * Theo chính sách Zalo 6.1: không được xin quyền khi user vừa vào app.
+ */
 export async function signIn(): Promise<UserDoc> {
   let uid: string;
-  let name = "Zalo User";
-  let avatar = "";
-  let followedOA: boolean | undefined;
+  const name = "Zalo User";
+  const avatar = "";
 
-  // Chỉ xin quyền userInfo khi đăng nhập (name, avatar)
-  // scope.userPhonenumber sẽ được xin riêng khi cần (profile page)
+  try {
+    uid = (await getUserID({})).toString();
+  } catch {
+    uid = _getOrCreateLocalId();
+  }
+
+  return await createOrUpdateUser(uid, name, avatar);
+}
+
+/**
+ * Xin quyền userInfo và cập nhật thông tin (tên, avatar).
+ * Gọi khi user tương tác (VD: nhấn "Tiếp tục" ở login) — có ngữ cảnh rõ ràng.
+ * Theo chính sách Zalo 6.1 + 6.3: user từ chối vẫn dùng được app.
+ */
+export async function requestUserInfo(userId: string): Promise<{ name: string; avatar: string } | null> {
   try {
     await authorize({ scopes: ["scope.userInfo"] });
-  } catch {
-    // User từ chối hoặc SDK lỗi — tiếp tục với dữ liệu có thể lấy được
-  }
+    const { userInfo } = await getUserInfo({ autoRequestPermission: false });
+    const name = userInfo.name || "Zalo User";
+    const avatar = userInfo.avatar || "";
 
-  // Lấy thông tin người dùng (name, avatar)
-  try {
-    const { userInfo } = await getUserInfo({ autoRequestPermission: true });
-    uid = userInfo.id || (await getUserID({})).toString();
-    name = userInfo.name || name;
-    avatar = userInfo.avatar || avatar;
-    followedOA = (userInfo as any).followedOA ?? undefined;
-  } catch {
-    try {
-      uid = (await getUserID({})).toString();
-    } catch {
-      uid = _getOrCreateLocalId();
+    // Cập nhật Firestore + storage
+    await withTimeout(
+      setDoc(doc(db, "users", userId), { name, avatar, updatedAt: Date.now() }, { merge: true }),
+      5000
+    );
+    const stored = await storageGetItem("user_doc");
+    if (stored) {
+      const parsed = JSON.parse(stored) as UserDoc;
+      parsed.name = name;
+      parsed.avatar = avatar;
+      parsed.updatedAt = Date.now();
+      await storageSetItem("user_doc", JSON.stringify(parsed));
     }
-  }
 
-  return await createOrUpdateUser(uid, name, avatar, undefined, followedOA);
+    return { name, avatar };
+  } catch {
+    // User từ chối — vẫn dùng được app với tên mặc định
+    return null;
+  }
 }
 
 // --- Request phone number (separate permission) ---

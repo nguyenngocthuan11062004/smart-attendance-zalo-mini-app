@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { currentUserAtom } from "@/store/auth";
 import { globalLoadingAtom } from "@/store/ui";
 import { isValidMSSV } from "@/utils/sanitize";
+import { requestUserInfo } from "@/services/auth.service";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { currentUser, selectRole } = useAuth();
+  const setCurrentUser = useSetAtom(currentUserAtom);
   const loading = useAtomValue(globalLoadingAtom);
   const [mssv, setMssv] = useState("");
   const [mssvError, setMssvError] = useState("");
@@ -30,6 +33,14 @@ export default function LoginPage() {
       return;
     }
     setMssvError("");
+    // Xin quyền userInfo tại đây (có ngữ cảnh: user đã nhập MSSV, nhấn Tiếp tục)
+    // User từ chối vẫn vào được app với tên "Zalo User"
+    if (currentUser) {
+      const info = await requestUserInfo(currentUser.id);
+      if (info) {
+        setCurrentUser({ ...currentUser, name: info.name, avatar: info.avatar });
+      }
+    }
     await selectRole("student", trimmed);
     navigate("/home", { replace: true });
   };
