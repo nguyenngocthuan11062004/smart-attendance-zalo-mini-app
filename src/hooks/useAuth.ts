@@ -1,6 +1,9 @@
 import { useCallback } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import { currentUserAtom, authInitializedAtom } from "@/store/auth";
+import { activeSessionAtom } from "@/store/session";
+import { myAttendanceAtom, attendanceStepAtom } from "@/store/attendance";
+import { classListAtom, selectedClassAtom } from "@/store/classes";
 import { globalLoadingAtom, globalErrorAtom } from "@/store/ui";
 import {
   signOutUser,
@@ -17,6 +20,11 @@ export function useAuth() {
   const [currentUser, setCurrentUser] = useAtom(currentUserAtom);
   const setLoading = useSetAtom(globalLoadingAtom);
   const setError = useSetAtom(globalErrorAtom);
+  const setSession = useSetAtom(activeSessionAtom);
+  const setAttendance = useSetAtom(myAttendanceAtom);
+  const setStep = useSetAtom(attendanceStepAtom);
+  const setClassList = useSetAtom(classListAtom);
+  const setSelectedClass = useSetAtom(selectedClassAtom);
 
   const selectRole = useCallback(
     async (role: UserRole, mssv?: string) => {
@@ -41,8 +49,16 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     await signOutUser();
+    // Reset tất cả atoms
     setCurrentUser(null);
-  }, [setCurrentUser]);
+    setSession(null);
+    setAttendance(null);
+    setStep("idle");
+    setClassList([]);
+    setSelectedClass(null);
+    setLoading(false);
+    setError(null);
+  }, [setCurrentUser, setSession, setAttendance, setStep, setClassList, setSelectedClass, setLoading, setError]);
 
   return { currentUser, selectRole, logout };
 }
