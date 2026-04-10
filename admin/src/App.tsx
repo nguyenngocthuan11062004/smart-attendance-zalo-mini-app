@@ -11,6 +11,7 @@ import ClassDetailPage from "@/pages/ClassDetailPage";
 import AttendancePage from "@/pages/AttendancePage";
 import AbsenceRequestsPage from "@/pages/AbsenceRequestsPage";
 import FraudReportsPage from "@/pages/FraudReportsPage";
+import InviteCodesPage from "@/pages/InviteCodesPage";
 
 const themeConfig = {
   token: {
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/absence-requests" element={<AbsenceRequestsPage />} />
               <Route path="/fraud-reports" element={<FraudReportsPage />} />
+              <Route path="/invite-codes" element={<InviteCodesPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -1,0 +1,225 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T5]{fontenc}
+
+\usepackage[vietnamese]{babel}
+
+\usepackage{enumitem}
+
+\usepackage{tabularx}
+
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 06/04/2026 đến ngày 11/04/2026}
+
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+
+\date{10 tháng 4 năm 2026}
+
+\begin{document}
+
+\maketitle
+
+
+% ── Color definitions ──
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{sectionblue!80}}{\thesubsection.}{0.5em}{}
+
+% ═══════════════════════════════════════════════════════
+\section{Thông tin chung}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Xây dựng hệ thống điểm danh thông minh trên nền tảng Zalo Mini App \\
+\textbf{GVHD:} & Lê Bá Vui \\
+\textbf{Tuần báo cáo:} & Tuần 06/04 -- 11/04/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusgreen}{\textbf{Đúng tiến độ}} \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Tóm tắt công việc tuần này}
+% ═══════════════════════════════════════════════════════
+
+Trong tuần này, em tập trung vào hai mảng chính: (1) \textbf{Hoàn thiện chức năng} -- viết lại module đăng ký khuôn mặt bằng face-api.js (xử lý hoàn toàn client-side), chuyển toàn bộ services từ Cloud Functions sang Firestore trực tiếp, và (2) \textbf{Tuân thủ chính sách Zalo} -- sửa lỗi vi phạm chính sách 6.1 (xin quyền khi mở app), chuyển localStorage sang Zalo Storage, thêm trang điều khoản sử dụng, và submit app lên Zalo Mini App Store.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Face Register (rewrite) & Bỏ CCCD, chỉ 2 selfie + face-api.js client-side & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+2 & Bỏ Cloud Functions & Chuyển 7 services sang Firestore trực tiếp & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+3 & Fix chính sách Zalo 6.1 & Không xin quyền khi mở app, xin khi có ngữ cảnh & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+4 & Zalo Storage & Thay localStorage bằng Zalo SDK Storage API & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+5 & Trang điều khoản & Privacy policy + webhook URL (Firebase Hosting) & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+6 & Tiếng Việt có dấu & Sửa $\sim$120 chỗ thiếu dấu tiếng Việt & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+7 & Vitest unit tests & 53 test cases cho validation, crypto, sanitize & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+8 & Kịch bản test & 72 test cases thủ công cho tất cả flows & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+9 & Submit Zalo Store & Nộp app lên Zalo Mini App Store & \textcolor{statusamber}{\textbf{Đang xử lý}} \\
+10 & Auto-end session & Tự động kết thúc phiên theo thời lượng & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ═══════════════════════════════════════════════════════
+\section{Chi tiết công việc}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Face Register -- Viết lại hoàn toàn}
+
+\textbf{Vấn đề cũ:} Module cũ yêu cầu chụp CCCD (mặt trước + mặt sau) + selfie, gọi Cloud Function để OCR và so khớp khuôn mặt qua eKYC API. Không cần thiết cho điểm danh.
+
+\textbf{Giải pháp mới:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Chỉ cần 2 ảnh selfie (chính diện + nghiêng 15°)
+  \item Sử dụng \textbf{face-api.js} (@vladmandic/face-api) -- chạy hoàn toàn trên thiết bị
+  \item Models: TinyFaceDetector (190KB) + FaceLandmark68Tiny (75KB) + FaceRecognition (6.1MB)
+  \item Load từ CDN (jsdelivr), lazy import -- chỉ tải khi user vào Face Register
+  \item Phát hiện khuôn mặt $\rightarrow$ tính descriptor 128 chiều $\rightarrow$ so khớp 2 ảnh $\rightarrow$ lưu descriptor vào Firestore
+  \item Xác minh khi điểm danh: so sánh descriptor mới với descriptor đã lưu (Euclidean distance $< 0.6$)
+  \item Thêm màn hình \textbf{đồng ý thu thập dữ liệu} (consent screen) trước khi chụp
+\end{itemize}
+
+\subsection{Chuyển Cloud Functions sang Firestore trực tiếp}
+
+\textbf{Lý do:} Firebase project đang ở gói Spark (miễn phí), không deploy được Cloud Functions (cần Blaze plan + thẻ tín dụng).
+
+\textbf{Services đã chuyển:}
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{checkInStudent} -- tạo attendance record trực tiếp
+  \item \texttt{addBidirectionalPeerVerification} -- cập nhật peerVerifications hai chiều
+  \item \texttt{updateFaceVerification, teacherOverride, manualCheckIn} -- ghi Firestore
+  \item \texttt{calculateTrustScores} -- tính client-side bằng \texttt{computeTrustScore()}
+  \item \texttt{requestTeacherRole} -- ghi role trực tiếp (GV do admin cấp)
+  \item \texttt{registerFace, verifyFace} -- face-api.js client-side
+  \item \texttt{aiChat} -- gọi Groq API trực tiếp từ client
+\end{itemize}
+
+\textbf{Firestore Rules:} Tạm thời mở (allow read/write: true) để app hoạt động. Sẽ thêm Firebase Auth khi upgrade Blaze plan.
+
+\subsection{Tuân thủ chính sách Zalo Mini App}
+
+\textbf{Lần submit đầu:} Bị từ chối do vi phạm chính sách 6.1 -- hiển thị popup xin quyền userInfo ngay khi mở app.
+
+\textbf{Các sửa đổi:}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{6.1 -- Ngữ cảnh xin quyền:} Bỏ \texttt{authorize()} khỏi \texttt{signIn()}. Chỉ gọi \texttt{getUserID()} khi mở app (không popup). Xin quyền userInfo khi user nhấn ``Tiếp tục'' ở trang Login
+  \item \textbf{6.3 -- Không bắt buộc quyền:} User từ chối vẫn dùng app với tên ``Zalo User''
+  \item \textbf{localStorage $\rightarrow$ Zalo Storage:} Tạo wrapper \texttt{utils/storage.ts} dùng \texttt{setStorage/getStorage} từ ZMP SDK + localStorage fallback
+  \item \textbf{Tách authorize scopes:} Chỉ xin \texttt{scope.userInfo} khi login, \texttt{scope.userPhonenumber} riêng khi cần
+  \item \textbf{Ẩn /dev page:} \texttt{import.meta.env.DEV} -- chỉ hiện trong development
+  \item \textbf{Ẩn Microsoft OAuth:} Redirect ngoài Zalo $\rightarrow$ vi phạm chính sách
+  \item \textbf{Bundle $< 10$MB:} Xóa models từ public/ (dùng CDN), nén ảnh, xóa splash\_inhust.png $\rightarrow$ 3.3MB
+\end{itemize}
+
+\subsection{Trang pháp lý (Legal)}
+
+Tạo và deploy lên Firebase Hosting (\texttt{inhust-legal.web.app}):
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Điều khoản sử dụng} (\texttt{/terms.html}) -- mô tả dữ liệu thu thập (khuôn mặt, GPS, SĐT), mục đích, quyền user, thông tin liên hệ
+  \item \textbf{Webhook URL} (\texttt{/webhook.html}) -- xử lý sự kiện rút lại đồng ý và xóa dữ liệu (theo Luật BVDLCN 2025)
+  \item Link điều khoản có thể truy cập trong app (trang Profile)
+\end{itemize}
+
+\subsection{Testing}
+
+\textbf{Unit tests (Vitest):}
+\begin{itemize}[leftmargin=1.5em]
+  \item 53 test cases pass -- bao gồm: QR validation (expiry, signature), HMAC-SHA256 crypto, input sanitization (MSSV, phone, email, HUST email)
+  \item Coverage cho \texttt{utils/validation.ts}, \texttt{utils/crypto.ts}, \texttt{utils/sanitize.ts}
+\end{itemize}
+
+\textbf{E2E testing (Playwright MCP):}
+\begin{itemize}[leftmargin=1.5em]
+  \item Test 10 màn hình trên browser: Welcome, Login, Home, Attendance Steps 1-4, Teacher Monitor/Review, AI Chat, Face Register
+  \item Phát hiện và sửa bug Step 2 (useEffect dependency)
+\end{itemize}
+
+\textbf{Kịch bản test thủ công:} 72 test cases chi tiết cho 19 nhóm chức năng, bao gồm edge cases.
+
+\subsection{Các sửa lỗi khác}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Step 2 bug:} useEffect dependency \texttt{[]} $\rightarrow$ \texttt{[myAttendance, faceReq, peerReq, setStep]}
+  \item \textbf{QR không hiển thị:} hmacSecret lưu vào subcollection bị block $\rightarrow$ lưu trực tiếp trong session doc
+  \item \textbf{Login:} Bỏ chọn vai trò, hardcode sinh viên. GV do admin cấp quyền
+  \item \textbf{GPS location:} Thêm thu thập vị trí GPS khi sinh viên check-in
+  \item \textbf{Auto-end session:} GV chọn thời lượng (30/45/60/90/120 phút), tự động kết thúc + tính trust score
+  \item \textbf{Tiếng Việt:} Sửa $\sim$120 chỗ thiếu dấu tiếng Việt trên 12 files
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Khó khăn và giải pháp}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}X X@{}}
+\toprule
+\textbf{Khó khăn} & \textbf{Giải pháp} \\
+\midrule
+Firebase Spark plan không có Cloud Functions & Chuyển tất cả logic sang client-side + Firestore trực tiếp \\
+\addlinespace
+Bị Zalo reject do popup consent khi mở app & Đọc kỹ chính sách 6.1, chuyển authorize() sang thời điểm user tương tác \\
+\addlinespace
+face-api.js models 6.4MB tăng bundle size & Lazy import + load từ CDN (jsdelivr), không bundle vào www/ \\
+\addlinespace
+localStorage không hỗ trợ trong Zalo WebView & Tạo wrapper async dùng Zalo SDK Storage + localStorage fallback \\
+\addlinespace
+Firestore Security Rules yêu cầu Firebase Auth & Tạm mở rules, ghi rõ trong báo cáo là giới hạn cần khắc phục \\
+\bottomrule
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Kế hoạch tuần tới (12/04 -- 18/04)}
+% ═══════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Chờ kết quả review Zalo lần 2, sửa nếu bị reject
+  \item Viết chương ``Thiết kế hệ thống'' cho báo cáo ĐATN
+  \item Tạo dữ liệu demo trên Firestore để kiểm duyệt viên test được
+  \item Xây dựng tính năng Đơn xin phép nghỉ (student side)
+  \item Nâng cấp Firebase lên Blaze plan nếu có thể (để deploy Cloud Functions)
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════
+\section{Thống kê mã nguồn}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Commits tuần này:} & 5 commits (328c90a $\rightarrow$ ec4aab1) \\
+\textbf{Files changed:} & 49+ files \\
+\textbf{Insertions/Deletions:} & +5,729 / -1,020 lines \\
+\textbf{Tests:} & 53 unit tests (Vitest) + 72 manual test cases \\
+\textbf{Bundle size:} & 3.3MB (giảm từ 11MB) \\
+\textbf{Deploy quota:} & Development 3/300, Testing 2/60 \\
+\end{tabularx}
+
+
+\end{document}

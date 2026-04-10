@@ -130,7 +130,12 @@ export async function requestPhoneNumber(): Promise<string | null> {
 
 // --- Sign out ---
 
+let _loggedOut = false;
+export function isLoggedOut(): boolean { return _loggedOut; }
+export function clearLoggedOut(): void { _loggedOut = false; }
+
 export async function signOutUser(): Promise<void> {
+  _loggedOut = true;
   await storageRemoveItem("user_doc");
 }
 
@@ -146,6 +151,12 @@ export function initAuthState(
 ): () => void {
   let cancelled = false;
 
+  // Nếu vừa logout → không auto sign-in, chờ user mở lại app
+  if (_loggedOut) {
+    callback(null, true);
+    return () => { cancelled = true; };
+  }
+
   // 1. Restore from Zalo SDK storage (async)
   storageGetItem("user_doc")
     .then((stored) => {
@@ -154,17 +165,13 @@ export function initAuthState(
         try {
           const parsed = JSON.parse(stored) as UserDoc;
           callback(parsed, true);
-          // Refresh from Zalo in background (get latest name, avatar)
-          signIn()
-            .then((freshDoc) => { if (!cancelled) callback(freshDoc, true); })
-            .catch(() => {});
           return;
         } catch {
           // corrupted, continue to sign-in
         }
       }
 
-      // 2. Auto sign-in with Zalo
+      // 2. Auto sign-in with Zalo (chỉ lấy getUserID, không popup)
       signIn()
         .then((userDoc) => { if (!cancelled) callback(userDoc, true); })
         .catch(() => { if (!cancelled) callback(null, true); });

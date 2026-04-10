@@ -59,6 +59,7 @@ export interface SessionDoc {
   qrRefreshInterval: number;
   faceRequired?: boolean;  // default true
   peerRequired?: boolean;  // default true
+  durationMinutes?: number;  // thời lượng phiên (phút), mặc định 90
   startedAt: number;
   endedAt?: number;
   location?: GeoLocation;

@@ -1,0 +1,264 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T5]{fontenc}
+
+\usepackage[vietnamese]{babel}
+
+\usepackage{enumitem}
+
+\usepackage{tabularx}
+
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 23/03/2026 đến ngày 28/03/2026}
+
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+
+\date{30 tháng 3 năm 2026}
+
+\begin{document}
+
+\maketitle
+
+
+% ── Color definitions ──
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{sectionblue!80}}{\thesubsection.}{0.5em}{}
+
+% ═══════════════════════════════════════════════════════
+\section{Thông tin chung}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Xây dựng hệ thống điểm danh thông minh trên nền tảng Zalo Mini App \\
+\textbf{GVHD:} & [Tên giảng viên hướng dẫn] \\
+\textbf{Tuần báo cáo:} & Tuần 23/03 -- 28/03/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusgreen}{\textbf{Đúng tiến độ}} \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Tóm tắt công việc tuần này}
+% ═══════════════════════════════════════════════════════
+
+Trong tuần này, em đã hoàn thành \textbf{tính năng lớn nhất} theo đề xuất cải tiến của giảng viên: xây dựng \textbf{trang quản trị (Admin Dashboard)} cho Phòng Đào Tạo dưới dạng một ứng dụng web riêng biệt, chia sẻ chung backend Firebase với Zalo Mini App. Ngoài ra, cập nhật Firestore Security Rules và bổ sung collection mới cho quy trình xin phép nghỉ.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Admin Dashboard & Web app riêng (React + Ant Design 5 + Firebase) & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+2 & Admin Auth & Firebase Auth email/password + role admin & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+3 & Import/Export Excel & Import lớp và SV từ Excel/CSV + tải file mẫu & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+4 & Admin Cloud Functions & requireAdmin middleware + 4 CFs mới & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+5 & Firestore Rules update & isAdmin(), absence\_requests collection & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+6 & Deploy lên production & Firebase Hosting tại inhust-admin.web.app & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ═══════════════════════════════════════════════════════
+\section{Chi tiết công việc}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Admin Dashboard -- Kiến trúc}
+
+\textbf{Quyết định thiết kế:} Xây dựng web app riêng biệt thay vì tích hợp vào Zalo Mini App, vì:
+\begin{itemize}[leftmargin=1.5em]
+  \item Phòng Đào Tạo làm việc trên máy tính (desktop-first UX)
+  \item Cần bảng dữ liệu lớn, import file, export báo cáo -- không phù hợp mobile
+  \item Tách biệt về auth (Firebase Auth thay vì Zalo OAuth)
+  \item Không ảnh hưởng bundle size của Zalo Mini App
+\end{itemize}
+
+\textbf{Tech stack:}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Framework:} Vite 5 + React 18 + TypeScript 5.9 (consistent với Zalo app)
+  \item \textbf{UI Library:} Ant Design 5 -- Vietnamese locale, Table với sort/filter/pagination
+  \item \textbf{Charts:} Recharts (PieChart, BarChart cho dashboard)
+  \item \textbf{Import/Export:} xlsx (SheetJS) -- hỗ trợ cả .xlsx và .csv
+  \item \textbf{Deploy:} Firebase Hosting (cùng project, domain riêng)
+\end{itemize}
+
+\subsection{Các trang đã xây dựng (7 pages)}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{LoginPage:} Đăng nhập email/password, icon InHUST, kiểm tra role admin
+  \item \textbf{DashboardPage:} Thống kê tổng quan (users, classes, sessions, pending requests) + PieChart (attendance distribution) + BarChart (user breakdown)
+  \item \textbf{UsersPage:} Bảng người dùng với search, filter theo role, export Excel
+  \item \textbf{ClassesPage:} CRUD lớp học + import lớp từ Excel + tải file mẫu
+  \item \textbf{ClassDetailPage:} Chi tiết lớp, thêm SV thủ công, import SV từ Excel với preview validation, danh sách phiên điểm danh
+  \item \textbf{AttendancePage:} Báo cáo điểm danh theo khoảng thời gian + filter theo lớp + export Excel
+  \item \textbf{AbsenceRequestsPage:} Duyệt/từ chối đơn xin phép nghỉ với ghi chú
+  \item \textbf{FraudReportsPage:} Xem báo cáo gian lận, expandable pattern details
+\end{enumerate}
+
+\subsection{Admin Authentication}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Sử dụng Firebase Authentication (email/password) -- tách biệt với Zalo OAuth
+  \item Thêm role \texttt{"admin"} vào \texttt{UserRole} type
+  \item Hook \texttt{useAdminAuth}: onAuthStateChanged $\rightarrow$ check Firestore role $\rightarrow$ auto sign-out nếu không phải admin
+  \item \texttt{AdminGuard} component bảo vệ tất cả routes
+  \item Tạo account đầu tiên qua Firebase REST API (seed script)
+\end{itemize}
+
+\subsection{Import/Export Excel}
+
+\textbf{Import lớp học:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Upload file $\rightarrow$ parse bằng xlsx $\rightarrow$ hiển thị preview table (valid/invalid) $\rightarrow$ xác nhận
+  \item Cột bắt buộc: Tên lớp, Mã lớp. Tùy chọn: Giảng viên, Email GV, Face, Peer
+  \item Tự động match GV theo tên hoặc email
+\end{itemize}
+
+\textbf{Import sinh viên:}
+\begin{itemize}[leftmargin=1.5em]
+  \item Upload file $\rightarrow$ parse $\rightarrow$ preview $\rightarrow$ xác nhận
+  \item Tự động tạo UserDoc nếu SV chưa có trong hệ thống (dùng MSSV làm doc ID)
+  \item Cột bắt buộc: MSSV, Họ tên. Tùy chọn: Email, Khoa
+\end{itemize}
+
+\textbf{File mẫu:} Nút ``Tải file mẫu'' ngay trên trang, tạo file .xlsx với dữ liệu ví dụ.
+
+\subsection{Admin Cloud Functions}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{requireAdmin} middleware: verify Firebase Auth + check role === "admin" từ Firestore
+  \item \texttt{adminDashboardStats}: aggregate thống kê từ nhiều collections
+  \item \texttt{adminBulkAssignStudents}: import SV hàng loạt, tạo user doc nếu cần, batch write
+  \item \texttt{adminReviewAbsenceRequest}: duyệt/từ chối đơn với validation
+  \item \texttt{adminCreateAccount}: tạo admin account mới (chỉ admin hiện tại gọi được)
+\end{itemize}
+
+\subsection{Firestore Security Rules}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Thêm helper function \texttt{isAdmin()}
+  \item Admin có quyền \texttt{read} tất cả users, \texttt{create/update} users và classes
+  \item Admin có quyền \texttt{read} fraud reports
+  \item Collection mới \texttt{absence\_requests}: SV create, GV/Admin read + update
+\end{itemize}
+
+\subsection{Deploy}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Tạo Firebase Hosting site riêng: \texttt{inhust-admin}
+  \item URL: \url{https://inhust-admin.web.app}
+  \item Deploy bằng: \texttt{firebase deploy --only hosting:admin}
+  \item Vite build output tối ưu với code splitting (vendor, antd, firebase, charts)
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Kết quả kiểm thử}
+% ═══════════════════════════════════════════════════════
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Admin TypeScript \texttt{npx tsc --noEmit}: \textcolor{statusgreen}{\textbf{0 errors}}
+  \item Vite build: \textcolor{statusgreen}{\textbf{Pass}} (5 chunks, code-split)
+  \item Cloud Functions TypeScript: \textcolor{statusgreen}{\textbf{0 errors}}
+  \item Firestore Rules: Deploy thành công, test CRUD operations
+  \item Login flow: Đăng nhập $\rightarrow$ kiểm tra role $\rightarrow$ redirect hoạt động đúng
+  \item Import Excel: Parse, preview, xác nhận, tạo documents thành công
+  \item Production: \url{https://inhust-admin.web.app} hoạt động ổn định
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Tiến độ tổng thể -- Đề xuất cải tiến của GV}
+% ═══════════════════════════════════════════════════════
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c X c c@{}}
+\toprule
+\textbf{STT} & \textbf{Đề xuất} & \textbf{Ưu tiên} & \textbf{Trạng thái} \\
+\midrule
+1 & Các bước điểm danh optional (GV bật/tắt Face/Peer) & Cao & \textcolor{statusgreen}{\textbf{DONE}} \\
+2 & Điểm danh thủ công cho GV (lý do + log) & Cao & \textcolor{statusgreen}{\textbf{DONE}} \\
+3 & Vai trò Admin (phòng đào tạo, quản lý lớp/GV/SV) & Trung bình & \textcolor{statusgreen}{\textbf{DONE}} \\
+4 & Đơn xin phép \& sửa lịch sử (AbsenceRequest flow) & Trung bình & \textcolor{statusamber}{\textbf{50\%}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Nhận xét:} Đã hoàn thành 3/4 đề xuất. Đề xuất 4 (AbsenceRequest) đã có backend (collection, rules, admin review UI) -- còn thiếu phần SV gửi đơn trong Zalo Mini App.
+
+% ═══════════════════════════════════════════════════════
+\section{Cấu trúc dự án hiện tại}
+% ═══════════════════════════════════════════════════════
+
+\begin{verbatim}
+my-app/
+├── src/              # Zalo Mini App (81 files)
+│   ├── pages/        # 20 pages (student + teacher)
+│   ├── services/     # 11 services
+│   ├── hooks/        # 10 hooks
+│   └── store/        # 5 Jotai atom files
+├── admin/            # Admin Dashboard (26 files) ← NEW
+│   ├── src/pages/    # 7 pages
+│   ├── src/services/ # 5 services
+│   └── src/hooks/    # 1 hook
+├── functions/        # Cloud Functions (21 functions)
+│   └── src/services/ # 7 service files
+├── firestore.rules   # Security rules (4 roles)
+└── firebase.json     # Hosting + Functions config
+\end{verbatim}
+
+\textbf{Tổng:} 107+ source files, 23 routes (Zalo) + 7 routes (Admin), 21 Cloud Functions.
+
+% ═══════════════════════════════════════════════════════
+\section{Kế hoạch tuần tới (30/03 -- 04/04)}
+% ═══════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{AbsenceRequest -- Student side:} Trang gửi đơn xin phép trong Zalo Mini App (chọn lớp, nhập lý do, đính kèm minh chứng)
+  \item \textbf{Deploy Cloud Functions:} Deploy admin Cloud Functions lên production
+  \item \textbf{Fix bug:} Camera crash khi bấm take photo ở trang Face Register
+  \item \textbf{Viết báo cáo ĐATN:} Bắt đầu viết chương Thiết kế hệ thống (kiến trúc 2 frontend + shared backend)
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════
+\section{Khó khăn \& kiến nghị}
+% ═══════════════════════════════════════════════════════
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Khó khăn:} Deploy Cloud Functions từ CLI gặp lỗi npm stdin khi chạy qua sandbox. Đã workaround bằng cách pre-build rồi deploy riêng.
+  \item \textbf{Kiến nghị:} Xin ý kiến thầy về scope AbsenceRequest: chỉ cần SV gửi đơn + GV/Admin duyệt, hay cần thêm tính năng đính kèm file minh chứng (ảnh giấy tờ)?
+\end{itemize}
+
+\vspace{1.5em}
+\begin{flushright}
+\textit{Hà Nội, ngày 30 tháng 3 năm 2026}\\[1em]
+\textbf{Sinh viên thực hiện}\\[2em]
+Nguyễn Ngọc Thuận
+\end{flushright}
+
+
+\end{document}

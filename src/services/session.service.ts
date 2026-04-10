@@ -21,7 +21,8 @@ const SESSIONS = "sessions";
 export async function startSession(
   classId: string,
   className: string,
-  teacherId: string
+  teacherId: string,
+  durationMinutes: number = 90
 ): Promise<SessionDoc> {
   const data: Omit<SessionDoc, "id"> = {
     classId,
@@ -30,6 +31,7 @@ export async function startSession(
     status: "active",
     hmacSecret: generateNonce() + generateNonce(),
     qrRefreshInterval: 30,
+    durationMinutes,
     startedAt: Date.now(),
   };
   if (isMockMode()) {

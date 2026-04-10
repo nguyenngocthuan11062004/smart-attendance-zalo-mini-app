@@ -44,6 +44,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // ── Verified students (email OTP) ─────────────────────────────────
+    match /verified_students/{userId} {
+      allow read, write: if true;
+    }
+
     // ── OAuth states ─────────────────────────────────────────────────
     match /oauth_states/{stateId} {
       allow read, write: if false;
@@ -59,6 +64,12 @@ service cloud.firestore {
     match /absence_requests/{requestId} {
       allow read: if true;
       allow create, update: if true;
+    }
+
+    // ── Teacher invite codes ────────────────────────────────────────────
+    match /teacher_invites/{codeId} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

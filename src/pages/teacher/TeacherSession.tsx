@@ -34,6 +34,8 @@ export default function TeacherSession() {
   const { location: gpsLocation, loading: gpsLoading, requestLocation } = useGeolocation();
   const [locationSet, setLocationSet] = useState(false);
   const [sessionSecret, setSessionSecret] = useState<string>("");
+  const [selectedDuration, setSelectedDuration] = useState(90);
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
 
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(
     session?.status === "active" && user && sessionSecret
@@ -80,11 +82,35 @@ export default function TeacherSession() {
   const totalStudents = classDoc?.studentIds.length ?? 0;
   const absentCount = totalStudents - presentCount - reviewCount;
 
+  // Auto-end timer: đếm ngược và tự kết thúc khi hết giờ
+  useEffect(() => {
+    if (!session || session.status !== "active") { setTimeRemaining(""); return; }
+    const duration = (session.durationMinutes || 90) * 60 * 1000;
+    const endTime = session.startedAt + duration;
+
+    const tick = () => {
+      const remaining = endTime - Date.now();
+      if (remaining <= 0) {
+        setTimeRemaining("Hết giờ");
+        // Tự động kết thúc phiên
+        handleEnd();
+        return;
+      }
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setTimeRemaining(`${mins}:${secs.toString().padStart(2, "0")}`);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [session?.id, session?.status, session?.startedAt, session?.durationMinutes]);
+
   const handleStart = async () => {
     if (!classDoc || !user) return;
     setStarting(true);
     try {
-      const newSession = await startSession(classDoc.id, classDoc.name, user.id);
+      const newSession = await startSession(classDoc.id, classDoc.name, user.id, selectedDuration);
       setSession(newSession);
       setActiveSession(newSession);
       if (newSession.hmacSecret) setSessionSecret(newSession.hmacSecret);
@@ -244,7 +270,27 @@ export default function TeacherSession() {
               </svg>
             </div>
             <p style={{ color: "#111827", fontSize: 18, fontWeight: 700 }}>Sẵn sàng điểm danh</p>
-            <p style={{ color: "#6b7280", fontSize: 14 }}>Bắt đầu phiên để tạo mã QR cho sinh viên</p>
+            <p style={{ color: "#6b7280", fontSize: 14 }}>Chọn thời lượng và bắt đầu phiên điểm danh</p>
+
+            {/* Chọn thời lượng */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+              {[30, 45, 60, 90, 120].map((mins) => (
+                <button
+                  key={mins}
+                  onClick={() => setSelectedDuration(mins)}
+                  style={{
+                    padding: "8px 16px", borderRadius: 20,
+                    background: selectedDuration === mins ? "#be1d2c" : "#ffffff",
+                    color: selectedDuration === mins ? "#ffffff" : "#6b7280",
+                    border: selectedDuration === mins ? "none" : "1px solid rgba(0,0,0,0.1)",
+                    fontSize: 14, fontWeight: 600,
+                  }}
+                >
+                  {mins} phút
+                </button>
+              ))}
+            </div>
+
             <button
               disabled={starting}
               onClick={handleStart}
@@ -291,13 +337,28 @@ export default function TeacherSession() {
                   </svg>
                 )}
               </div>
-              {/* Timer */}
+              {/* QR Timer */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#be1d2c" strokeWidth="2" strokeLinecap="round">
                   <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
                 </svg>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#be1d2c" }}>Xoay sau {secondsLeft}s</span>
               </div>
+              {/* Thời gian còn lại */}
+              {timeRemaining && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: timeRemaining === "Hết giờ" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
+                  borderRadius: 20, padding: "6px 14px",
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={timeRemaining === "Hết giờ" ? "#ef4444" : "#22c55e"} strokeWidth="2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                  </svg>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: timeRemaining === "Hết giờ" ? "#ef4444" : "#22c55e" }}>
+                    {timeRemaining === "Hết giờ" ? "Đã hết giờ — đang kết thúc..." : `Còn lại: ${timeRemaining}`}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* GPS Card */}

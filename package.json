@@ -20,6 +20,7 @@
     "deploy": "zmp deploy"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@vladmandic/face-api": "^1.7.15",
     "crypto-js": "^4.2.0",
     "firebase": "^12.9.0",

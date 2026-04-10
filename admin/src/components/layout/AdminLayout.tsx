@@ -8,6 +8,7 @@ import {
   CheckCircleOutlined,
   FileTextOutlined,
   WarningOutlined,
+  KeyOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -24,6 +25,7 @@ const menuItems = [
   { key: "/attendance", icon: <CheckCircleOutlined />, label: "Điểm danh" },
   { key: "/absence-requests", icon: <FileTextOutlined />, label: "Đơn xin phép" },
   { key: "/fraud-reports", icon: <WarningOutlined />, label: "Gian lận" },
+  { key: "/invite-codes", icon: <KeyOutlined />, label: "Mã mời GV" },
 ];
 
 export default function AdminLayout() {

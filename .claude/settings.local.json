@@ -36,7 +36,23 @@
       "WebSearch",
       "mcp__github__search_repositories",
       "Bash(wc:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(grep:*)",
+      "mcp__github__get_file_contents",
+      "Bash(uipro init:*)",
+      "Bash(git config:*)",
+      "Bash(gh auth switch:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:snyk.io)",
+      "Bash(xargs:*)",
+      "Bash(ls:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(git status:*)",
+      "Bash(test:*)",
+      "mcp__notion__notion-create-pages",
+      "mcp__notion__notion-search",
+      "mcp__notion__notion-update-page"
     ]
   }
 }
