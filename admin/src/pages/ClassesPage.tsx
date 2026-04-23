@@ -68,34 +68,42 @@ export default function ClassesPage() {
     setModalOpen(true);
   };
 
+  const [submitting, setSubmitting] = useState(false);
+
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const teacher = teachers.find((t) => t.id === values.teacherId);
+    if (submitting) return; // Chặn double-click
+    setSubmitting(true);
+    try {
+      const values = await form.validateFields();
+      const teacher = teachers.find((t) => t.id === values.teacherId);
 
-    if (editingClass) {
-      await updateClass(editingClass.id, {
-        name: values.name,
-        code: values.code,
-        teacherId: values.teacherId,
-        teacherName: teacher?.name || "",
-        faceRequired: values.faceRequired,
-        peerRequired: values.peerRequired,
-      });
-      message.success("Đã cập nhật lớp");
-    } else {
-      await createClass({
-        name: values.name,
-        code: values.code,
-        teacherId: values.teacherId,
-        teacherName: teacher?.name || "",
-        faceRequired: values.faceRequired,
-        peerRequired: values.peerRequired,
-      });
-      message.success("Đã tạo lớp mới");
+      if (editingClass) {
+        await updateClass(editingClass.id, {
+          name: values.name,
+          code: values.code,
+          teacherId: values.teacherId,
+          teacherName: teacher?.name || "",
+          faceRequired: values.faceRequired,
+          peerRequired: values.peerRequired,
+        });
+        message.success("Đã cập nhật lớp");
+      } else {
+        await createClass({
+          name: values.name,
+          code: values.code,
+          teacherId: values.teacherId,
+          teacherName: teacher?.name || "",
+          faceRequired: values.faceRequired,
+          peerRequired: values.peerRequired,
+        });
+        message.success("Đã tạo lớp mới");
+      }
+
+      setModalOpen(false);
+      load();
+    } finally {
+      setSubmitting(false);
     }
-
-    setModalOpen(false);
-    load();
   };
 
   const handleDelete = (cls: ClassDoc) => {
@@ -279,6 +287,7 @@ export default function ClassesPage() {
         onCancel={() => setModalOpen(false)}
         okText={editingClass ? "Cập nhật" : "Tạo"}
         cancelText="Hủy"
+        confirmLoading={submitting}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item name="name" label="Tên lớp" rules={[{ required: true, message: "Bắt buộc" }]}>

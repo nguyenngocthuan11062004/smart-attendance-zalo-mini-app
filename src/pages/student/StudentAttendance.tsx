@@ -19,6 +19,7 @@ import InlineQRScanner from "@/components/qr/InlineQRScanner";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import FaceVerification from "@/components/face/FaceVerification";
 import { parseScannedQR } from "@/services/qr.service";
+import { checkGeoFence } from "@/utils/geo";
 import type { FaceVerificationResult } from "@/types";
 
 /* ── Step Indicator ─────────────────────────────── */
@@ -195,6 +196,23 @@ export default function StudentAttendance() {
       }
       // Lấy vị trí GPS khi check-in
       const location = await requestLocation() ?? undefined;
+
+      // Kiểm tra geofence nếu GV đã set vị trí
+      if (location && session.location) {
+        const geoCheck = checkGeoFence(
+          location,
+          session.location,
+          session.geoFenceRadius || 200
+        );
+        if (!geoCheck.inRange) {
+          setTeacherScanError(
+            `Bạn đang ở cách lớp học ${geoCheck.distance}m (tối đa ${session.geoFenceRadius || 200}m). Vui lòng đến gần hơn.`
+          );
+          teacherScannedRef.current = false;
+          return;
+        }
+      }
+
       const record = await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
       // Load peer secret from session subcollection (open rules)
       if (!peerSecret && sessionId) {

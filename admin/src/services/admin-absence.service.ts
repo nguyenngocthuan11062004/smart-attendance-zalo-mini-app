@@ -22,11 +22,10 @@ export async function getAbsenceRequests(
     constraints.push(where("status", "==", status));
   }
 
-  constraints.push(orderBy("createdAt", "desc"));
-
   const q = query(collection(db, ABSENCE_COL), ...constraints);
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AbsenceRequestDoc);
+  const records = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AbsenceRequestDoc);
+  return records.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export async function reviewAbsenceRequest(

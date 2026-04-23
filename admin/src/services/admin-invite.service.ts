@@ -61,9 +61,9 @@ export async function createInviteCode(
  * Fetch all invite codes, ordered by createdAt desc.
  */
 export async function getInviteCodes(): Promise<TeacherInviteDoc[]> {
-  const q = query(collection(db, INVITES_COL), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TeacherInviteDoc);
+  const snap = await getDocs(collection(db, INVITES_COL));
+  const codes = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TeacherInviteDoc);
+  return codes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 /**

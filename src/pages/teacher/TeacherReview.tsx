@@ -5,8 +5,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSessionAttendance, teacherOverride, manualCheckIn } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
+import { computeTrustScore, getTrustScoreReasons } from "@/types";
+import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
-import type { AttendanceDoc } from "@/types";
+import type { AttendanceDoc, SessionDoc } from "@/types";
 
 interface AbsentStudent {
   id: string;
@@ -19,6 +21,7 @@ export default function TeacherReview() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [records, setRecords] = useState<AttendanceDoc[]>([]);
+  const [session, setSession] = useState<SessionDoc | null>(null);
   const [absentStudents, setAbsentStudents] = useState<AbsentStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [sessionId2, setSessionId2] = useState<string>("");
@@ -38,9 +41,21 @@ export default function TeacherReview() {
         getSessionAttendance(sid),
         getSession(sid),
       ]);
-      const sorted = attendanceData.sort((a, b) => a.peerCount - b.peerCount);
+      // Tính lại trust score client-side dùng session config (fix session cũ thiếu field)
+      const config = {
+        faceRequired: sessionDoc?.faceRequired,
+        peerRequired: sessionDoc?.peerRequired,
+      };
+      const recalculated = attendanceData.map((r) => ({
+        ...r,
+        trustScore: r.teacherOverride
+          ? (r.teacherOverride === "present" ? "present" as const : "absent" as const)
+          : computeTrustScore(r.peerCount, r.faceVerification, config),
+      }));
+      const sorted = recalculated.sort((a, b) => a.peerCount - b.peerCount);
       setRecords(sorted);
       setSessionId2(sid);
+      setSession(sessionDoc);
 
       if (sessionDoc) {
         const classDoc = await getClassById(sessionDoc.classId);
@@ -263,6 +278,32 @@ export default function TeacherReview() {
                       <div style={{ background: "#fef3c7", borderRadius: 12, padding: "4px 12px" }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b" }}>Xem xét</span>
                       </div>
+                    </div>
+
+                    {/* Lý do xem xét */}
+                    <div style={{ background: "#fffbeb", borderRadius: 10, padding: "8px 12px" }}>
+                      {getTrustScoreReasons(r.peerCount, r.faceVerification, {
+                        faceRequired: session?.faceRequired,
+                        peerRequired: session?.peerRequired,
+                      }).map((reason, idx) => (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <div style={{ width: 4, height: 4, borderRadius: 2, background: "#f59e0b", flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, color: "#92400e" }}>{reason}</span>
+                        </div>
+                      ))}
+                      {r.location && session?.location && (() => {
+                        const geo = checkGeoFence(r.location, session.location, session.geoFenceRadius || 200);
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={geo.inRange ? "#22c55e" : "#ef4444"} strokeWidth="2.5" strokeLinecap="round">
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                            </svg>
+                            <span style={{ fontSize: 11, color: geo.inRange ? "#16a34a" : "#dc2626" }}>
+                              {geo.inRange ? `Trong phạm vi (${geo.distance}m)` : `Ngoài phạm vi (${geo.distance}m)`}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div style={{ height: 1, background: "#f3f4f6" }} />

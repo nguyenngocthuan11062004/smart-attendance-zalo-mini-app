@@ -9,9 +9,10 @@ import { getSession, endSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import { computeTrustScore } from "@/types";
+import { computeTrustScore, getTrustScoreReasons } from "@/types";
+import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
-import type { AttendanceDoc, ClassDoc } from "@/types";
+import type { AttendanceDoc, ClassDoc, SessionDoc } from "@/types";
 
 type FilterType = "all" | "present" | "review" | "absent";
 
@@ -38,12 +39,20 @@ export default function TeacherMonitor() {
   const [manualTarget, setManualTarget] = useState<{ id: string; name: string } | null>(null);
   const [manualReason, setManualReason] = useState("");
   const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [localSession, setLocalSession] = useState<SessionDoc | null>(null);
+
+  // Session config cho trust score (ưu tiên localSession > atom)
+  const sessionConfig = {
+    faceRequired: (localSession || session)?.faceRequired,
+    peerRequired: (localSession || session)?.peerRequired,
+  };
 
   useEffect(() => {
     if (!sessionId) return;
 
     getSession(sessionId).then((sess) => {
       if (sess) {
+        setLocalSession(sess);
         getClassById(sess.classId).then(async (cls) => {
           if (cls) {
             setClassDoc(cls);
@@ -61,13 +70,19 @@ export default function TeacherMonitor() {
     return () => unsubscribe();
   }, [sessionId]);
 
-  const present = records.filter((r) => r.trustScore === "present").length;
-  const review = records.filter((r) => r.trustScore === "review").length;
-  const checkedIn = records.length;
+  // Tính lại trust score client-side dùng session config (fix session cũ thiếu field)
+  const recordsWithScore = records.map((r) => ({
+    ...r,
+    trustScore: computeTrustScore(r.peerCount, r.faceVerification, sessionConfig),
+  }));
+
+  const present = recordsWithScore.filter((r) => r.trustScore === "present").length;
+  const review = recordsWithScore.filter((r) => r.trustScore === "review").length;
+  const checkedIn = recordsWithScore.length;
   const absentCount = totalStudents > 0 ? totalStudents - checkedIn : 0;
   const progressPercent = totalStudents > 0 ? Math.round((checkedIn / totalStudents) * 100) : 0;
 
-  const filteredRecords = records.filter((r) => {
+  const filteredRecords = recordsWithScore.filter((r) => {
     if (filter === "all") return true;
     if (filter === "present") return r.trustScore === "present";
     if (filter === "review") return r.trustScore === "review";
@@ -120,7 +135,7 @@ export default function TeacherMonitor() {
     { key: "all", label: "Tất cả", count: checkedIn },
     { key: "present", label: "Có mặt", count: present },
     { key: "review", label: "Xem xét", count: review },
-    { key: "absent", label: "Vắng", count: records.filter((r) => r.trustScore === "absent").length },
+    { key: "absent", label: "Vắng", count: recordsWithScore.filter((r) => r.trustScore === "absent").length },
   ];
 
   // SVG score ring arc
@@ -270,33 +285,75 @@ export default function TeacherMonitor() {
               const status = STATUS_CONFIG[rec.trustScore] || STATUS_CONFIG.absent;
               const name = rec.studentName || rec.studentId;
               const initial = name.charAt(0).toUpperCase();
+              const reasons = rec.trustScore !== "present"
+                ? getTrustScoreReasons(rec.peerCount, rec.faceVerification, sessionConfig)
+                : [];
+              // Tính khoảng cách nếu có GPS
+              const activeSession = localSession || session;
+              const geoInfo = rec.location && activeSession?.location
+                ? checkGeoFence(rec.location, (localSession || session)!.location!, (localSession || session)?.geoFenceRadius || 200)
+                : null;
 
               return (
                 <div key={rec.id} style={{
                   background: "#ffffff", borderRadius: 12, padding: 14,
                   border: "1px solid rgba(0,0,0,0.04)",
-                  display: "flex", alignItems: "center", gap: 12,
+                  display: "flex", flexDirection: "column", gap: 8,
                 }}>
-                  {/* Avatar */}
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 14, background: "#be1d2c",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <span style={{ color: "#ffffff", fontSize: 14, fontWeight: 700 }}>{initial}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {/* Avatar */}
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 14, background: "#be1d2c",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <span style={{ color: "#ffffff", fontSize: 14, fontWeight: 700 }}>{initial}</span>
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{name}</span>
+                      <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                        {rec.peerCount} peers · {new Date(rec.checkedInAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+
+                    {/* Status badge */}
+                    <div style={{
+                      background: status.bg, borderRadius: 8, padding: "4px 10px",
+                    }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: status.color }}>{status.label}</span>
+                    </div>
                   </div>
 
-                  {/* Info */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{name}</span>
-                    <span style={{ fontSize: 12, color: "#9ca3af" }}>{rec.peerCount} peers · {new Date(rec.checkedInAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</span>
-                  </div>
+                  {/* Lý do review/absent */}
+                  {reasons.length > 0 && (
+                    <div style={{ paddingLeft: 48 }}>
+                      {reasons.map((r, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <div style={{ width: 4, height: 4, borderRadius: 2, background: status.color, flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, color: status.color }}>{r}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                  {/* Status badge */}
-                  <div style={{
-                    background: status.bg, borderRadius: 8, padding: "4px 10px",
-                  }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: status.color }}>{status.label}</span>
-                  </div>
+                  {/* GPS info */}
+                  {rec.location && (
+                    <div style={{ paddingLeft: 48, display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={geoInfo?.inRange ? "#22c55e" : "#ef4444"} strokeWidth="2" strokeLinecap="round">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                        <circle cx="12" cy="9" r="2.5" />
+                      </svg>
+                      <span style={{ fontSize: 11, color: geoInfo?.inRange ? "#22c55e" : "#ef4444" }}>
+                        {geoInfo
+                          ? (geoInfo.inRange
+                            ? `Trong phạm vi (${geoInfo.distance}m)`
+                            : `Ngoài phạm vi (${geoInfo.distance}m / ${activeSession?.geoFenceRadius || 200}m)`)
+                          : `${rec.location.latitude.toFixed(4)}°, ${rec.location.longitude.toFixed(4)}°`
+                        }
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

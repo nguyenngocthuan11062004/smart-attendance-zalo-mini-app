@@ -20,9 +20,9 @@ const CLASSES_COL = "classes";
 const USERS_COL = "users";
 
 export async function getAllClasses(): Promise<ClassDoc[]> {
-  const q = query(collection(db, CLASSES_COL), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  const snap = await getDocs(collection(db, CLASSES_COL));
+  const classes = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  return classes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export async function getClassById(classId: string): Promise<ClassDoc | null> {
@@ -75,16 +75,17 @@ export async function removeStudentFromClass(classId: string, studentId: string)
 export async function getClassStudents(studentIds: string[]): Promise<UserDoc[]> {
   if (studentIds.length === 0) return [];
 
-  // Firestore 'in' operator supports max 30 items per query
-  const batches: UserDoc[] = [];
-  for (let i = 0; i < studentIds.length; i += 30) {
-    const batch = studentIds.slice(i, i + 30);
-    const q = query(collection(db, USERS_COL), where("__name__", "in", batch));
-    const snap = await getDocs(q);
-    batches.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserDoc));
-  }
+  // Lấy từng doc bằng getDoc — đảm bảo tìm được
+  const promises = studentIds.map(async (id) => {
+    const snap = await getDoc(doc(db, USERS_COL, id));
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as UserDoc;
+    }
+    return null;
+  });
 
-  return batches;
+  const results = await Promise.all(promises);
+  return results.filter((r): r is UserDoc => r !== null);
 }
 
 export async function getTeachers(): Promise<UserDoc[]> {

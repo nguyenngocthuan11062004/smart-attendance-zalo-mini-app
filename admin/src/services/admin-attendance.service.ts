@@ -16,21 +16,21 @@ const SESSIONS_COL = "sessions";
 export async function getSessionsByClass(classId: string): Promise<SessionDoc[]> {
   const q = query(
     collection(db, SESSIONS_COL),
-    where("classId", "==", classId),
-    orderBy("startedAt", "desc")
+    where("classId", "==", classId)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionDoc);
+  const sessions = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionDoc);
+  return sessions.sort((a, b) => b.startedAt - a.startedAt);
 }
 
 export async function getSessionAttendance(sessionId: string): Promise<AttendanceDoc[]> {
   const q = query(
     collection(db, ATTENDANCE_COL),
-    where("sessionId", "==", sessionId),
-    orderBy("checkedInAt", "asc")
+    where("sessionId", "==", sessionId)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AttendanceDoc);
+  const records = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AttendanceDoc);
+  return records.sort((a, b) => a.checkedInAt - b.checkedInAt);
 }
 
 export async function getAttendanceByDateRange(
@@ -38,20 +38,16 @@ export async function getAttendanceByDateRange(
   endDate: number,
   classId?: string
 ): Promise<AttendanceDoc[]> {
-  const constraints: QueryConstraint[] = [
-    where("checkedInAt", ">=", startDate),
-    where("checkedInAt", "<=", endDate),
-  ];
+  // Lấy tất cả rồi filter client-side — tránh compound index
+  const snap = await getDocs(collection(db, ATTENDANCE_COL));
+  let records = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AttendanceDoc);
 
+  records = records.filter((r) => r.checkedInAt >= startDate && r.checkedInAt <= endDate);
   if (classId) {
-    constraints.push(where("classId", "==", classId));
+    records = records.filter((r) => r.classId === classId);
   }
 
-  constraints.push(orderBy("checkedInAt", "desc"));
-
-  const q = query(collection(db, ATTENDANCE_COL), ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AttendanceDoc);
+  return records.sort((a, b) => b.checkedInAt - a.checkedInAt);
 }
 
 export async function getAttendanceStats(): Promise<{
@@ -83,9 +79,9 @@ export async function getAttendanceStats(): Promise<{
 }
 
 export async function getAllSessions(): Promise<SessionDoc[]> {
-  const q = query(collection(db, SESSIONS_COL), orderBy("startedAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionDoc);
+  const snap = await getDocs(collection(db, SESSIONS_COL));
+  const sessions = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionDoc);
+  return sessions.sort((a, b) => b.startedAt - a.startedAt);
 }
 
 export async function getActiveSessions(): Promise<SessionDoc[]> {

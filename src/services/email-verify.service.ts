@@ -18,6 +18,16 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "";
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 phút
 const VERIFIED_COLLECTION = "verified_students";
 
+// MSSV bypass — vào thẳng không cần verify email (dev/test)
+const BYPASS_MSSV = ["20225413"];
+
+/**
+ * Check if MSSV is in bypass list
+ */
+export function isBypassMSSV(mssv: string): boolean {
+  return BYPASS_MSSV.includes(mssv.trim());
+}
+
 // In-memory OTP store (client-side only)
 let pendingOTP: { code: string; email: string; mssv: string; expiresAt: number } | null = null;
 

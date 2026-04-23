@@ -134,9 +134,28 @@ let _loggedOut = false;
 export function isLoggedOut(): boolean { return _loggedOut; }
 export function clearLoggedOut(): void { _loggedOut = false; }
 
-export async function signOutUser(): Promise<void> {
+export async function signOutUser(userId?: string): Promise<void> {
   _loggedOut = true;
+  // Reset role + MSSV trên Firestore → lần đăng nhập sau phải chọn lại
+  if (userId) {
+    try {
+      await withTimeout(
+        setDoc(doc(db, "users", userId), { role: "", mssv: "", updatedAt: Date.now() }, { merge: true }),
+        3000
+      );
+    } catch { /* ignore */ }
+    // Xóa verified_students → phải verify email lại
+    try {
+      const { deleteDoc: delDoc } = await import("firebase/firestore");
+      await delDoc(doc(db, "verified_students", userId));
+    } catch { /* ignore */ }
+  }
   await storageRemoveItem("user_doc");
+  // Xóa cache
+  try {
+    const { cacheClearAll } = await import("@/utils/cache");
+    await cacheClearAll();
+  } catch { /* ignore */ }
 }
 
 // --- Auth state initialization ---

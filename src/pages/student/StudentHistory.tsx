@@ -5,6 +5,8 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { globalErrorAtom } from "@/store/ui";
 import { getStudentHistory } from "@/services/attendance.service";
+import { getSession } from "@/services/session.service";
+import { computeTrustScore } from "@/types";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import type { AttendanceDoc } from "@/types";
 
@@ -23,14 +25,39 @@ export default function StudentHistory() {
   const navigate = useNavigate();
   const user = useAtomValue(currentUserAtom);
   const setError = useSetAtom(globalErrorAtom);
-  const [records, setRecords] = useState<AttendanceDoc[]>([]);
+  const [records, setRecords] = useState<(AttendanceDoc & { className?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadHistory = useCallback(async () => {
     if (!user?.id) return;
     try {
       const data = await getStudentHistory(user.id);
-      setRecords(data.sort((a, b) => b.checkedInAt - a.checkedInAt));
+
+      // Lấy tên lớp từ session + tính lại trust score
+      const sessionCache = new Map<string, { className: string; faceRequired?: boolean; peerRequired?: boolean }>();
+      const enriched = await Promise.all(
+        data.map(async (r) => {
+          let sessionInfo = sessionCache.get(r.sessionId);
+          if (!sessionInfo) {
+            const sess = await getSession(r.sessionId).catch(() => null);
+            sessionInfo = {
+              className: sess?.className || r.classId,
+              faceRequired: sess?.faceRequired,
+              peerRequired: sess?.peerRequired,
+            };
+            sessionCache.set(r.sessionId, sessionInfo);
+          }
+          const recalculatedScore = r.teacherOverride
+            ? (r.teacherOverride === "present" ? "present" as const : "absent" as const)
+            : computeTrustScore(r.peerCount, r.faceVerification, {
+                faceRequired: sessionInfo.faceRequired,
+                peerRequired: sessionInfo.peerRequired,
+              });
+          return { ...r, className: sessionInfo.className, trustScore: recalculatedScore };
+        })
+      );
+
+      setRecords(enriched.sort((a, b) => b.checkedInAt - a.checkedInAt));
     } catch {
       setError("Không thể tải lịch sử điểm danh");
     } finally {

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card, Table, Button, Space, Typography, Tag, Descriptions, Upload, Spin,
-  Popconfirm, App, Modal, Input, Form, Alert, Badge,
+  Popconfirm, App, Modal, Input, Form, Alert, Badge, AutoComplete, Divider,
 } from "antd";
 import {
   ArrowLeftOutlined, UploadOutlined, DeleteOutlined, DownloadOutlined,
@@ -13,7 +13,7 @@ import {
   removeStudentFromClass, getTeachers,
 } from "@/services/admin-class.service";
 import { getSessionsByClass } from "@/services/admin-attendance.service";
-import { createOrFindStudents } from "@/services/admin-user.service";
+import { createOrFindStudents, getAllStudents } from "@/services/admin-user.service";
 import { parseStudentFile, exportUsersToExcel, downloadStudentTemplate, type ImportedStudent } from "@/services/import-export.service";
 import type { ClassDoc, UserDoc, SessionDoc } from "@/types";
 import type { ColumnsType } from "antd/es/table";
@@ -29,10 +29,15 @@ export default function ClassDetailPage() {
   const [loading, setLoading] = useState(true);
   const { message } = App.useApp();
 
-  // Add student modal
+  // Add student modal — search from DB
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm] = Form.useForm();
   const [addLoading, setAddLoading] = useState(false);
+  const [allDbStudents, setAllDbStudents] = useState<UserDoc[]>([]);
+  const [searchResults, setSearchResults] = useState<UserDoc[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [searchText, setSearchText] = useState("");
 
   // Import modal
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -51,6 +56,7 @@ export default function ClassDetailPage() {
         getClassStudents(classDoc.studentIds),
         getSessionsByClass(classId),
       ]);
+      console.log("studentIds:", classDoc.studentIds, "found:", studs.length, studs);
       setStudents(studs);
       setSessions(sess);
     } finally {
@@ -60,8 +66,77 @@ export default function ClassDetailPage() {
 
   useEffect(() => { load(); }, [classId]);
 
-  // ── Add single student ────────────────────────────────────────────────
-  const handleAddStudent = async () => {
+  // ── Search & add students from DB ─────────────────────────────────────
+  const handleOpenAddModal = async () => {
+    setAddModalOpen(true);
+    setSearchText("");
+    setSearchResults([]);
+    setSelectedStudentIds([]);
+    addForm.resetFields();
+    setSearchLoading(true);
+    try {
+      const all = await getAllStudents();
+      const available = all.filter((s) => !cls?.studentIds.includes(s.id));
+      setAllDbStudents(available);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Realtime search khi gõ MSSV hoặc tên
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+    if (!value.trim()) { setSearchResults([]); return; }
+    const q = value.toLowerCase();
+    const filtered = allDbStudents.filter(
+      (s) => (s.mssv || "").toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+    );
+    setSearchResults(filtered.slice(0, 10)); // max 10 gợi ý
+  };
+
+  // Click vào gợi ý → auto-fill form + thêm vào selected
+  const handleSelectStudent = (studentId: string) => {
+    const student = allDbStudents.find((s) => s.id === studentId);
+    if (!student) return;
+    // Auto-fill form
+    addForm.setFieldsValue({
+      mssv: student.mssv || "",
+      name: student.name,
+      email: student.email || "",
+      department: student.department || "",
+    });
+    // Thêm vào danh sách đã chọn
+    if (!selectedStudentIds.includes(studentId)) {
+      setSelectedStudentIds((prev) => [...prev, studentId]);
+    }
+    setSearchText(student.mssv || student.name);
+    setSearchResults([]);
+  };
+
+  // Xóa SV khỏi danh sách đã chọn
+  const handleRemoveSelected = (id: string) => {
+    setSelectedStudentIds((prev) => prev.filter((sid) => sid !== id));
+  };
+
+  // Thêm tất cả SV đã chọn vào lớp
+  const handleAddSelectedStudents = async () => {
+    if (!classId || selectedStudentIds.length === 0) return;
+    setAddLoading(true);
+    try {
+      await addStudentsToClass(classId, selectedStudentIds);
+      message.success(`Đã thêm ${selectedStudentIds.length} sinh viên vào lớp`);
+      setAddModalOpen(false);
+      setSelectedStudentIds([]);
+      load();
+    } catch {
+      message.error("Lỗi thêm sinh viên");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  // Tạo SV mới nếu chưa có trong DB
+  const handleCreateAndAddStudent = async () => {
     if (!classId) return;
     const values = await addForm.validateFields();
     setAddLoading(true);
@@ -74,8 +149,8 @@ export default function ClassDetailPage() {
       }]);
       await addStudentsToClass(classId, ids);
       message.success(`Đã thêm ${values.name} vào lớp`);
-      setAddModalOpen(false);
       addForm.resetFields();
+      setSearchText("");
       load();
     } catch {
       message.error("Lỗi thêm sinh viên");
@@ -227,10 +302,10 @@ export default function ClassDetailPage() {
       </Card>
 
       <Card
-        title={`Sinh viên (${students.length})`}
+        title={`Sinh viên (${cls.studentIds.length})`}
         extra={
           <Space>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddModalOpen(true)}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddModal}>
               Thêm sinh viên
             </Button>
             <Upload
@@ -251,50 +326,133 @@ export default function ClassDetailPage() {
         }
         style={{ marginBottom: 24 }}
       >
-        {students.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>
-            <UserOutlined style={{ fontSize: 40, marginBottom: 16, display: "block" }} />
-            <p>Chưa có sinh viên nào trong lớp</p>
-            <Space>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddModalOpen(true)}>Thêm thủ công</Button>
-              <Upload accept=".xlsx,.xls,.csv" showUploadList={false} beforeUpload={(file) => { handleFileSelect(file); return false; }}>
-                <Button icon={<UploadOutlined />}>Import từ file</Button>
-              </Upload>
-            </Space>
-          </div>
-        ) : (
-          <Table dataSource={students} columns={studentColumns} rowKey="id" pagination={{ pageSize: 20 }} size="middle" scroll={{ x: 800 }} />
-        )}
+        <Table
+          dataSource={students}
+          columns={studentColumns}
+          rowKey="id"
+          pagination={{ pageSize: 20 }}
+          size="middle"
+          scroll={{ x: 800 }}
+          locale={{
+            emptyText: (
+              <div style={{ padding: 24 }}>
+                <UserOutlined style={{ fontSize: 36, color: "#d4d4d4", display: "block", marginBottom: 12 }} />
+                <p style={{ color: "#6b7280" }}>Chưa có sinh viên nào trong lớp</p>
+                <Space style={{ marginTop: 8 }}>
+                  <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenAddModal}>Thêm sinh viên</Button>
+                  <Upload accept=".xlsx,.xls,.csv" showUploadList={false} beforeUpload={(file) => { handleFileSelect(file); return false; }}>
+                    <Button size="small" icon={<UploadOutlined />}>Import từ file</Button>
+                  </Upload>
+                </Space>
+              </div>
+            ),
+          }}
+        />
       </Card>
 
       <Card title={`Phiên điểm danh (${sessions.length})`}>
         <Table dataSource={sessions} columns={sessionColumns} rowKey="id" pagination={{ pageSize: 10 }} size="middle" />
       </Card>
 
-      {/* ── Add Student Modal ──────────────────────────────────────────── */}
+      {/* ── Add Student Modal — Autocomplete Search ────────────────────── */}
       <Modal
-        title="Thêm sinh viên"
+        title="Thêm sinh viên vào lớp"
         open={addModalOpen}
-        onOk={handleAddStudent}
-        onCancel={() => { setAddModalOpen(false); addForm.resetFields(); }}
-        okText="Thêm"
+        onOk={handleAddSelectedStudents}
+        onCancel={() => { setAddModalOpen(false); setSelectedStudentIds([]); addForm.resetFields(); setSearchText(""); }}
+        okText={`Thêm ${selectedStudentIds.length} sinh viên`}
         cancelText="Hủy"
         confirmLoading={addLoading}
+        okButtonProps={{ disabled: selectedStudentIds.length === 0 }}
+        width={600}
       >
-        <Form form={addForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="mssv" label="MSSV" rules={[{ required: true, message: "Bắt buộc" }]}>
-            <Input placeholder="VD: 20210001" />
-          </Form.Item>
-          <Form.Item name="name" label="Họ tên" rules={[{ required: true, message: "Bắt buộc" }]}>
-            <Input placeholder="VD: Nguyễn Văn A" />
-          </Form.Item>
-          <Form.Item name="email" label="Email">
-            <Input placeholder="VD: a.nv@sis.hust.edu.vn" />
-          </Form.Item>
-          <Form.Item name="department" label="Khoa/Viện">
-            <Input placeholder="VD: Công nghệ thông tin" />
-          </Form.Item>
-        </Form>
+        <Space direction="vertical" style={{ width: "100%", marginTop: 16 }} size="middle">
+
+          {/* Autocomplete search */}
+          <div>
+            <Text strong style={{ display: "block", marginBottom: 8 }}>Tìm sinh viên trong hệ thống</Text>
+            <AutoComplete
+              style={{ width: "100%" }}
+              value={searchText}
+              onSearch={handleSearch}
+              onSelect={handleSelectStudent}
+              placeholder="Nhập MSSV hoặc tên sinh viên..."
+              allowClear
+              onClear={() => { setSearchText(""); setSearchResults([]); }}
+              notFoundContent={searchLoading ? "Đang tải..." : searchText ? "Không tìm thấy" : null}
+              options={searchResults.map((s) => ({
+                value: s.id,
+                label: (
+                  <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                    <span>
+                      <Text strong>{s.mssv || "—"}</Text>
+                      <Text type="secondary" style={{ marginLeft: 12 }}>{s.name}</Text>
+                    </span>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{s.email || ""}</Text>
+                  </Space>
+                ),
+              }))}
+            />
+          </div>
+
+          {/* Danh sách SV đã chọn */}
+          {selectedStudentIds.length > 0 && (
+            <div>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                Đã chọn ({selectedStudentIds.length})
+              </Text>
+              <Space wrap>
+                {selectedStudentIds.map((id) => {
+                  const s = allDbStudents.find((st) => st.id === id);
+                  return (
+                    <Tag
+                      key={id}
+                      closable
+                      onClose={() => handleRemoveSelected(id)}
+                      color="blue"
+                      style={{ padding: "4px 8px", fontSize: 13 }}
+                    >
+                      {s?.mssv || "—"} — {s?.name || id}
+                    </Tag>
+                  );
+                })}
+              </Space>
+            </div>
+          )}
+
+          {/* Auto-filled form (readonly khi đã chọn từ gợi ý) */}
+          <div>
+            <Divider style={{ margin: "8px 0" }} />
+            <Text strong style={{ display: "block", marginBottom: 8 }}>
+              Thông tin sinh viên {selectedStudentIds.length > 0 ? "(đã chọn)" : "— hoặc tạo mới"}
+            </Text>
+            <Form form={addForm} layout="vertical" size="small">
+              <Space style={{ width: "100%" }} wrap>
+                <Form.Item name="mssv" label="MSSV" style={{ marginBottom: 4 }} rules={[{ required: true, message: "Bắt buộc" }]}>
+                  <Input placeholder="20210001" style={{ width: 130 }} />
+                </Form.Item>
+                <Form.Item name="name" label="Họ tên" style={{ marginBottom: 4 }} rules={[{ required: true, message: "Bắt buộc" }]}>
+                  <Input placeholder="Nguyễn Văn A" style={{ width: 180 }} />
+                </Form.Item>
+                <Form.Item name="email" label="Email" style={{ marginBottom: 4 }}>
+                  <Input placeholder="a@sis.hust.edu.vn" style={{ width: 200 }} />
+                </Form.Item>
+                <Form.Item name="department" label="Khoa" style={{ marginBottom: 4 }}>
+                  <Input placeholder="CNTT" style={{ width: 130 }} />
+                </Form.Item>
+              </Space>
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={handleCreateAndAddStudent}
+                loading={addLoading}
+                style={{ marginTop: 8 }}
+              >
+                Tạo sinh viên mới & thêm vào lớp
+              </Button>
+            </Form>
+          </div>
+        </Space>
       </Modal>
 
       {/* ── Import Preview Modal ───────────────────────────────────────── */}

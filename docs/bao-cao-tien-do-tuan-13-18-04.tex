@@ -1,0 +1,247 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T5]{fontenc}
+
+\usepackage[vietnamese]{babel}
+
+\usepackage{enumitem}
+
+\usepackage{tabularx}
+
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 13/04/2026 đến ngày 18/04/2026}
+
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+
+\date{18 tháng 4 năm 2026}
+
+\begin{document}
+
+\maketitle
+
+
+% ── Color definitions ──
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+\definecolor{statusred}{HTML}{DC2626}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{sectionblue!80}}{\thesubsection.}{0.5em}{}
+
+% ═══════════════════════════════════════════════════════
+\section{Thông tin chung}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Xây dựng hệ thống điểm danh thông minh trên nền tảng Zalo Mini App \\
+\textbf{GVHD:} & Lê Bá Vui \\
+\textbf{Tuần báo cáo:} & Tuần 13/04 -- 18/04/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusamber}{\textbf{Đang chờ Zalo duyệt app}} \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Tóm tắt công việc tuần này}
+% ═══════════════════════════════════════════════════════
+
+Trong tuần này, em tập trung vào hai mảng: (1) \textbf{Xác minh danh tính sinh viên} -- xây dựng tính năng xác minh email HUST qua OTP và hệ thống mã mời giảng viên, (2) \textbf{Quy trình phát hành trên Zalo Store} -- submit app nhiều lần, xử lý các lỗi bị từ chối từ đội ngũ kiểm duyệt Zalo, và liên hệ hỗ trợ để giải quyết vấn đề danh mục ứng dụng.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Xác minh email HUST & OTP 6 số qua EmailJS đến @sis.hust.edu.vn & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+2 & Mã mời giảng viên & Admin tạo mã, GV nhập mã để đăng ký role & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+3 & Tự động kết thúc phiên & GV chọn thời lượng, đếm ngược, auto-end & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+4 & Sửa luồng đăng xuất & Reset atoms, không auto sign-in lại & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+5 & Submit Zalo lần 2 & Sửa popup consent khi mở app (6.1) & \textcolor{statusred}{\textbf{Bị từ chối}} \\
+6 & Submit Zalo lần 3 & Bổ sung MSSV cho kiểm duyệt viên & \textcolor{statusred}{\textbf{Bị từ chối}} \\
+7 & Submit Zalo lần 4 & Yêu cầu đổi danh mục Giáo dục & \textcolor{statusred}{\textbf{Bị từ chối}} \\
+8 & Sửa điều khoản sử dụng & Bỏ đề cập HUST/ĐATN, viết chung chung & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+9 & Liên hệ Zalo hỗ trợ & Gửi email trình bày vấn đề danh mục & \textcolor{statusamber}{\textbf{Chờ phản hồi}} \\
+10 & Admin Dashboard & Thêm trang Mã mời GV (InviteCodesPage) & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ═══════════════════════════════════════════════════════
+\section{Chi tiết công việc}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Xác minh email HUST (Email OTP)}
+
+Xây dựng tính năng xác minh danh tính sinh viên qua email trường:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Sử dụng \textbf{EmailJS} (client-side) gửi mã OTP 6 số đến email @sis.hust.edu.vn
+  \item Free tier: 200 email/tháng -- đủ cho quy mô ĐATN
+  \item Luồng: Nhập MSSV $\rightarrow$ Nhập email HUST $\rightarrow$ Nhận OTP $\rightarrow$ Xác minh $\rightarrow$ Liên kết Zalo ID + MSSV vĩnh viễn
+  \item Chỉ cần verify 1 lần, lưu trạng thái vào collection \texttt{verified\_students} trên Firestore
+  \item Có danh sách MSSV bypass cho dev/test (VD: 20225413 vào thẳng)
+  \item Template email OTP thiết kế theo design system inHUST (màu đỏ HUST, mã lớn, rõ ràng)
+\end{itemize}
+
+\subsection{Mã mời giảng viên (Teacher Invite Code)}
+
+Xây dựng hệ thống mã mời để admin cấp quyền giảng viên:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Admin tạo mã mời (8 ký tự, uppercase alphanumeric) trên Admin Dashboard
+  \item Mã có thời hạn (mặc định 7 ngày), chỉ dùng được 1 lần
+  \item GV mở app $\rightarrow$ nhấn ``Tôi là giảng viên'' $\rightarrow$ nhập mã mời $\rightarrow$ xác nhận $\rightarrow$ tự động gán role teacher
+  \item Collection \texttt{teacher\_invites} trên Firestore lưu trạng thái mã
+  \item Trang \textbf{InviteCodesPage} trên Admin Dashboard (Ant Design): tạo mã, xem danh sách, trạng thái sử dụng
+\end{itemize}
+
+\subsection{Tự động kết thúc phiên điểm danh}
+
+Nghiên cứu các hệ thống điểm danh (Moodle, Top Hat, SEAtS) và triển khai:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item GV chọn thời lượng trước khi bắt đầu: 30 / 45 / 60 / 90 / 120 phút (mặc định 90)
+  \item Hiển thị đếm ngược realtime ``Còn lại: MM:SS'' bên cạnh QR code
+  \item Hết giờ $\rightarrow$ tự động kết thúc phiên + tính trust score cho tất cả SV
+  \item GV vẫn có thể kết thúc sớm bằng nút thủ công
+  \item Thêm field \texttt{durationMinutes} vào \texttt{SessionDoc}
+\end{itemize}
+
+\subsection{Quy trình phát hành trên Zalo Store}
+
+Quá trình submit app và xử lý từ chối:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X X@{}}
+\toprule
+\textbf{Lần} & \textbf{Ngày} & \textbf{Lý do từ chối} & \textbf{Cách xử lý} \\
+\midrule
+1 & 03/04 & Vi phạm chính sách 6.1: popup xin quyền khi mở app & Bỏ \texttt{authorize()} khỏi \texttt{signIn()}, chỉ xin quyền khi user tương tác \\
+2 & 08/04 & Cần MSSV để kiểm duyệt nội dung & Bổ sung MSSV 20225413 vào thông tin đăng nhập \\
+3 & 09/04 & Yêu cầu đổi danh mục Giáo dục + tài liệu xác thực & Sửa điều khoản sử dụng bỏ đề cập HUST/ĐATN \\
+4 & 13/04 & Phải đổi loại ứng dụng thành Doanh nghiệp & Liên hệ Zalo hỗ trợ qua email \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Vấn đề hiện tại:} Zalo yêu cầu danh mục ``Giáo dục'' cho app điểm danh, nhưng danh mục này chỉ cho phép loại ứng dụng ``Doanh nghiệp'' hoặc ``Cơ quan nhà nước''. Tài khoản cá nhân (sinh viên) không thể chọn danh mục này $\rightarrow$ tạo vòng lặp từ chối.
+
+\textbf{Hành động:} Đã gửi email đến \texttt{cskh@zaloplatforms.com} trình bày vấn đề, kèm thông tin ĐATN và sẵn sàng bổ sung tài liệu hoặc trả chi phí nâng cấp. Đang chờ phản hồi.
+
+\subsection{Sửa điều khoản sử dụng}
+
+Viết lại trang \texttt{legal/terms.html} để không bị phân loại vào danh mục Giáo dục:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Bỏ: ``Đại học Bách khoa Hà Nội'', ``Đồ án Tốt nghiệp'', ``MSSV'', ``GVHD'', email @sis.hust.edu.vn
+  \item Đổi: ``sinh viên/giảng viên'' $\rightarrow$ ``thành viên/quản lý'', ``lớp học'' $\rightarrow$ ``nhóm, sự kiện''
+  \item Deploy lại lên Firebase Hosting (\texttt{inhust-legal.web.app})
+\end{itemize}
+
+\subsection{Các sửa lỗi khác}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Đăng xuất:} Reset toàn bộ Jotai atoms (user, session, attendance, classes), không auto sign-in lại, hiện form MSSV ngay
+  \item \textbf{Không xin quyền avatar:} Bỏ \texttt{requestUserInfo()} khỏi login flow -- tuân thủ chính sách Zalo 6.1
+  \item \textbf{MSSV bypass:} MSSV 20225413 vào thẳng không cần verify email (cho dev/test)
+  \item \textbf{Teacher auto-redirect:} Teacher/admin vào Home luôn, không cần verify email
+  \item \textbf{Dọn database:} Xóa dữ liệu test cũ trên Firestore (users trùng, sessions treo, attendance test)
+  \item \textbf{Deploy admin dashboard:} Cập nhật trang Mã mời GV + Firestore rules
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Nghiên cứu và tham khảo}
+% ═══════════════════════════════════════════════════════
+
+\subsection{So sánh hệ thống điểm danh trên thế giới}
+
+Khảo sát 20 hệ thống điểm danh nổi tiếng (SEAtS ONE, Top Hat, Attendance Radar, Moodle, Minop Cloud, MONA LMS...) và xác định 4 điểm độc đáo của inHUST:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{HMAC-SHA256 Rotating QR (30s):} Tương tự TOTP của Google Authenticator, chưa thấy ở app điểm danh nào
+  \item \textbf{4-Step Multi-Factor:} QR $\rightarrow$ Face $\rightarrow$ Peer $\rightarrow$ Done -- không hệ thống nào kết hợp đủ 4 bước
+  \item \textbf{Peer-to-Peer QR Verification:} Concept hoàn toàn mới -- SV xác minh lẫn nhau
+  \item \textbf{Zero-Hardware, Super-App:} Chạy trên Zalo (150M+ users VN), không cần phần cứng
+\end{enumerate}
+
+\subsection{Ước tính chi phí production}
+
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Quy mô} & \textbf{Chi phí/tháng} & \textbf{Ghi chú} \\
+\midrule
+ĐATN demo (50 SV) & \$0 & Firebase Spark plan miễn phí \\
+1 khoa (500 SV) & \$2--3 & Firebase Blaze pay-as-you-go \\
+Toàn trường (30K SV) & \$10--15 & Rẻ hơn 50--100x giải pháp thương mại \\
+\bottomrule
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Khó khăn và giải pháp}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}X X@{}}
+\toprule
+\textbf{Khó khăn} & \textbf{Giải pháp / Hành động} \\
+\midrule
+Vòng lặp từ chối Zalo: cần danh mục Giáo dục nhưng cá nhân không chọn được & Gửi email trình bày chi tiết, sẵn sàng trả phí nâng cấp. Chờ phản hồi \\
+\addlinespace
+Xin quyền userInfo gây popup -- vi phạm 6.1 & Bỏ hoàn toàn \texttt{requestUserInfo()} khỏi login flow \\
+\addlinespace
+EmailJS free tier giới hạn 200 email/tháng & Đủ cho ĐATN. Có thể nâng cấp \$10/tháng nếu cần \\
+\addlinespace
+Reviewer không thể test app (trống dữ liệu) & Cung cấp MSSV bypass + hướng dẫn chi tiết trong mô tả phiên bản \\
+\bottomrule
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Kế hoạch tuần tới (19/04 -- 25/04)}
+% ═══════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Chờ phản hồi từ Zalo về vấn đề danh mục, xử lý theo hướng dẫn
+  \item Nếu được duyệt: test toàn bộ flow trên Zalo app thật
+  \item Viết chương ``Thiết kế hệ thống'' và ``Triển khai'' cho báo cáo ĐATN
+  \item Bổ sung tính năng Late threshold (trạng thái ``Đi muộn'' khi check-in sau X phút)
+  \item Xây dựng tính năng Đơn xin phép nghỉ (student side)
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════
+\section{Thống kê mã nguồn}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Commits tuần này:} & 3 commits \\
+\textbf{Files changed:} & 17+ files \\
+\textbf{Insertions/Deletions:} & +1,695 / -82 lines \\
+\textbf{Tests:} & 53 unit tests pass (Vitest) \\
+\textbf{Zalo submit:} & 4 lần (1 pass chính sách, 3 bị từ chối danh mục) \\
+\textbf{Deploy:} & Admin dashboard + Firestore rules + Legal pages \\
+\end{tabularx}
+
+
+\end{document}

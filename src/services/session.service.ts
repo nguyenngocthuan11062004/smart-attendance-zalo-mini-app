@@ -22,7 +22,8 @@ export async function startSession(
   classId: string,
   className: string,
   teacherId: string,
-  durationMinutes: number = 90
+  durationMinutes: number = 90,
+  config?: { faceRequired?: boolean; peerRequired?: boolean }
 ): Promise<SessionDoc> {
   const data: Omit<SessionDoc, "id"> = {
     classId,
@@ -32,6 +33,8 @@ export async function startSession(
     hmacSecret: generateNonce() + generateNonce(),
     qrRefreshInterval: 30,
     durationMinutes,
+    faceRequired: config?.faceRequired ?? true,
+    peerRequired: config?.peerRequired ?? true,
     startedAt: Date.now(),
   };
   if (isMockMode()) {
@@ -127,9 +130,9 @@ export async function getClassSessions(classId: string): Promise<SessionDoc[]> {
   if (isMockMode()) return mockDb.getClassSessions(classId);
   const q = query(
     collection(db, SESSIONS),
-    where("classId", "==", classId),
-    orderBy("startedAt", "desc")
+    where("classId", "==", classId)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionDoc);
+  const sessions = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SessionDoc);
+  return sessions.sort((a, b) => b.startedAt - a.startedAt);
 }

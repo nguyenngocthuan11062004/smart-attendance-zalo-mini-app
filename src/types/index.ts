@@ -144,8 +144,8 @@ export function computeTrustScore(
   faceVerification?: FaceVerificationResult,
   config?: { faceRequired?: boolean; peerRequired?: boolean }
 ): TrustScore {
-  const faceReq = config?.faceRequired !== false; // default true
-  const peerReq = config?.peerRequired !== false; // default true
+  const faceReq = config?.faceRequired !== false;
+  const peerReq = config?.peerRequired !== false;
 
   const faceOk =
     faceVerification?.matched === true && (faceVerification.confidence ?? 0) >= 0.7;
@@ -158,4 +158,46 @@ export function computeTrustScore(
   if (facePass && peerPass) return "present";
   if (facePass || peerPass) return "review";
   return "absent";
+}
+
+/**
+ * Trả về lý do chi tiết tại sao trust score là review/absent
+ */
+export function getTrustScoreReasons(
+  peerCount: number,
+  faceVerification?: FaceVerificationResult,
+  config?: { faceRequired?: boolean; peerRequired?: boolean }
+): string[] {
+  const reasons: string[] = [];
+  const faceReq = config?.faceRequired !== false;
+  const peerReq = config?.peerRequired !== false;
+
+  // Face check
+  if (faceReq) {
+    if (!faceVerification) {
+      reasons.push("Chưa xác minh khuôn mặt");
+    } else if (faceVerification.skipped) {
+      reasons.push("Đã bỏ qua xác minh khuôn mặt");
+    } else if (!faceVerification.matched) {
+      reasons.push(`Khuôn mặt không khớp (${Math.round((faceVerification.confidence ?? 0) * 100)}%)`);
+    } else if ((faceVerification.confidence ?? 0) < 0.7) {
+      reasons.push(`Độ tin cậy khuôn mặt thấp (${Math.round((faceVerification.confidence ?? 0) * 100)}%)`);
+    }
+  }
+
+  // Peer check
+  if (peerReq) {
+    if (peerCount === 0) {
+      reasons.push("Chưa xác minh ngang hàng (0/3)");
+    } else if (peerCount < 3) {
+      reasons.push(`Chưa đủ xác minh ngang hàng (${peerCount}/3)`);
+    }
+  }
+
+  // Location check (info only)
+  if (reasons.length === 0) {
+    reasons.push("Đã hoàn thành tất cả bước xác minh");
+  }
+
+  return reasons;
 }

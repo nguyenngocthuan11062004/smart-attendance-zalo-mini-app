@@ -35,8 +35,6 @@ export async function getUsers(options: {
     constraints.push(where("department", "==", options.department));
   }
 
-  constraints.push(orderBy("createdAt", "desc"));
-
   if (options.lastDoc) {
     constraints.push(startAfter(options.lastDoc));
   }
@@ -103,6 +101,16 @@ export async function getUserStats(): Promise<{
     teachers: teacherSnap.data().count,
     admins: adminSnap.data().count,
   };
+}
+
+/**
+ * Get all students from DB (for search/select UI)
+ */
+export async function getAllStudents(): Promise<UserDoc[]> {
+  const q = query(collection(db, USERS_COL), where("role", "==", "student"));
+  const snap = await getDocs(q);
+  const students = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserDoc);
+  return students.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

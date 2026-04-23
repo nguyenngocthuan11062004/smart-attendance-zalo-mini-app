@@ -6,8 +6,8 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { globalLoadingAtom } from "@/store/ui";
 import { isValidMSSV, isValidHUSTEmail } from "@/utils/sanitize";
-import { requestUserInfo, signIn, clearLoggedOut, isLoggedOut } from "@/services/auth.service";
-import { isStudentVerified, sendOTP, verifyOTP, isEmailVerifyConfigured } from "@/services/email-verify.service";
+import { signIn, clearLoggedOut, isLoggedOut } from "@/services/auth.service";
+import { isStudentVerified, sendOTP, verifyOTP, isEmailVerifyConfigured, isBypassMSSV } from "@/services/email-verify.service";
 import { redeemInviteCode } from "@/services/invite.service";
 
 type LoginStep = "mssv" | "email" | "otp" | "submitting" | "invite";
@@ -33,8 +33,15 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!currentUser || !currentUser.role || currentUser.role === "") return;
-    // Chỉ auto-redirect nếu đã verified email (hoặc EmailJS chưa cấu hình)
-    if (!isEmailVerifyConfigured()) { navigate("/home", { replace: true }); return; }
+    // Teacher/admin → vào luôn
+    if (currentUser.role === "teacher" || (currentUser.role as string) === "admin") {
+      navigate("/home", { replace: true }); return;
+    }
+    // Bypass MSSV hoặc EmailJS chưa cấu hình → vào luôn
+    if (isBypassMSSV(currentUser.mssv || "") || !isEmailVerifyConfigured()) {
+      navigate("/home", { replace: true }); return;
+    }
+    // Student: check verified
     isStudentVerified(currentUser.id).then((verified) => {
       if (verified) navigate("/home", { replace: true });
     });
@@ -55,10 +62,9 @@ export default function LoginPage() {
       setCurrentUser(user);
     }
 
-    // Kiểm tra đã verify trước đó chưa
+    // Bypass MSSV admin/test, đã verify, hoặc EmailJS chưa cấu hình → vào luôn
     const verified = await isStudentVerified(user.id);
-    if (verified || !isEmailVerifyConfigured()) {
-      // Đã verify hoặc dev mode → vào luôn
+    if (verified || isBypassMSSV(trimmed) || !isEmailVerifyConfigured()) {
       await completeLogin(user, trimmed);
       return;
     }
@@ -122,12 +128,6 @@ export default function LoginPage() {
         setCurrentUser(user);
       }
 
-      const info = await requestUserInfo(user.id);
-      if (info) {
-        user = { ...user, name: info.name, avatar: info.avatar };
-        setCurrentUser(user);
-      }
-
       const result = await redeemInviteCode(trimmed, user.id);
       if (result.success) {
         await selectRole("teacher");
@@ -142,13 +142,10 @@ export default function LoginPage() {
     }
   };
 
-  // Hoàn tất đăng nhập
+  // Hoàn tất đăng nhập — KHÔNG xin quyền userInfo (chính sách 6.1)
+  // User có thể cập nhật tên/avatar sau ở trang Profile
   const completeLogin = async (user: any, mssvValue: string) => {
     setStep("submitting");
-    const info = await requestUserInfo(user.id);
-    if (info) {
-      setCurrentUser({ ...user, name: info.name, avatar: info.avatar });
-    }
     await selectRole("student", mssvValue);
     navigate("/home", { replace: true });
   };

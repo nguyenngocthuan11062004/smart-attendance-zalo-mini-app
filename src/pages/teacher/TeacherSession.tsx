@@ -110,7 +110,10 @@ export default function TeacherSession() {
     if (!classDoc || !user) return;
     setStarting(true);
     try {
-      const newSession = await startSession(classDoc.id, classDoc.name, user.id, selectedDuration);
+      const newSession = await startSession(classDoc.id, classDoc.name, user.id, selectedDuration, {
+        faceRequired: classDoc.faceRequired ?? true,
+        peerRequired: classDoc.peerRequired ?? true,
+      });
       setSession(newSession);
       setActiveSession(newSession);
       if (newSession.hmacSecret) setSessionSecret(newSession.hmacSecret);

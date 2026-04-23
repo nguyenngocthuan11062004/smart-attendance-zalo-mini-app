@@ -48,7 +48,7 @@ export function useAuth() {
   );
 
   const logout = useCallback(async () => {
-    await signOutUser();
+    await signOutUser(currentUser?.id);
     // Reset tất cả atoms
     setCurrentUser(null);
     setSession(null);
@@ -58,7 +58,7 @@ export function useAuth() {
     setSelectedClass(null);
     setLoading(false);
     setError(null);
-  }, [setCurrentUser, setSession, setAttendance, setStep, setClassList, setSelectedClass, setLoading, setError]);
+  }, [currentUser?.id, setCurrentUser, setSession, setAttendance, setStep, setClassList, setSelectedClass, setLoading, setError]);
 
   return { currentUser, selectRole, logout };
 }
