@@ -40,6 +40,9 @@ export default function TeacherMonitor() {
   const [manualReason, setManualReason] = useState("");
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [localSession, setLocalSession] = useState<SessionDoc | null>(null);
+  // Guard against double end-session calls when this component races with
+  // TeacherSession (or another monitor tab) closing the same session.
+  const endingRef = React.useRef(false);
 
   // Session config cho trust score (ưu tiên localSession > atom)
   const sessionConfig = {
@@ -92,6 +95,8 @@ export default function TeacherMonitor() {
 
   const handleEndSession = async () => {
     if (!sessionId) return;
+    if (endingRef.current) return;
+    endingRef.current = true;
     setEnding(true);
     try {
       await endSession(sessionId);
@@ -107,6 +112,7 @@ export default function TeacherMonitor() {
       navigate(`/teacher/review/${sessionId}`);
     } catch {
       setError("Không thể kết thúc phiên. Vui lòng thử lại.");
+      endingRef.current = false; // allow retry on user-driven end attempt
     } finally {
       setEnding(false);
       setShowEndConfirm(false);

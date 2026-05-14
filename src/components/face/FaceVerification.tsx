@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { openChat } from "zmp-sdk";
 import { verifyFace, buildSkippedResult } from "@/services/face.service";
+import { haptic } from "@/utils/haptic";
 import type { FaceVerificationResult } from "@/types";
 
 interface FaceVerificationProps {
   sessionId: string;
   attendanceId: string;
+  teacherId?: string;
   onComplete: (result: FaceVerificationResult) => void;
   onSkip: () => void;
 }
@@ -14,6 +17,7 @@ type VerifyState = "scanning" | "verifying" | "success" | "failed" | "error";
 export default function FaceVerification({
   sessionId,
   attendanceId,
+  teacherId,
   onComplete,
   onSkip,
 }: FaceVerificationProps) {
@@ -30,6 +34,11 @@ export default function FaceVerification({
   const captureTimerRef = useRef<number>();
   const isVerifyingRef = useRef(false);
   const mountedRef = useRef(true);
+  // Source-of-truth for retry attempts inside autoVerify closures.
+  // useState is for UI; the ref avoids stale-closure bugs where pending
+  // setTimeout callbacks read an out-of-date retryCount.
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
 
   const pct = Math.round(confidence * 100);
 
@@ -133,6 +142,7 @@ export default function FaceVerification({
         setProgress(100);
         setStatusText("Xác minh thành công!");
         setState("success");
+        haptic("success");
         stopCamera();
         setTimeout(() => {
           if (mountedRef.current) {
@@ -148,10 +158,11 @@ export default function FaceVerification({
       } else {
         // Low confidence — retry automatically
         setProgress(Math.round(result.confidence * 100));
-        setRetryCount((c) => c + 1);
+        retryCountRef.current += 1;
+        setRetryCount(retryCountRef.current);
         isVerifyingRef.current = false;
 
-        if (retryCount >= 3) {
+        if (retryCountRef.current >= MAX_RETRIES) {
           setState("failed");
           setStatusText("Không khớp khuôn mặt");
           stopCamera();
@@ -165,17 +176,18 @@ export default function FaceVerification({
       if (!mountedRef.current) return;
       isVerifyingRef.current = false;
       // Retry on transient errors
-      if (retryCount >= 3) {
+      if (retryCountRef.current >= MAX_RETRIES) {
         setErrorMsg(err.message || "Lỗi xác minh khuôn mặt");
         setState("error");
         stopCamera();
       } else {
-        setRetryCount((c) => c + 1);
+        retryCountRef.current += 1;
+        setRetryCount(retryCountRef.current);
         setState("scanning");
         captureTimerRef.current = window.setTimeout(autoVerify, 2500);
       }
     }
-  }, [captureFrame, sessionId, attendanceId, retryCount, onComplete, stopCamera]);
+  }, [captureFrame, sessionId, attendanceId, onComplete, stopCamera]);
 
   // Start camera + auto-capture on mount
   useEffect(() => {
@@ -193,11 +205,15 @@ export default function FaceVerification({
 
   const handleSkip = () => {
     stopCamera();
+    // onComplete persists the skipped result and advances the step itself
+    // (via completeFaceVerification — handles peerRequired correctly).
+    // Calling onSkip() in addition would set step a second time and may
+    // overwrite "done" with "show-qr" when peerRequired=false.
     onComplete(buildSkippedResult());
-    onSkip();
   };
 
   const handleRetry = () => {
+    retryCountRef.current = 0;
     setRetryCount(0);
     setConfidence(0);
     setProgress(0);
@@ -208,6 +224,11 @@ export default function FaceVerification({
     startCamera().then(() => {
       captureTimerRef.current = window.setTimeout(autoVerify, 2000);
     });
+  };
+
+  const handleContactTeacher = () => {
+    if (!teacherId) return;
+    openChat({ type: "user", id: teacherId }).catch(() => {});
   };
 
   // Status dot color
@@ -408,6 +429,22 @@ export default function FaceVerification({
           >
             Thử lại
           </button>
+          {teacherId && (
+            <button
+              onClick={handleContactTeacher}
+              style={{
+                width: "100%", height: 48, borderRadius: 14,
+                background: "#ffffff", border: "1.5px solid #be1d2c",
+                fontSize: 15, fontWeight: 600, color: "#be1d2c",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#be1d2c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Liên hệ giảng viên
+            </button>
+          )}
           <button
             onClick={handleSkip}
             style={{

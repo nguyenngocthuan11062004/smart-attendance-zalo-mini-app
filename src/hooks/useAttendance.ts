@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import { myAttendanceAtom, attendanceStepAtom } from "@/store/attendance";
 import {
@@ -13,11 +13,16 @@ import type { FaceVerificationResult, GeoLocation, PeerVerification, QRPayload }
 export function useAttendance(sessionId: string | undefined, studentId: string | undefined) {
   const [myAttendance, setMyAttendance] = useAtom(myAttendanceAtom);
   const [step, setStep] = useAtom(attendanceStepAtom);
+  // True after the first Firestore snapshot resolves so callers can avoid
+  // flashing a stale step (e.g. "scan-teacher") between mount and first sync.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!sessionId || !studentId) return;
+    setLoaded(false);
     const unsub = subscribeToMyAttendance(sessionId, studentId, (record) => {
       setMyAttendance(record);
+      setLoaded(true);
     });
     return unsub;
   }, [sessionId, studentId, setMyAttendance]);
@@ -56,5 +61,5 @@ export function useAttendance(sessionId: string | undefined, studentId: string |
     [myAttendance]
   );
 
-  return { myAttendance, step, setStep, checkIn, completeFaceVerification, addPeer };
+  return { myAttendance, step, setStep, checkIn, completeFaceVerification, addPeer, loaded };
 }

@@ -36,6 +36,11 @@ export default function TeacherSession() {
   const [sessionSecret, setSessionSecret] = useState<string>("");
   const [selectedDuration, setSelectedDuration] = useState(90);
   const [timeRemaining, setTimeRemaining] = useState<string>("");
+  // Guard against double end-session calls when both the auto-end timer and
+  // a parallel monitor instance race to close the same session. Without this,
+  // endSession() can run twice and the trust-score backfill writes N records
+  // multiple times.
+  const endingRef = React.useRef(false);
 
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(
     session?.status === "active" && user && sessionSecret
@@ -126,6 +131,8 @@ export default function TeacherSession() {
 
   const handleEnd = async () => {
     if (!session) return;
+    if (endingRef.current) return;
+    endingRef.current = true;
     setEnding(true);
     try {
       await endSession(session.id);
@@ -145,6 +152,7 @@ export default function TeacherSession() {
       navigate(`/teacher/review/${session.id}`);
     } catch {
       setError("Không thể kết thúc phiên. Vui lòng thử lại.");
+      endingRef.current = false; // allow retry on user-driven end attempt
     } finally {
       setEnding(false);
     }

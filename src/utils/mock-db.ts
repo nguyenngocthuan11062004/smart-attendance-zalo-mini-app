@@ -28,6 +28,19 @@ const store: {
 let _counter = 0;
 function genId(prefix: string) { return `${prefix}_${++_counter}_${Date.now()}`; }
 
+// ---- Subscriber registry ----
+// Mock services mutate records in place. Without an observer system,
+// React subscriptions registered before the mutation never fire and the
+// UI stays frozen. Each entry below is invoked synchronously after a
+// mutation; callers re-fetch from the store to get fresh data.
+type AttendanceListener = () => void;
+const _attendanceListenersBySession = new Map<string, Set<AttendanceListener>>();
+const _attendanceListenersByStudent = new Map<string, Set<AttendanceListener>>();
+
+function _keyForStudent(sessionId: string, studentId: string) {
+  return `${sessionId}::${studentId}`;
+}
+
 // ---- Public API ----
 export const mockDb = {
   // Users
@@ -116,6 +129,26 @@ export const mockDb = {
   },
   addFraudReport(r: FraudReport) { store.fraud_reports.set(r.id, r); },
 
+  // ---- Subscriptions for attendance changes ----
+  subscribeAttendanceForSession(sessionId: string, listener: AttendanceListener): () => void {
+    let set = _attendanceListenersBySession.get(sessionId);
+    if (!set) { set = new Set(); _attendanceListenersBySession.set(sessionId, set); }
+    set.add(listener);
+    return () => { set?.delete(listener); };
+  },
+  subscribeAttendanceForStudent(sessionId: string, studentId: string, listener: AttendanceListener): () => void {
+    const key = _keyForStudent(sessionId, studentId);
+    let set = _attendanceListenersByStudent.get(key);
+    if (!set) { set = new Set(); _attendanceListenersByStudent.set(key, set); }
+    set.add(listener);
+    return () => { set?.delete(listener); };
+  },
+  notifyAttendanceChange(sessionId: string, studentId: string) {
+    _attendanceListenersBySession.get(sessionId)?.forEach((cb) => { try { cb(); } catch { /* noop */ } });
+    _attendanceListenersByStudent.get(_keyForStudent(sessionId, studentId))
+      ?.forEach((cb) => { try { cb(); } catch { /* noop */ } });
+  },
+
   // Reset
   clear() {
     store.users.clear();
@@ -123,6 +156,8 @@ export const mockDb = {
     store.sessions.clear();
     store.attendance.clear();
     store.fraud_reports.clear();
+    _attendanceListenersBySession.clear();
+    _attendanceListenersByStudent.clear();
     _counter = 0;
   },
 };

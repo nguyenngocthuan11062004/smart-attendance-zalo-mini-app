@@ -15,6 +15,9 @@ interface SessionStat {
   present: number;
   review: number;
   absent: number;
+  // Số SV thực sự đã có mặt = present + review (cả 2 đều check-in vật lý,
+  // chỉ khác ở mức độ tin cậy). Dùng cho avgRate và bar chart.
+  attended: number;
 }
 
 export default function TeacherAnalytics() {
@@ -41,24 +44,26 @@ export default function TeacherAnalytics() {
         .filter((s) => s.status === "ended")
         .sort((a, b) => a.startedAt - b.startedAt);
 
-      const sessionStats: SessionStat[] = [];
-      for (const session of endedSessions.slice(-10)) {
-        const records = await getSessionAttendance(session.id);
-        const total = cls ? cls.studentIds.length : records.length;
-        const present = records.filter(
-          (r) => (r.teacherOverride || r.trustScore) === "present"
-        ).length;
-        const review = records.filter(
-          (r) => (r.teacherOverride || r.trustScore) === "review"
-        ).length;
-        sessionStats.push({
-          session,
-          total,
-          present,
-          review,
-          absent: total - present - review,
-        });
-      }
+      const sessionStats: SessionStat[] = await Promise.all(
+        endedSessions.slice(-10).map(async (session) => {
+          const records = await getSessionAttendance(session.id);
+          const total = cls ? cls.studentIds.length : records.length;
+          const present = records.filter(
+            (r) => (r.teacherOverride || r.trustScore) === "present"
+          ).length;
+          const review = records.filter(
+            (r) => (r.teacherOverride || r.trustScore) === "review"
+          ).length;
+          return {
+            session,
+            total,
+            present,
+            review,
+            absent: total - present - review,
+            attended: present + review,
+          };
+        })
+      );
       setStats(sessionStats);
     } finally {
       setLoading(false);
@@ -69,7 +74,7 @@ export default function TeacherAnalytics() {
     stats.length > 0
       ? Math.round(
           stats.reduce(
-            (sum, s) => sum + (s.present / Math.max(s.total, 1)) * 100,
+            (sum, s) => sum + (s.attended / Math.max(s.total, 1)) * 100,
             0
           ) / stats.length
         )
@@ -174,7 +179,7 @@ export default function TeacherAnalytics() {
                 style={{ height: maxBarHeight + 30 }}
               >
                 {stats.map((s, i) => {
-                  const rate = s.total > 0 ? s.present / s.total : 0;
+                  const rate = s.total > 0 ? s.attended / s.total : 0;
                   const barH = Math.max(rate * maxBarHeight, 4);
                   const color =
                     rate >= 0.8
@@ -245,7 +250,7 @@ export default function TeacherAnalytics() {
             <div>
               <p className="section-label">Chi tiết từng phiên</p>
               {[...stats].reverse().map((s, i) => {
-                const rate = s.total > 0 ? (s.present / s.total) * 100 : 0;
+                const rate = s.total > 0 ? (s.attended / s.total) * 100 : 0;
                 return (
                   <div
                     key={i}

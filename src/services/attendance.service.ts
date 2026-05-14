@@ -3,6 +3,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -34,10 +35,12 @@ export async function checkInStudent(
   if (isMockMode()) {
     const existing = mockDb.getMyAttendance(sessionId, studentId);
     if (existing) return existing;
-    return mockDb.createAttendance({
+    const created = mockDb.createAttendance({
       sessionId, classId, studentId, studentName,
       checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
     });
+    mockDb.notifyAttendanceChange(sessionId, studentId);
+    return created;
   }
 
   // Check if already checked in
@@ -80,6 +83,7 @@ export async function addPeerVerification(
     a.peerVerifications.push(peer);
     a.peerCount++;
     a.trustScore = computeTrustScore(a.peerCount, a.faceVerification);
+    mockDb.notifyAttendanceChange(a.sessionId, a.studentId);
     return;
   }
 
@@ -110,6 +114,7 @@ export async function addBidirectionalPeerVerification(
       scannerAtt.peerVerifications.push({ peerId, peerName, verifiedAt: Date.now(), qrNonce });
       scannerAtt.peerCount++;
       scannerAtt.trustScore = computeTrustScore(scannerAtt.peerCount, scannerAtt.faceVerification);
+      mockDb.notifyAttendanceChange(sessionId, scannerId);
       result.scannerUpdated = true;
     }
     const peerAtt = mockDb.getMyAttendance(sessionId, peerId);
@@ -117,6 +122,7 @@ export async function addBidirectionalPeerVerification(
       peerAtt.peerVerifications.push({ peerId: scannerId, peerName: scannerName, verifiedAt: Date.now(), qrNonce });
       peerAtt.peerCount++;
       peerAtt.trustScore = computeTrustScore(peerAtt.peerCount, peerAtt.faceVerification);
+      mockDb.notifyAttendanceChange(sessionId, peerId);
       result.peerUpdated = true;
     }
     return result;
@@ -208,7 +214,9 @@ export function subscribeToSessionAttendance(
 ): Unsubscribe {
   if (isMockMode()) {
     callback(mockDb.getSessionAttendance(sessionId));
-    return () => {};
+    return mockDb.subscribeAttendanceForSession(sessionId, () => {
+      callback(mockDb.getSessionAttendance(sessionId));
+    });
   }
   const q = query(collection(db, ATTENDANCE), where("sessionId", "==", sessionId));
   return onSnapshot(q, (snap) => {
@@ -223,7 +231,9 @@ export function subscribeToMyAttendance(
 ): Unsubscribe {
   if (isMockMode()) {
     callback(mockDb.getMyAttendance(sessionId, studentId));
-    return () => {};
+    return mockDb.subscribeAttendanceForStudent(sessionId, studentId, () => {
+      callback(mockDb.getMyAttendance(sessionId, studentId));
+    });
   }
   const q = query(
     collection(db, ATTENDANCE),
@@ -246,11 +256,18 @@ export async function updateFaceVerification(
     if (!a) return;
     a.faceVerification = faceResult;
     a.trustScore = computeTrustScore(a.peerCount, faceResult);
+    mockDb.notifyAttendanceChange(a.sessionId, a.studentId);
     return;
   }
 
-  await updateDoc(doc(db, ATTENDANCE, attendanceId), {
+  // Read current peerCount so we can sync trustScore atomically with the
+  // face result write (mock path already does this — keep parity).
+  const ref = doc(db, ATTENDANCE, attendanceId);
+  const snap = await getDoc(ref);
+  const peerCount = snap.exists() ? ((snap.data().peerCount as number) ?? 0) : 0;
+  await updateDoc(ref, {
     faceVerification: faceResult,
+    trustScore: computeTrustScore(peerCount, faceResult),
   });
 }
 
@@ -263,6 +280,7 @@ export async function teacherOverride(
     if (!a) return;
     a.teacherOverride = decision;
     a.trustScore = decision === "present" ? "present" : "absent";
+    mockDb.notifyAttendanceChange(a.sessionId, a.studentId);
     return;
   }
 
@@ -279,6 +297,14 @@ export async function manualCheckIn(
   reason: string,
   decision: "present" | "absent" = "present"
 ): Promise<{ id: string; created?: boolean; updated?: boolean }> {
+  // Resolve classId from session — without it, new manual records would be
+  // invisible to per-class queries (analytics, fraud reports, history).
+  const resolveClassId = async (): Promise<string> => {
+    if (isMockMode()) return mockDb.getSession(sessionId)?.classId ?? "";
+    const sessSnap = await getDoc(doc(db, "sessions", sessionId));
+    return sessSnap.exists() ? ((sessSnap.data().classId as string) ?? "") : "";
+  };
+
   if (isMockMode()) {
     const existing = mockDb.getMyAttendance(sessionId, studentId);
     if (existing) {
@@ -286,13 +312,16 @@ export async function manualCheckIn(
       existing.trustScore = decision;
       (existing as any).manualReason = reason;
       (existing as any).manualAt = Date.now();
+      mockDb.notifyAttendanceChange(sessionId, studentId);
       return { id: existing.id, updated: true };
     }
+    const classId = await resolveClassId();
     const record = mockDb.createAttendance({
-      sessionId, classId: "", studentId, studentName,
+      sessionId, classId, studentId, studentName,
       checkedInAt: Date.now(), peerVerifications: [], peerCount: 0,
       trustScore: decision, teacherOverride: decision,
     });
+    mockDb.notifyAttendanceChange(sessionId, studentId);
     return { id: record.id, created: true };
   }
 
@@ -315,9 +344,10 @@ export async function manualCheckIn(
     return { id: d.id, updated: true };
   }
 
+  const classId = await resolveClassId();
   const record = {
     sessionId,
-    classId: "",
+    classId,
     studentId,
     studentName,
     checkedInAt: Date.now(),

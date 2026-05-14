@@ -20,6 +20,7 @@ import TrustBadge from "@/components/attendance/TrustBadge";
 import FaceVerification from "@/components/face/FaceVerification";
 import { parseScannedQR } from "@/services/qr.service";
 import { checkGeoFence } from "@/utils/geo";
+import { haptic } from "@/utils/haptic";
 import type { FaceVerificationResult } from "@/types";
 
 /* ── Step Indicator ─────────────────────────────── */
@@ -34,13 +35,13 @@ function getStepLabels(faceReq: boolean, peerReq: boolean): string[] {
 }
 
 function getStepIndex(step: StepKey, faceReq: boolean, peerReq: boolean): number {
+  const lastIdx = getStepLabels(faceReq, peerReq).length - 1;
   if (step === "idle" || step === "scan-teacher") return 0;
   let idx = 1;
   if (step === "face-verify") return faceReq ? idx : 0;
   if (faceReq) idx++;
-  if (step === "show-qr" || step === "scan-peers") return peerReq ? idx : idx;
-  // done
-  return getStepLabels(faceReq, peerReq).length - 1;
+  if (step === "show-qr" || step === "scan-peers") return peerReq ? idx : lastIdx;
+  return lastIdx;
 }
 
 function StepIndicatorBar({ step, faceRequired, peerRequired }: { step: StepKey; faceRequired: boolean; peerRequired: boolean }) {
@@ -125,7 +126,7 @@ export default function StudentAttendance() {
   const session = useAtomValue(activeSessionAtom);
   const setSession = useSetAtom(activeSessionAtom);
 
-  const { myAttendance, step, setStep, checkIn, completeFaceVerification } =
+  const { myAttendance, step, setStep, checkIn, completeFaceVerification, loaded: attendanceLoaded } =
     useAttendance(sessionId, user?.id);
 
   const setError = useSetAtom(globalErrorAtom);
@@ -144,6 +145,13 @@ export default function StudentAttendance() {
       .catch(() => setError("Không thể tải phiên điểm danh"));
   }, [sessionId, session, setSession]);
 
+  // Pre-warm GPS: trigger permission dialog & first fix while user reads UI,
+  // so handleTeacherQRDetected reads from the 60s position cache instead of
+  // blocking the scan handler waiting for a fresh fix.
+  useEffect(() => {
+    requestLocation().catch(() => {});
+  }, [requestLocation]);
+
   // Load peer secret for QR generation (needed after check-in)
   useEffect(() => {
     if (!sessionId || !session || peerSecret) return;
@@ -154,7 +162,11 @@ export default function StudentAttendance() {
       .catch(() => {});
   }, [sessionId, session, peerSecret]);
 
+  // Gate step transitions until first snapshot resolved — avoids flashing
+  // "scan-teacher" (and mounting the camera) before discovering that the
+  // student already checked in / verified face / collected peers.
   useEffect(() => {
+    if (!attendanceLoaded) return;
     if (myAttendance) {
       const peerDone = !peerReq || myAttendance.peerCount >= 3;
       const faceDone = !faceReq || !!myAttendance.faceVerification;
@@ -166,13 +178,7 @@ export default function StudentAttendance() {
     } else {
       setStep("scan-teacher");
     }
-  }, [myAttendance, faceReq, peerReq, setStep]);
-
-  useEffect(() => {
-    const peerDone = !peerReq || (myAttendance?.peerCount ?? 0) >= 3;
-    const faceDone = !faceReq || !!myAttendance?.faceVerification;
-    if (myAttendance && peerDone && faceDone && step !== "done") setStep("done");
-  }, [myAttendance?.peerCount, myAttendance?.faceVerification, step, setStep, faceReq, peerReq]);
+  }, [myAttendance, faceReq, peerReq, setStep, attendanceLoaded]);
 
   const qrOptions =
     (step === "show-qr" || step === "scan-peers") && session && peerSecret
@@ -181,6 +187,7 @@ export default function StudentAttendance() {
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(qrOptions);
 
   const [teacherScanError, setTeacherScanError] = useState<string | null>(null);
+  const [optimisticScan, setOptimisticScan] = useState<"idle" | "success">("idle");
   const teacherScannedRef = React.useRef(false);
 
   const handleTeacherQRDetected = useCallback(async (content: string) => {
@@ -190,11 +197,12 @@ export default function StudentAttendance() {
     try {
       const payload = parseScannedQR(content);
       if (!payload) {
+        haptic("error");
         setTeacherScanError("QR không hợp lệ");
         teacherScannedRef.current = false;
         return;
       }
-      // Lấy vị trí GPS khi check-in
+      // GPS đã pre-warm ở mount — call này thường trả từ cache (60s maxAge)
       const location = await requestLocation() ?? undefined;
 
       // Kiểm tra geofence nếu GV đã set vị trí
@@ -205,6 +213,7 @@ export default function StudentAttendance() {
           session.geoFenceRadius || 200
         );
         if (!geoCheck.inRange) {
+          haptic("error");
           setTeacherScanError(
             `Bạn đang ở cách lớp học ${geoCheck.distance}m (tối đa ${session.geoFenceRadius || 200}m). Vui lòng đến gần hơn.`
           );
@@ -213,13 +222,21 @@ export default function StudentAttendance() {
         }
       }
 
-      const record = await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
+      // Optimistic: show success feedback NGAY, không đợi checkIn resolve
+      // (trên 3G chậm, checkIn có thể mất 2-5s)
+      haptic("success");
+      setOptimisticScan("success");
+
+      await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
       // Load peer secret from session subcollection (open rules)
       if (!peerSecret && sessionId) {
         const secret = session.hmacSecret || await getSessionSecret(sessionId);
         if (secret) setPeerSecret(secret);
       }
     } catch (err: any) {
+      // Rollback optimistic UI on failure
+      setOptimisticScan("idle");
+      haptic("error");
       const code = err?.code?.replace("functions/", "") || "";
       if (code === "invalid-argument") {
         setTeacherScanError("QR giảng viên không hợp lệ hoặc hết hạn");
@@ -228,7 +245,7 @@ export default function StudentAttendance() {
       }
       teacherScannedRef.current = false;
     }
-  }, [session, checkIn, user]);
+  }, [session, checkIn, user, requestLocation, sessionId, peerSecret, faceReq, peerReq]);
 
   const handleFaceComplete = async (result: FaceVerificationResult) => {
     await completeFaceVerification(result, { peerRequired: peerReq });
@@ -264,6 +281,7 @@ export default function StudentAttendance() {
       try { const peerDoc = await getUserDoc(payload.userId); if (peerDoc) peerName = peerDoc.name; } catch {}
       // Server-side validation via scanPeer Cloud Function
       await addBidirectionalPeerVerification(sessionId, user.id, user.name, payload.userId, peerName, payload.nonce, payload, myAttendance.id);
+      haptic("success");
       setPeerScanActive(false);
       peerScannedRef.current = false;
     } catch (err: any) {
@@ -279,13 +297,28 @@ export default function StudentAttendance() {
     }
   }, [session, myAttendance, user, sessionId, setError]);
 
-  /* Loading */
-  if (!session) {
+  /* Loading — show skeleton until both session config and attendance state resolved */
+  if (!session || !attendanceLoaded) {
     return (
       <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0 }}>
         <AttendanceHeader onBack={() => navigate(-1)} />
-        <div style={{ padding: "60px 20px", textAlign: "center" }}>
-          <p style={{ color: "#9ca3af", fontSize: 14 }}>Đang tải phiên...</p>
+        <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Step indicator skeleton */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <React.Fragment key={i}>
+                <div className="skeleton" style={{ width: 32, height: 32, borderRadius: 16 }} />
+                {i < 3 && <div className="skeleton" style={{ flex: 1, height: 2.5, borderRadius: 1 }} />}
+              </React.Fragment>
+            ))}
+          </div>
+          {/* Title skeleton */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="skeleton" style={{ width: "55%", height: 28, borderRadius: 8 }} />
+            <div className="skeleton" style={{ width: "80%", height: 16, borderRadius: 8 }} />
+          </div>
+          {/* Camera area skeleton */}
+          <div className="skeleton" style={{ width: "100%", height: 300, borderRadius: 24 }} />
         </div>
       </Page>
     );
@@ -326,12 +359,35 @@ export default function StudentAttendance() {
             <div style={{
               background: "#ffffff", borderRadius: 24, padding: 12,
               boxShadow: "0 8px 32px rgba(0,0,0,0.07)",
+              position: "relative",
             }}>
               <InlineQRScanner
                 onDetect={handleTeacherQRDetected}
                 active={step === "scan-teacher"}
                 height={300}
               />
+              {optimisticScan === "success" && (
+                <div style={{
+                  position: "absolute", inset: 12, borderRadius: 16,
+                  background: "rgba(34,197,94,0.92)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexDirection: "column", gap: 14,
+                  pointerEvents: "none",
+                  animation: "fadeIn 0.2s ease-out",
+                }}>
+                  <div style={{
+                    width: 80, height: 80, borderRadius: 40, background: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                  }}>
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                  <span style={{ color: "#fff", fontSize: 17, fontWeight: 700 }}>Đã quét QR</span>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>Đang xác thực...</span>
+                </div>
+              )}
             </div>
 
             <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Tự động nhận diện khi thấy mã QR</p>
@@ -355,6 +411,7 @@ export default function StudentAttendance() {
           <FaceVerification
             sessionId={sessionId || ""}
             attendanceId={myAttendance.id}
+            teacherId={session.teacherId}
             onComplete={handleFaceComplete}
             onSkip={() => setStep("show-qr")}
           />
@@ -466,7 +523,7 @@ export default function StudentAttendance() {
             {/* Done button when all peers verified */}
             {pc >= 3 && (
               <button
-                onClick={() => setStep("done")}
+                onClick={() => { haptic("success"); setStep("done"); }}
                 style={{
                   width: "100%", height: 56, borderRadius: 16,
                   background: "#22c55e", border: "none",

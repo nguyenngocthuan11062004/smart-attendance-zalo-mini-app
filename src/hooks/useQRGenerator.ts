@@ -44,7 +44,7 @@ export function useQRGenerator(options: UseQRGeneratorOptions | null) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [generateQR, refreshInterval, refreshSeconds, options?.sessionId]);
+  }, [generateQR, refreshInterval, refreshSeconds, options?.sessionId, options?.userId, options?.secret, options?.type]);
 
   return { qrDataURL, secondsLeft, refreshSeconds };
 }
