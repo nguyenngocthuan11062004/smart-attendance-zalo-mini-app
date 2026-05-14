@@ -32,9 +32,9 @@ export default function LoginPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
 
   useEffect(() => {
-    if (!currentUser || !currentUser.role || currentUser.role === "") return;
+    if (!currentUser || !currentUser.role) return;
     // Teacher/admin → vào luôn
-    if (currentUser.role === "teacher" || (currentUser.role as string) === "admin") {
+    if (currentUser.role === "teacher" || currentUser.role === "admin") {
       navigate("/home", { replace: true }); return;
     }
     // Bypass MSSV hoặc EmailJS chưa cấu hình → vào luôn
@@ -311,7 +311,7 @@ export default function LoginPage() {
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 }}
               >
-                {sending ? <Spinner size="small" /> : null}
+                {sending ? <Spinner /> : null}
                 {sending ? "Đang gửi..." : "Gửi mã xác minh"}
               </button>
             </div>
@@ -464,7 +464,7 @@ export default function LoginPage() {
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 }}
               >
-                {inviteLoading ? <Spinner size="small" /> : null}
+                {inviteLoading ? <Spinner /> : null}
                 {inviteLoading ? "Đang xác minh..." : "Xác nhận"}
               </button>
             </div>

@@ -1,4 +1,4 @@
-export type UserRole = "student" | "teacher";
+export type UserRole = "student" | "teacher" | "admin";
 
 export interface UserDoc {
   id: string;
@@ -137,6 +137,23 @@ export interface FaceRegistrationDoc {
   faceMatchConfidence?: number;
   registeredAt: number;
   updatedAt: number;
+}
+
+export interface AbsenceRequestDoc {
+  id: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  className: string;
+  // sessionId rỗng => xin nghỉ chung cho lớp, không gắn buổi cụ thể
+  sessionId: string;
+  reason: string;
+  attachmentPaths: string[];
+  status: "pending" | "approved" | "rejected";
+  reviewedBy?: string;
+  reviewedAt?: number;
+  reviewNote?: string;
+  createdAt: number;
 }
 
 export function computeTrustScore(

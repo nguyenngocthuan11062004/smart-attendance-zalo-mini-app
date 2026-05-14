@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
@@ -113,6 +113,7 @@ export default function SplashPage() {
   const [fadeIn, setFadeIn] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const [readyToNavigate, setReadyToNavigate] = useState(false);
+  const mountTimeRef = useRef(Date.now());
 
   // Fade in on mount
   useEffect(() => {
@@ -120,18 +121,23 @@ export default function SplashPage() {
     return () => cancelAnimationFrame(t);
   }, []);
 
-  // After 2s, mark ready to navigate
+  // Dismiss as soon as auth ready, but enforce a minimum visible time so
+  // the splash never flashes for warm starts.
   useEffect(() => {
-    const timer = setTimeout(() => setReadyToNavigate(true), 2000);
+    if (!authInitialized) return;
+    const MIN_DISPLAY_MS = 600;
+    const elapsed = Date.now() - mountTimeRef.current;
+    const wait = Math.max(0, MIN_DISPLAY_MS - elapsed);
+    const timer = setTimeout(() => setReadyToNavigate(true), wait);
     return () => clearTimeout(timer);
-  }, []);
+  }, [authInitialized]);
 
   // When ready + auth resolved, start fade-out then navigate
   useEffect(() => {
     if (!readyToNavigate || !authInitialized) return;
 
     setFadeOut(true);
-    const hasRole = isAuthenticated && currentUser?.role && currentUser.role !== "";
+    const hasRole = !!(isAuthenticated && currentUser?.role);
 
     let timer: ReturnType<typeof setTimeout>;
     storageGetItem("hasSeenWelcome").then((val) => {

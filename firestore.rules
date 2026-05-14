@@ -3,30 +3,52 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Tạm thời: cho phép tất cả read/write ──────────────────────────
-    // TODO: Thêm Firebase Auth (Custom Token từ Zalo) khi upgrade Blaze plan
-    // Sau đó khôi phục rules có isAuthenticated(), isOwner(), isTeacher()
+    // Vì project chạy Firebase Spark (free) + chưa có Custom Auth Token từ Zalo,
+    // client KHÔNG có `request.auth`. Rules vẫn phải đóng các đường thoát rõ ràng:
+    //  1. Cấm client tự gán `role` (chống self-elevation thành teacher/admin).
+    //  2. Bảo vệ các collection chỉ-đọc (fraud reports, OTP states).
+    //
+    // TODO (production): bật Blaze plan + Custom Token để dùng request.auth.uid
+    //                    và khôi phục isOwner()/isTeacher() đầy đủ.
+
+    function notChangingRole() {
+      return !('role' in request.resource.data) ||
+             !('role' in resource.data) ||
+             request.resource.data.role == resource.data.role;
+    }
+
+    function newDocSafeRole() {
+      // User mới tạo: chỉ chấp nhận role="student" hoặc thiếu role.
+      return !('role' in request.resource.data) ||
+             request.resource.data.role == 'student';
+    }
 
     // ── Users ─────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      // Tạo user mới: role phải là "student" (teacher/admin do Cloud Function gán).
+      allow create: if newDocSafeRole();
+      // Update: không được tự đổi role của bản thân.
+      allow update: if notChangingRole();
+      allow delete: if false;
     }
 
     // ── Classes ───────────────────────────────────────────────────────
     match /classes/{classId} {
       allow read: if true;
-      allow create, update, delete: if true;
+      allow create, update: if true;
+      allow delete: if false;
     }
 
     // ── Sessions ──────────────────────────────────────────────────────
     match /sessions/{sessionId} {
       allow read: if true;
       allow create, update: if true;
+      allow delete: if false;
     }
 
-    // ── Session secrets ─────────────────────────────────────────────
+    // ── Session secrets — HMAC keys ──────────────────────────────────
+    // TODO: khi có Auth, chỉ teacher của session đọc được.
     match /sessions/{sessionId}/secrets/{secretId} {
       allow read: if true;
       allow write: if true;
@@ -35,8 +57,8 @@ service cloud.firestore {
     // ── Attendance ────────────────────────────────────────────────────
     match /attendance/{attendanceId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow create, update: if true;
+      allow delete: if false;
     }
 
     // ── Face registrations ────────────────────────────────────────────
@@ -49,24 +71,29 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // ── OAuth states ─────────────────────────────────────────────────
+    // ── OAuth states — server-only ───────────────────────────────────
     match /oauth_states/{stateId} {
       allow read, write: if false;
     }
 
-    // ── Fraud reports ─────────────────────────────────────────────────
+    // ── Fraud reports — Cloud Functions only ─────────────────────────
     match /fraud_reports/{reportId} {
       allow read: if true;
-      allow write: if false; // Cloud Functions only
+      allow write: if false;
     }
 
-    // ── Absence requests ────────────────────────────────────────────────
+    // ── Absence requests ──────────────────────────────────────────────
+    // SV gửi đơn (create), GV/Admin duyệt (update). Status mặc định "pending".
     match /absence_requests/{requestId} {
       allow read: if true;
-      allow create, update: if true;
+      // SV tạo mới: status PHẢI là "pending" (không được tự duyệt cho mình).
+      allow create: if request.resource.data.status == 'pending';
+      // Update: bất kỳ ai cũng update được (vì chưa có Auth, nhưng Admin UI dùng).
+      allow update: if true;
+      allow delete: if false;
     }
 
-    // ── Teacher invite codes ────────────────────────────────────────────
+    // ── Teacher invite codes ──────────────────────────────────────────
     match /teacher_invites/{codeId} {
       allow read: if true;
       allow write: if true;
