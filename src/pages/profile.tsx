@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { openWebview } from "zmp-sdk/apis";
 import { isValidPhone, isValidEmail } from "@/utils/sanitize";
 import { storageSetItem } from "@/utils/storage";
+import { requestUserInfo } from "@/services/auth.service";
 // Microsoft OAuth hidden — requires Cloud Functions & redirects outside Zalo (causes rejection)
 // import MicrosoftLinkCard from "@/components/profile/MicrosoftLinkCard";
 import DarkModal from "@/components/ui/DarkModal";
@@ -21,6 +22,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+const EM_DASH = "—";
 
 export default function ProfilePage() {
   const user = useAtomValue(currentUserAtom);
@@ -39,8 +42,7 @@ export default function ProfilePage() {
   const [emailError, setEmailError] = useState("");
   if (!user) return null;
 
-  const email = user.email
-    || (user.mssv ? `${user.name.toLowerCase().replace(/\s/g, ".")}@sis.hust.edu.vn` : "");
+  const isTeacherOrAdmin = role === "teacher" || role === "admin";
 
   const openEditModal = () => {
     setEditPhone(user.phone || "");
@@ -71,7 +73,8 @@ export default function ProfilePage() {
     if (editBirthdate) updates.birthdate = editBirthdate;
     if (editDepartment) updates.department = editDepartment;
     if (editProgram) updates.program = editProgram;
-    if (editClassName) updates.className = editClassName;
+    // GV không có "Lớp" — chỉ student mới lưu className
+    if (!isTeacherOrAdmin && editClassName) updates.className = editClassName;
 
     const updated = { ...user, ...updates };
     setUser(updated);
@@ -87,6 +90,30 @@ export default function ProfilePage() {
       // Firestore unavailable — changes saved locally
     }
   };
+
+  // Build fields cho edit modal — labels thay đổi theo role
+  const editFields = [
+    { label: "Số điện thoại", placeholder: "VD: 0986447465", value: editPhone, onChange: (v: string) => { setEditPhone(v); setPhoneError(""); }, error: phoneError },
+    {
+      label: isTeacherOrAdmin ? "Email công vụ" : "Email cá nhân",
+      placeholder: isTeacherOrAdmin ? "VD: ten.lot@hust.edu.vn" : "VD: email@gmail.com",
+      value: editEmail,
+      onChange: (v: string) => { setEditEmail(v); setEmailError(""); },
+      error: emailError,
+    },
+    { label: "Ngày sinh", placeholder: "VD: 11/06/2004", value: editBirthdate, onChange: setEditBirthdate },
+    { label: "Khoa/Viện", placeholder: "VD: Trường CNTT&TT", value: editDepartment, onChange: setEditDepartment },
+    {
+      label: isTeacherOrAdmin ? "Bộ môn" : "Hệ",
+      placeholder: isTeacherOrAdmin ? "VD: Bộ môn Kỹ thuật Máy tính" : "VD: Cử nhân - K67",
+      value: editProgram,
+      onChange: setEditProgram,
+    },
+    // Chỉ SV có trường "Lớp"
+    ...(!isTeacherOrAdmin
+      ? [{ label: "Lớp", placeholder: "VD: KTMT 03-K67", value: editClassName, onChange: setEditClassName }]
+      : []),
+  ];
 
   return (
     <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
@@ -180,7 +207,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* -- Info card -- */}
+      {/* -- Info card — labels thay đổi theo role -- */}
       <div
         style={{
           margin: "0 16px",
@@ -191,22 +218,46 @@ export default function ProfilePage() {
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         }}
       >
-        <div className="grid grid-cols-2 gap-x-6">
-          <InfoRow label="Mã sinh viên:" value={user.mssv || "\u2014"} />
-          <InfoRow label="Ngày sinh:" value={user.birthdate || "\u2014"} />
+        {isTeacherOrAdmin ? (
+          <>
+            <div className="grid grid-cols-2 gap-x-6">
+              <div style={{ padding: "14px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+                <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>Email công vụ:</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#a78bfa", wordBreak: "break-all" }}>
+                  {user.email || EM_DASH}
+                </p>
+              </div>
+              <InfoRow label="Số điện thoại:" value={user.phone || EM_DASH} />
+            </div>
+            <InfoRow label="Khoa/Viện:" value={user.department || EM_DASH} />
+            <InfoRow label="Bộ môn:" value={user.program || EM_DASH} />
+            <InfoRow label="Vai trò:" value={role === "admin" ? "Quản trị viên" : "Giảng viên"} />
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-x-6">
+              <InfoRow label="Mã sinh viên:" value={user.mssv || EM_DASH} />
+              <InfoRow label="Ngày sinh:" value={user.birthdate || EM_DASH} />
+            </div>
+            <div className="grid grid-cols-2 gap-x-6">
+              <div style={{ padding: "14px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+                <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>Email cá nhân:</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#a78bfa", wordBreak: "break-all" }}>
+                  {user.email || EM_DASH}
+                </p>
+              </div>
+              <InfoRow label="Số điện thoại:" value={user.phone || EM_DASH} />
+            </div>
+            <InfoRow label="Khoa/Viện:" value={user.department || EM_DASH} />
+            <InfoRow label="Hệ:" value={user.program || EM_DASH} />
+            <InfoRow label="Lớp:" value={user.className || EM_DASH} />
+            <InfoRow label="Vai trò:" value="Sinh viên" />
+          </>
+        )}
+        <div style={{ padding: "14px 0" }}>
+          <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>ID:</p>
+          <p style={{ fontSize: 11, fontWeight: 500, color: "#d4d4d4", wordBreak: "break-all" }}>{user.id}</p>
         </div>
-        <div className="grid grid-cols-2 gap-x-6">
-          <div style={{ padding: "14px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-            <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>Email cá nhân:</p>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#a78bfa", wordBreak: "break-all" }}>
-              {user.email || "\u2014"}
-            </p>
-          </div>
-          <InfoRow label="Số điện thoại:" value={user.phone || "\u2014"} />
-        </div>
-        <InfoRow label="Khoa/Viện:" value={user.department || "\u2014"} />
-        <InfoRow label="Hệ:" value={user.program || "\u2014"} />
-        <InfoRow label="Lớp:" value={user.className || "\u2014"} />
       </div>
 
       {/* -- Microsoft 365 Link (hidden — requires Cloud Functions & redirects outside Zalo) -- */}
@@ -214,8 +265,31 @@ export default function ProfilePage() {
         <MicrosoftLinkCard />
       </div> */}
 
-      {/* -- Edit -- */}
+      {/* -- Actions -- */}
       <div style={{ padding: "20px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* Cập nhật tên + avatar từ Zalo */}
+        <button
+          onClick={async () => {
+            const info = await requestUserInfo(user.id);
+            if (info) {
+              const updated = { ...user, name: info.name, avatar: info.avatar, updatedAt: Date.now() };
+              setUser(updated);
+              await storageSetItem("user_doc", JSON.stringify(updated));
+            }
+          }}
+          style={{
+            width: "100%", height: 48, borderRadius: 12,
+            background: "#be1d2c", border: "none",
+            fontSize: 15, fontWeight: 600, color: "#ffffff",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+          </svg>
+          Cập nhật tên và ảnh từ Zalo
+        </button>
+
         <button
           onClick={openEditModal}
           style={{
@@ -274,14 +348,7 @@ export default function ProfilePage() {
       {/* -- Edit modal -- */}
       <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
         <div style={{ padding: "0 4px", paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 14 }}>
-          {[
-            { label: "Số điện thoại", placeholder: "VD: 0986447465", value: editPhone, onChange: (v: string) => { setEditPhone(v); setPhoneError(""); }, error: phoneError },
-            { label: "Email cá nhân", placeholder: "VD: email@gmail.com", value: editEmail, onChange: (v: string) => { setEditEmail(v); setEmailError(""); }, error: emailError },
-            { label: "Ngày sinh", placeholder: "VD: 11/06/2004", value: editBirthdate, onChange: setEditBirthdate },
-            { label: "Khoa/Viện", placeholder: "VD: Trường CNTT&TT", value: editDepartment, onChange: setEditDepartment },
-            { label: "Hệ", placeholder: "VD: Cử nhân - K67", value: editProgram, onChange: setEditProgram },
-            { label: "Lớp", placeholder: "VD: KTMT 03-K67", value: editClassName, onChange: setEditClassName },
-          ].map((f) => (
+          {editFields.map((f) => (
             <div key={f.label}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, display: "block" }}>{f.label}</label>
               <input

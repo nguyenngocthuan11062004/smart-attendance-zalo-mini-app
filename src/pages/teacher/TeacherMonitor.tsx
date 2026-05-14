@@ -123,10 +123,12 @@ export default function TeacherMonitor() {
   const absentStudentList = allStudents.filter((s) => !checkedInIds.has(s.id));
 
   const handleManualSubmit = async () => {
-    if (!manualTarget || !manualReason.trim() || !sessionId) return;
+    if (!manualTarget || !sessionId) return;
     setManualSubmitting(true);
     try {
-      await manualCheckIn(sessionId, manualTarget.id, manualTarget.name, manualReason.trim(), "present");
+      // Lý do là tùy chọn — nếu trống, dùng default ngắn gọn để log vẫn có thông tin
+      const reason = manualReason.trim() || "GV xác nhận có mặt";
+      await manualCheckIn(sessionId, manualTarget.id, manualTarget.name, reason, "present");
       setManualTarget(null);
       setManualReason("");
       setShowManualModal(false);
@@ -461,7 +463,9 @@ export default function TeacherMonitor() {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Lý do *</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+                Lý do <span style={{ fontWeight: 400, color: "#9ca3af" }}>(không bắt buộc)</span>
+              </label>
               <textarea
                 value={manualReason}
                 onChange={(e) => setManualReason(e.target.value)}
@@ -487,10 +491,10 @@ export default function TeacherMonitor() {
               </button>
               <button
                 onClick={handleManualSubmit}
-                disabled={manualSubmitting || !manualReason.trim()}
+                disabled={manualSubmitting}
                 style={{
                   flex: 1, height: 48, borderRadius: 12,
-                  background: manualSubmitting || !manualReason.trim() ? "#d4d4d4" : "#22c55e",
+                  background: manualSubmitting ? "#d4d4d4" : "#22c55e",
                   border: "none",
                   fontSize: 15, fontWeight: 700, color: "#fff",
                 }}
