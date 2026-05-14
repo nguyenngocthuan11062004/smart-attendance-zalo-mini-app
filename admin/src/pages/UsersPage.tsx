@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, Table, Input, Select, Tag, Avatar, Space, Button, Typography, App } from "antd";
 import { SearchOutlined, DownloadOutlined, UserOutlined } from "@ant-design/icons";
 import { getUsers, getUserStats } from "@/services/admin-user.service";
@@ -9,6 +10,7 @@ import type { ColumnsType } from "antd/es/table";
 const { Title } = Typography;
 
 export default function UsersPage() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -159,6 +161,11 @@ export default function UsersPage() {
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `${t} người dùng` }}
           scroll={{ x: 900 }}
           size="middle"
+          rowClassName={() => "clickable-row"}
+          onRow={(record) => ({
+            onClick: () => navigate(`/users/${record.id}`),
+            style: { cursor: "pointer" },
+          })}
         />
       </Card>
     </div>

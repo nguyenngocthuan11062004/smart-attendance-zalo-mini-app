@@ -287,6 +287,15 @@ export default function ClassDetailPage() {
           <Descriptions.Item label="Mã lớp">{cls.code}</Descriptions.Item>
           <Descriptions.Item label="Giảng viên">{cls.teacherName}</Descriptions.Item>
           <Descriptions.Item label="Số sinh viên">{cls.studentIds.length}</Descriptions.Item>
+          <Descriptions.Item label="Lịch dạy">
+            {cls.schedule
+              ? `${["", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"][cls.schedule.dayOfWeek] || "?"} · ${cls.schedule.startTime}–${cls.schedule.endTime}`
+              : <Text type="secondary">Chưa cấu hình</Text>}
+          </Descriptions.Item>
+          <Descriptions.Item label="Phòng học">
+            {cls.location || <Text type="secondary">—</Text>}
+          </Descriptions.Item>
+          <Descriptions.Item label="Số phiên">{sessions.length}</Descriptions.Item>
           <Descriptions.Item label="Face Verification">
             <Tag color={cls.faceRequired !== false ? "green" : "default"}>
               {cls.faceRequired !== false ? "Bật" : "Tắt"}
@@ -297,7 +306,6 @@ export default function ClassDetailPage() {
               {cls.peerRequired !== false ? "Bật" : "Tắt"}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Số phiên">{sessions.length}</Descriptions.Item>
         </Descriptions>
       </Card>
 

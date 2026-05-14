@@ -31,6 +31,14 @@ export interface UserDoc {
   updatedAt: number;
 }
 
+export interface ClassSchedule {
+  // 1 = Thứ Hai, 2 = Thứ Ba, ..., 7 = Chủ Nhật (ISO 8601 — phù hợp hiển thị
+  // tiếng Việt: bắt đầu tuần từ Thứ Hai)
+  dayOfWeek: number;
+  startTime: string; // "HH:MM" — VD "07:30"
+  endTime: string;   // "HH:MM" — VD "09:00"
+}
+
 export interface ClassDoc {
   id: string;
   name: string;
@@ -40,6 +48,10 @@ export interface ClassDoc {
   studentIds: string[];
   faceRequired?: boolean;  // default true
   peerRequired?: boolean;  // default true
+  // Lịch dạy cố định trong tuần — dùng để hiển thị TKB cho GV
+  schedule?: ClassSchedule;
+  // Tên phòng/giảng đường — VD "D9-201", "Hội trường C2"
+  location?: string;
   createdAt: number;
 }
 

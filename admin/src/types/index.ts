@@ -31,6 +31,12 @@ export interface UserDoc {
   updatedAt: number;
 }
 
+export interface ClassSchedule {
+  dayOfWeek: number; // 1-7, 1=Thứ Hai ... 7=Chủ Nhật (ISO 8601)
+  startTime: string; // "HH:MM"
+  endTime: string;
+}
+
 export interface ClassDoc {
   id: string;
   name: string;
@@ -40,6 +46,8 @@ export interface ClassDoc {
   studentIds: string[];
   faceRequired?: boolean;
   peerRequired?: boolean;
+  schedule?: ClassSchedule;
+  location?: string;
   createdAt: number;
 }
 

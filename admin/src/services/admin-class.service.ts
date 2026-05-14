@@ -14,7 +14,7 @@ import {
   getCountFromServer,
 } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import type { ClassDoc, UserDoc } from "@/types";
+import type { ClassDoc, ClassSchedule, UserDoc } from "@/types";
 
 const CLASSES_COL = "classes";
 const USERS_COL = "users";
@@ -38,20 +38,31 @@ export async function createClass(data: {
   teacherName: string;
   faceRequired?: boolean;
   peerRequired?: boolean;
+  schedule?: ClassSchedule;
+  location?: string;
 }): Promise<string> {
-  const docRef = await addDoc(collection(db, CLASSES_COL), {
-    ...data,
+  // Loại bỏ các field undefined để Firestore không lưu chúng (Firestore không
+  // chấp nhận undefined trong field values).
+  const payload: Record<string, any> = {
+    name: data.name,
+    code: data.code,
+    teacherId: data.teacherId,
+    teacherName: data.teacherName,
     studentIds: [],
     faceRequired: data.faceRequired ?? true,
     peerRequired: data.peerRequired ?? true,
     createdAt: Date.now(),
-  });
+  };
+  if (data.schedule) payload.schedule = data.schedule;
+  if (data.location) payload.location = data.location;
+
+  const docRef = await addDoc(collection(db, CLASSES_COL), payload);
   return docRef.id;
 }
 
 export async function updateClass(
   classId: string,
-  data: Partial<Pick<ClassDoc, "name" | "code" | "teacherId" | "teacherName" | "faceRequired" | "peerRequired">>
+  data: Partial<Pick<ClassDoc, "name" | "code" | "teacherId" | "teacherName" | "faceRequired" | "peerRequired" | "schedule" | "location">>
 ): Promise<void> {
   await updateDoc(doc(db, CLASSES_COL, classId), data);
 }

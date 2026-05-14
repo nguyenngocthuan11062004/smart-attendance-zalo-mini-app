@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card, Table, Button, Modal, Form, Input, Select, Switch, Space, Typography,
-  Tag, App, Upload, Alert, Badge,
+  Tag, App, Upload, Alert, Badge, TimePicker,
 } from "antd";
+import dayjs from "dayjs";
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, UploadOutlined,
   DownloadOutlined, CheckCircleFilled, CloseCircleFilled, FileExcelOutlined,
@@ -64,6 +65,10 @@ export default function ClassesPage() {
       teacherId: cls.teacherId,
       faceRequired: cls.faceRequired !== false,
       peerRequired: cls.peerRequired !== false,
+      location: cls.location || "",
+      dayOfWeek: cls.schedule?.dayOfWeek,
+      startTime: cls.schedule?.startTime ? dayjs(cls.schedule.startTime, "HH:mm") : null,
+      endTime: cls.schedule?.endTime ? dayjs(cls.schedule.endTime, "HH:mm") : null,
     });
     setModalOpen(true);
   };
@@ -77,25 +82,34 @@ export default function ClassesPage() {
       const values = await form.validateFields();
       const teacher = teachers.find((t) => t.id === values.teacherId);
 
+      // Schedule chỉ valid khi cả 3 trường có giá trị — nếu thiếu, không lưu
+      // (để tránh ghi nửa vời, gây bug khi render TKB).
+      const hasFullSchedule =
+        values.dayOfWeek && values.startTime && values.endTime;
+      const schedule = hasFullSchedule
+        ? {
+            dayOfWeek: values.dayOfWeek,
+            startTime: (values.startTime as dayjs.Dayjs).format("HH:mm"),
+            endTime: (values.endTime as dayjs.Dayjs).format("HH:mm"),
+          }
+        : undefined;
+
+      const baseData = {
+        name: values.name,
+        code: values.code,
+        teacherId: values.teacherId,
+        teacherName: teacher?.name || "",
+        faceRequired: values.faceRequired,
+        peerRequired: values.peerRequired,
+        schedule,
+        location: values.location || undefined,
+      };
+
       if (editingClass) {
-        await updateClass(editingClass.id, {
-          name: values.name,
-          code: values.code,
-          teacherId: values.teacherId,
-          teacherName: teacher?.name || "",
-          faceRequired: values.faceRequired,
-          peerRequired: values.peerRequired,
-        });
+        await updateClass(editingClass.id, baseData);
         message.success("Đã cập nhật lớp");
       } else {
-        await createClass({
-          name: values.name,
-          code: values.code,
-          teacherId: values.teacherId,
-          teacherName: teacher?.name || "",
-          faceRequired: values.faceRequired,
-          peerRequired: values.peerRequired,
-        });
+        await createClass(baseData);
         message.success("Đã tạo lớp mới");
       }
 
@@ -173,6 +187,10 @@ export default function ClassesPage() {
   };
 
   // ── Table columns ─────────────────────────────────────────────────────
+  const dayLabels = ["", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+  const formatSchedule = (s?: ClassDoc["schedule"]) =>
+    s ? `${dayLabels[s.dayOfWeek] || "?"} · ${s.startTime}-${s.endTime}` : "—";
+
   const columns: ColumnsType<ClassDoc> = [
     { title: "Tên lớp", dataIndex: "name", key: "name", sorter: (a, b) => a.name.localeCompare(b.name) },
     { title: "Mã lớp", dataIndex: "code", key: "code", width: 120 },
@@ -181,6 +199,14 @@ export default function ClassesPage() {
       title: "SV", dataIndex: "studentIds", key: "students", width: 70,
       render: (ids: string[]) => ids.length,
       sorter: (a, b) => a.studentIds.length - b.studentIds.length,
+    },
+    {
+      title: "Lịch", key: "schedule", width: 140,
+      render: (_, r) => <span style={{ fontSize: 13 }}>{formatSchedule(r.schedule)}</span>,
+    },
+    {
+      title: "Phòng", dataIndex: "location", key: "location", width: 110,
+      render: (v: string) => v || "—",
     },
     {
       title: "Cấu hình", key: "config", width: 160,
@@ -304,6 +330,39 @@ export default function ClassesPage() {
               options={teachers.map((t) => ({ value: t.id, label: `${t.name} (${t.email || t.phone || ""})` }))}
             />
           </Form.Item>
+
+          {/* Lịch dạy — không bắt buộc, nếu nhập đủ 3 trường thì lưu */}
+          <Form.Item label="Lịch dạy" style={{ marginBottom: 0 }}>
+            <Space.Compact style={{ width: "100%" }}>
+              <Form.Item name="dayOfWeek" noStyle>
+                <Select
+                  placeholder="Thứ"
+                  style={{ width: 110 }}
+                  allowClear
+                  options={[
+                    { value: 1, label: "Thứ 2" },
+                    { value: 2, label: "Thứ 3" },
+                    { value: 3, label: "Thứ 4" },
+                    { value: 4, label: "Thứ 5" },
+                    { value: 5, label: "Thứ 6" },
+                    { value: 6, label: "Thứ 7" },
+                    { value: 7, label: "Chủ Nhật" },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name="startTime" noStyle>
+                <TimePicker format="HH:mm" minuteStep={5} placeholder="Bắt đầu" style={{ flex: 1 }} />
+              </Form.Item>
+              <Form.Item name="endTime" noStyle>
+                <TimePicker format="HH:mm" minuteStep={5} placeholder="Kết thúc" style={{ flex: 1 }} />
+              </Form.Item>
+            </Space.Compact>
+          </Form.Item>
+
+          <Form.Item name="location" label="Phòng học / Giảng đường">
+            <Input placeholder="VD: D9-201, Hội trường C2" />
+          </Form.Item>
+
           <Space size={32}>
             <Form.Item name="faceRequired" label="Face Verification" valuePropName="checked">
               <Switch />

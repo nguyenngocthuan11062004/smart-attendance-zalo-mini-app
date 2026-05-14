@@ -104,6 +104,59 @@ export async function getUserStats(): Promise<{
 }
 
 /**
+ * Lấy danh sách lớp một user đang là SV / GV.
+ * - Student: tìm classes chứa userId trong studentIds
+ * - Teacher: tìm classes có teacherId = userId
+ */
+export async function getUserClasses(
+  userId: string,
+  role: "student" | "teacher"
+): Promise<{ id: string; name: string; code: string; teacherName?: string; studentCount?: number; createdAt?: number }[]> {
+  const CLASSES = "classes";
+  const q = role === "teacher"
+    ? query(collection(db, CLASSES), where("teacherId", "==", userId))
+    : query(collection(db, CLASSES), where("studentIds", "array-contains", userId));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => {
+      const data = d.data() as any;
+      return {
+        id: d.id,
+        name: data.name || "",
+        code: data.code || "",
+        teacherName: data.teacherName,
+        studentCount: Array.isArray(data.studentIds) ? data.studentIds.length : 0,
+        createdAt: data.createdAt || 0,
+      };
+    })
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+/**
+ * Đếm số buổi vắng của SV — trustScore === "absent" (không bao gồm "review").
+ * Cũng trả về tổng số buổi đã điểm danh để hiển thị tỉ lệ.
+ */
+export async function getStudentAttendanceSummary(studentId: string): Promise<{
+  total: number;
+  present: number;
+  review: number;
+  absent: number;
+}> {
+  const ATTENDANCE = "attendance";
+  const q = query(collection(db, ATTENDANCE), where("studentId", "==", studentId));
+  const snap = await getDocs(q);
+  let present = 0, review = 0, absent = 0;
+  snap.docs.forEach((d) => {
+    const data = d.data() as any;
+    const score = data.teacherOverride || data.trustScore;
+    if (score === "present") present++;
+    else if (score === "review") review++;
+    else if (score === "absent") absent++;
+  });
+  return { total: present + review + absent, present, review, absent };
+}
+
+/**
  * Get all students from DB (for search/select UI)
  */
 export async function getAllStudents(): Promise<UserDoc[]> {
