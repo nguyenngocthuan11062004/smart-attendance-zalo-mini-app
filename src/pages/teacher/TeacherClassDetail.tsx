@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Page } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { getClassById, getClassStudents, updateClassConfig } from "@/services/class.service";
@@ -16,35 +16,62 @@ export default function TeacherClassDetail() {
   const [classDoc, setClassDoc] = useState<ClassDoc | null>(null);
   const [sessions, setSessions] = useState<SessionWithCount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [faceRequired, setFaceRequired] = useState(true);
   const [peerRequired, setPeerRequired] = useState(true);
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    if (!classId) return;
-    loadData(classId);
-  }, [classId]);
-
-  async function loadData(cid: string) {
+  // Load class doc + sessions trước (UI khả dụng ngay). Đếm SV check-in chạy
+  // sau ở background — không block render, không fail toàn bộ khi 1 phiên lỗi.
+  const loadData = useCallback(async (cid: string) => {
+    if (!mountedRef.current) return;
+    setLoading(true);
+    setLoadError(null);
     try {
-      const cls = await getClassById(cid);
-      if (!cls) return;
+      const [cls, sessionList] = await Promise.all([
+        getClassById(cid),
+        getClassSessions(cid).catch(() => [] as SessionDoc[]),
+      ]);
+      if (!mountedRef.current) return;
+      if (!cls) {
+        setLoading(false);
+        return;
+      }
       setClassDoc(cls);
       setFaceRequired(cls.faceRequired !== false);
       setPeerRequired(cls.peerRequired !== false);
+      // Show sessions ngay với checkedInCount = undefined (UI hiện 0)
+      setSessions(sessionList);
+      setLoading(false);
 
-      const sessionList = await getClassSessions(cid);
-      const sessionsWithCounts = await Promise.all(
-        sessionList.map(async (s) => {
-          const attendance = await getSessionAttendance(s.id);
-          return { ...s, checkedInCount: attendance.length };
-        })
+      // Background: fetch attendance counts với allSettled — một phiên fail
+      // không ảnh hưởng phiên khác. Khi mỗi count xong, update state riêng.
+      const results = await Promise.allSettled(
+        sessionList.map((s) => getSessionAttendance(s.id))
       );
-      setSessions(sessionsWithCounts);
-    } finally {
+      if (!mountedRef.current) return;
+      const counts: Record<string, number> = {};
+      results.forEach((res, i) => {
+        if (res.status === "fulfilled") counts[sessionList[i].id] = res.value.length;
+      });
+      setSessions((prev) =>
+        prev.map((s) => (s.id in counts ? { ...s, checkedInCount: counts[s.id] } : s))
+      );
+    } catch (err: any) {
+      if (!mountedRef.current) return;
+      setLoadError(err?.message || "Không tải được dữ liệu lớp. Kiểm tra kết nối mạng.");
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    if (classId) loadData(classId);
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [classId, loadData]);
 
   const handleToggleConfig = async (field: "faceRequired" | "peerRequired", value: boolean) => {
     if (!classDoc) return;
@@ -116,8 +143,31 @@ export default function TeacherClassDetail() {
           <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Chi tiết lớp</span>
           <div style={{ width: 36 }} />
         </div>
-        <div style={{ padding: "60px 20px", textAlign: "center" }}>
-          <p style={{ color: "#9ca3af" }}>Không tìm thấy lớp học</p>
+        <div style={{ padding: "60px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 28,
+            background: loadError ? "rgba(239,68,68,0.1)" : "rgba(156,163,175,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={loadError ? "#ef4444" : "#9ca3af"} strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+            </svg>
+          </div>
+          <p style={{ color: loadError ? "#ef4444" : "#6b7280", fontSize: 14, fontWeight: 600, padding: "0 24px" }}>
+            {loadError || "Không tìm thấy lớp học"}
+          </p>
+          {classId && (
+            <button
+              onClick={() => loadData(classId)}
+              style={{
+                background: "#be1d2c", border: "none",
+                color: "#fff", fontSize: 14, fontWeight: 600,
+                padding: "10px 24px", borderRadius: 10,
+              }}
+            >
+              Thử lại
+            </button>
+          )}
         </div>
       </Page>
     );

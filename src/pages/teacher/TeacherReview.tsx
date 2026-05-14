@@ -90,12 +90,15 @@ export default function TeacherReview() {
   };
 
   const handleManualSubmit = async () => {
-    if (!manualTarget || !manualReason.trim() || !sessionId2) return;
+    if (!manualTarget || !sessionId2) return;
     setManualSubmitting(true);
     try {
-      await manualCheckIn(sessionId2, manualTarget.id, manualTarget.name, manualReason.trim(), "present");
+      // Lý do tùy chọn — nếu trống dùng default chuẩn cho late arrival sau khi
+      // phiên đã kết thúc (B5: bổ sung SV đến muộn).
+      const reason = manualReason.trim() || "SV đến muộn — GV bổ sung sau phiên";
+      await manualCheckIn(sessionId2, manualTarget.id, manualTarget.name, reason, "present");
       setAbsentStudents((prev) =>
-        prev.map((s) => s.id === manualTarget.id ? { ...s, markedPresent: true, manualReason: manualReason.trim() } : s)
+        prev.map((s) => s.id === manualTarget.id ? { ...s, markedPresent: true, manualReason: reason } : s)
       );
       openSnackbar({ type: "success", text: `Đã điểm danh thủ công cho ${manualTarget.name}` });
       setManualTarget(null);
@@ -466,13 +469,15 @@ export default function TeacherReview() {
               </div>
             </div>
 
-            {/* Reason input */}
+            {/* Reason input — optional */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Lý do điểm danh thủ công *</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+                Lý do điểm danh thủ công <span style={{ fontWeight: 400, color: "#9ca3af" }}>(không bắt buộc)</span>
+              </label>
               <textarea
                 value={manualReason}
                 onChange={(e) => setManualReason(e.target.value)}
-                placeholder="VD: SV có mặt nhưng điện thoại hết pin, SV quên mang điện thoại..."
+                placeholder="VD: SV đến muộn, điện thoại hết pin..."
                 rows={3}
                 style={{
                   width: "100%", borderRadius: 12, border: "1px solid #e5e7eb",
@@ -508,10 +513,10 @@ export default function TeacherReview() {
               </button>
               <button
                 onClick={handleManualSubmit}
-                disabled={manualSubmitting || !manualReason.trim()}
+                disabled={manualSubmitting}
                 style={{
                   flex: 1, height: 48, borderRadius: 12,
-                  background: manualSubmitting || !manualReason.trim() ? "#d4d4d4" : "#22c55e",
+                  background: manualSubmitting ? "#d4d4d4" : "#22c55e",
                   border: "none",
                   fontSize: 15, fontWeight: 700, color: "#fff",
                 }}
