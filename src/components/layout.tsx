@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { getSystemInfo } from "zmp-sdk";
 import {
   AnimationRoutes,
@@ -11,26 +11,30 @@ import { AppProps } from "zmp-ui/app";
 import { Navigate } from "react-router-dom";
 import { Provider as JotaiProvider } from "jotai";
 
-import DevPage from "@/pages/dev";
+// Splash stays eager — it's the first paint and must render instantly.
 import SplashPage from "@/pages/splash";
-import WelcomePage from "@/pages/welcome";
-import LoginPage from "@/pages/login";
-import HomePage from "@/pages/home";
-import StudentClasses from "@/pages/student/StudentClasses";
-import StudentAttendance from "@/pages/student/StudentAttendance";
-import StudentHistory from "@/pages/student/StudentHistory";
-import FaceRegister from "@/pages/student/FaceRegister";
-import StudentSchedule from "@/pages/student/StudentSchedule";
-import TeacherClasses from "@/pages/teacher/TeacherClasses";
-import TeacherSession from "@/pages/teacher/TeacherSession";
-import TeacherMonitor from "@/pages/teacher/TeacherMonitor";
-import TeacherReview from "@/pages/teacher/TeacherReview";
-import TeacherClassDetail from "@/pages/teacher/TeacherClassDetail";
-import TeacherFraudReport from "@/pages/teacher/TeacherFraudReport";
-import TeacherAnalytics from "@/pages/teacher/TeacherAnalytics";
-import ProfilePage from "@/pages/profile";
-import SearchPage from "@/pages/search";
-import AIChatPage from "@/pages/AIChatPage";
+
+// Everything else is code-split so the initial bundle stays small on 4G.
+const DevPage = lazy(() => import("@/pages/dev"));
+const WelcomePage = lazy(() => import("@/pages/welcome"));
+const LoginPage = lazy(() => import("@/pages/login"));
+const HomePage = lazy(() => import("@/pages/home"));
+const StudentClasses = lazy(() => import("@/pages/student/StudentClasses"));
+const StudentAttendance = lazy(() => import("@/pages/student/StudentAttendance"));
+const StudentHistory = lazy(() => import("@/pages/student/StudentHistory"));
+const FaceRegister = lazy(() => import("@/pages/student/FaceRegister"));
+const StudentSchedule = lazy(() => import("@/pages/student/StudentSchedule"));
+const AbsenceRequest = lazy(() => import("@/pages/student/AbsenceRequest"));
+const TeacherClasses = lazy(() => import("@/pages/teacher/TeacherClasses"));
+const TeacherSession = lazy(() => import("@/pages/teacher/TeacherSession"));
+const TeacherMonitor = lazy(() => import("@/pages/teacher/TeacherMonitor"));
+const TeacherReview = lazy(() => import("@/pages/teacher/TeacherReview"));
+const TeacherClassDetail = lazy(() => import("@/pages/teacher/TeacherClassDetail"));
+const TeacherFraudReport = lazy(() => import("@/pages/teacher/TeacherFraudReport"));
+const TeacherAnalytics = lazy(() => import("@/pages/teacher/TeacherAnalytics"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
+const SearchPage = lazy(() => import("@/pages/search"));
+const AIChatPage = lazy(() => import("@/pages/AIChatPage"));
 
 import AppBottomNav from "@/components/navigation/AppBottomNav";
 import GlobalLoading from "@/components/ui/GlobalLoading";
@@ -40,6 +44,20 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import AuthGuard from "@/components/guards/AuthGuard";
 import RoleGuard from "@/components/guards/RoleGuard";
 import { useAuthInit } from "@/hooks/useAuthInit";
+
+function RouteFallback() {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#f2f2f7",
+    }}>
+      <div className="skeleton" style={{ width: 56, height: 56, borderRadius: 14 }} />
+    </div>
+  );
+}
 
 /** Outer shell: provides Jotai context */
 const Layout = () => {
@@ -61,40 +79,43 @@ function AppShell() {
       <SnackbarProvider>
         <ZMPRouter>
           <ErrorBoundary>
-            <AnimationRoutes>
-              {/* Default: redirect to splash */}
-              <Route path="/" element={<Navigate to="/splash" replace />} />
-              {import.meta.env.DEV && (
-                <Route path="/dev" element={<DevPage />} />
-              )}
+            <Suspense fallback={<RouteFallback />}>
+              <AnimationRoutes>
+                {/* Default: redirect to splash */}
+                <Route path="/" element={<Navigate to="/splash" replace />} />
+                {import.meta.env.DEV && (
+                  <Route path="/dev" element={<DevPage />} />
+                )}
 
-              {/* Public routes */}
-              <Route path="/splash" element={<SplashPage />} />
-              <Route path="/welcome" element={<WelcomePage />} />
-              <Route path="/login" element={<LoginPage />} />
+                {/* Public routes */}
+                <Route path="/splash" element={<SplashPage />} />
+                <Route path="/welcome" element={<WelcomePage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* Protected: requires auth */}
-              <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
-              <Route path="/search" element={<AuthGuard><SearchPage /></AuthGuard>} />
-              <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
-              <Route path="/ai-chat" element={<AuthGuard><AIChatPage /></AuthGuard>} />
+                {/* Protected: requires auth */}
+                <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
+                <Route path="/search" element={<AuthGuard><SearchPage /></AuthGuard>} />
+                <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+                <Route path="/ai-chat" element={<AuthGuard><AIChatPage /></AuthGuard>} />
 
-              {/* Student routes: auth + student role */}
-              <Route path="/student/classes" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentClasses /></RoleGuard></AuthGuard>} />
-              <Route path="/student/attendance/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentAttendance /></RoleGuard></AuthGuard>} />
-              <Route path="/student/history" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentHistory /></RoleGuard></AuthGuard>} />
-              <Route path="/student/face-register" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><FaceRegister /></RoleGuard></AuthGuard>} />
-              <Route path="/student/schedule" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentSchedule /></RoleGuard></AuthGuard>} />
+                {/* Student routes: auth + student role */}
+                <Route path="/student/classes" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentClasses /></RoleGuard></AuthGuard>} />
+                <Route path="/student/attendance/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentAttendance /></RoleGuard></AuthGuard>} />
+                <Route path="/student/history" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentHistory /></RoleGuard></AuthGuard>} />
+                <Route path="/student/face-register" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><FaceRegister /></RoleGuard></AuthGuard>} />
+                <Route path="/student/schedule" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><StudentSchedule /></RoleGuard></AuthGuard>} />
+                <Route path="/student/absence-request" element={<AuthGuard><RoleGuard allowedRoles={["student"]}><AbsenceRequest /></RoleGuard></AuthGuard>} />
 
-              {/* Teacher routes: auth + teacher role */}
-              <Route path="/teacher/classes" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClasses /></RoleGuard></AuthGuard>} />
-              <Route path="/teacher/session/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherSession /></RoleGuard></AuthGuard>} />
-              <Route path="/teacher/monitor/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherMonitor /></RoleGuard></AuthGuard>} />
-              <Route path="/teacher/review/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherReview /></RoleGuard></AuthGuard>} />
-              <Route path="/teacher/class/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClassDetail /></RoleGuard></AuthGuard>} />
-              <Route path="/teacher/fraud/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherFraudReport /></RoleGuard></AuthGuard>} />
-              <Route path="/teacher/analytics/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherAnalytics /></RoleGuard></AuthGuard>} />
-            </AnimationRoutes>
+                {/* Teacher routes: auth + teacher role */}
+                <Route path="/teacher/classes" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClasses /></RoleGuard></AuthGuard>} />
+                <Route path="/teacher/session/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherSession /></RoleGuard></AuthGuard>} />
+                <Route path="/teacher/monitor/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherMonitor /></RoleGuard></AuthGuard>} />
+                <Route path="/teacher/review/:sessionId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherReview /></RoleGuard></AuthGuard>} />
+                <Route path="/teacher/class/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherClassDetail /></RoleGuard></AuthGuard>} />
+                <Route path="/teacher/fraud/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherFraudReport /></RoleGuard></AuthGuard>} />
+                <Route path="/teacher/analytics/:classId" element={<AuthGuard><RoleGuard allowedRoles={["teacher"]}><TeacherAnalytics /></RoleGuard></AuthGuard>} />
+              </AnimationRoutes>
+            </Suspense>
             <AppBottomNav />
             <GlobalLoading />
             <ErrorToast />

@@ -92,6 +92,16 @@ const IconInfo = () => (
   </svg>
 );
 
+const IconFileText = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#be1d2c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+
 /* ── component ───────────────────────────────────── */
 
 export default function HomePage() {
@@ -114,11 +124,16 @@ export default function HomePage() {
           : await getStudentClasses(user.id);
         setTodayClasses(classes);
 
-        const sessions: {classDoc: ClassDoc; session: SessionDoc}[] = [];
-        for (const c of classes) {
-          const s = await getActiveSessionForClass(c.id);
-          if (s) sessions.push({ classDoc: c, session: s });
-        }
+        const results = await Promise.all(
+          classes.map((c) =>
+            getActiveSessionForClass(c.id).then((s) =>
+              s ? { classDoc: c, session: s } : null
+            )
+          )
+        );
+        const sessions = results.filter(
+          (r): r is { classDoc: ClassDoc; session: SessionDoc } => r !== null
+        );
         setUpcomingSessions(sessions);
       } catch {
         setGlobalError("Không thể tải dữ liệu trang chủ");
@@ -141,6 +156,7 @@ export default function HomePage() {
     { title: "Khuôn mặt", icon: <IconScanFace />, path: "/student/face-register", highlight: !user.faceRegistered },
     { title: "Lớp học", icon: <IconBookOpen />, path: "/student/classes" },
     { title: "Thời khóa biểu", icon: <IconCalendarRange />, path: "/student/schedule" },
+    { title: "Đơn xin nghỉ", icon: <IconFileText />, path: "/student/absence-request" },
   ];
 
   const teacherMenu: MenuItem[] = [

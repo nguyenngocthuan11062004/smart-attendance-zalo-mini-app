@@ -18,13 +18,26 @@ export default function CameraCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Guard: getUserMedia() có thể resolve sau khi component đã unmount
+  // (FaceRegister chuyển view capture1 → capture2 → processing rất nhanh).
+  // Nếu set srcObject trên video đã bị tháo, browser leak track + có thể crash
+  // trên một số WebView Zalo. mountedRef đảm bảo callback bỏ qua kết quả khi
+  // đã unmount.
+  const mountedRef = useRef(true);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showFlash, setShowFlash] = useState(false);
 
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    if (mountedRef.current) setCameraReady(false);
+  }, []);
+
   const startCamera = useCallback(async () => {
     try {
-      setCameraError(null);
+      if (mountedRef.current) setCameraError(null);
 
       try {
         const { requestCameraPermission } = await import("zmp-sdk/apis");
@@ -37,12 +50,23 @@ export default function CameraCapture({
         video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
       });
+
+      // Component đã unmount trong khi đợi getUserMedia → cleanup ngay,
+      // tránh leak track và lỗi setState-on-unmounted-component.
+      if (!mountedRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => setCameraReady(true);
+        videoRef.current.onloadedmetadata = () => {
+          if (mountedRef.current) setCameraReady(true);
+        };
       }
     } catch (err: any) {
+      if (!mountedRef.current) return;
       const msg = err.name === "NotAllowedError"
         ? "Vui lòng cho phép truy cập camera"
         : "Không thể mở camera";
@@ -51,15 +75,13 @@ export default function CameraCapture({
     }
   }, [onError, facingMode]);
 
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setCameraReady(false);
-  }, []);
-
   useEffect(() => {
+    mountedRef.current = true;
     startCamera();
-    return stopCamera;
+    return () => {
+      mountedRef.current = false;
+      stopCamera();
+    };
   }, [startCamera, stopCamera]);
 
   const capture = useCallback(() => {
