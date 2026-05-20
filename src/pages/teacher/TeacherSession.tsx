@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Page, Spinner } from "zmp-ui";
+import { Page, Spinner, useSnackbar } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
+import { scanQRCode, requestCameraPermission } from "zmp-sdk/apis";
 import { currentUserAtom } from "@/store/auth";
 import { activeSessionAtom } from "@/store/session";
 import { globalErrorAtom } from "@/store/ui";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
+import { claimPairingToken, parsePairingQRContent } from "@/services/pairing.service";
 import DarkModal from "@/components/ui/DarkModal";
 import { getClassById } from "@/services/class.service";
 import { getActiveSessionForClass, getClassSessions, getSessionSecret } from "@/services/session.service";
@@ -41,6 +43,9 @@ export default function TeacherSession() {
   // endSession() can run twice and the trust-score backfill writes N records
   // multiple times.
   const endingRef = React.useRef(false);
+  const { openSnackbar } = useSnackbar();
+  const [pairingScreen, setPairingScreen] = useState(false);
+  const [pairing, setPairing] = useState(false);
 
   const { qrDataURL, secondsLeft, refreshSeconds } = useQRGenerator(
     session?.status === "active" && user && sessionSecret
@@ -50,6 +55,7 @@ export default function TeacherSession() {
           userId: user.id,
           secret: sessionSecret,
           refreshIntervalMs: session.qrRefreshInterval * 1000,
+          anchor: session.startedAt,
         }
       : null
   );
@@ -126,6 +132,67 @@ export default function TeacherSession() {
       setError("Không thể bắt đầu phiên điểm danh");
     } finally {
       setStarting(false);
+    }
+  };
+
+  const handleRefreshGPS = async () => {
+    if (!session || gpsLoading) return;
+    try {
+      const loc = await requestLocation();
+      if (loc) {
+        await updateSessionLocation(session.id, loc).catch(() => {});
+        setLocationSet(true);
+        setSession({ ...session, location: loc, geoFenceRadius: 200 });
+        openSnackbar({ text: "Đã cập nhật vị trí", type: "success" });
+      } else {
+        openSnackbar({ text: "Không lấy được vị trí — kiểm tra GPS/quyền truy cập", type: "warning" });
+      }
+    } catch {
+      openSnackbar({ text: "Lỗi khi lấy vị trí", type: "error" });
+    }
+  };
+
+  const handlePairProjector = async () => {
+    if (!session || !classDoc || !user || pairing) return;
+    setPairing(true);
+    try {
+      try {
+        await requestCameraPermission();
+      } catch {
+        // ignore — scanQRCode also asks for permission
+      }
+      const result = await scanQRCode({});
+      const raw = (result as { content?: string })?.content || "";
+      const token = parsePairingQRContent(raw);
+      if (!token) {
+        openSnackbar({ text: "QR không phải mã ghép cặp máy chiếu", type: "warning" });
+        return;
+      }
+      const claim = await claimPairingToken(
+        token,
+        session.id,
+        classDoc.id,
+        classDoc.name,
+        user.id
+      );
+      if (!claim.ok) {
+        const msg =
+          claim.error === "expired"
+            ? "Mã ghép cặp đã hết hạn — vui lòng làm mới trên máy chiếu"
+            : claim.error === "already_used"
+            ? "Mã này đã được dùng — vui lòng làm mới trên máy chiếu"
+            : claim.error === "not_found"
+            ? "Không tìm thấy mã ghép cặp"
+            : "Ghép cặp thất bại, vui lòng thử lại";
+        openSnackbar({ text: msg, type: "error" });
+        return;
+      }
+      setPairingScreen(true);
+      openSnackbar({ text: "Đã ghép cặp máy chiếu ✓", type: "success" });
+    } catch (err) {
+      // user cancelled or scanner closed
+    } finally {
+      setPairing(false);
     }
   };
 
@@ -389,7 +456,7 @@ export default function TeacherSession() {
                   <circle cx="12" cy="9" r="2.5" />
                 </svg>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Vị trí hiện tại</span>
                 <span style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}>
                   {locationSet && gpsLocation
@@ -397,6 +464,28 @@ export default function TeacherSession() {
                     : gpsLoading ? "Đang lấy vị trí..." : "Chưa có vị trí"}
                 </span>
               </div>
+              <button
+                onClick={handleRefreshGPS}
+                disabled={gpsLoading}
+                title="Cập nhật vị trí"
+                style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: gpsLoading ? "#f3f4f6" : "rgba(190,29,44,0.08)",
+                  border: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                  cursor: gpsLoading ? "default" : "pointer",
+                }}
+              >
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke={gpsLoading ? "#9ca3af" : "#be1d2c"}
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={gpsLoading ? { animation: "spin 1s linear infinite" } : undefined}
+                >
+                  <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                </svg>
+              </button>
             </div>
 
             {/* Stats row */}
@@ -456,6 +545,32 @@ export default function TeacherSession() {
 
             {/* Action buttons */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <button
+                disabled={pairing}
+                onClick={handlePairProjector}
+                style={{
+                  height: 52, borderRadius: 16,
+                  background: pairingScreen
+                    ? "linear-gradient(180deg, #16a34a, #22c55e)"
+                    : "linear-gradient(180deg, #1f2937, #374151)",
+                  border: "none",
+                  boxShadow: pairingScreen
+                    ? "0 4px 12px rgba(34,197,94,0.25)"
+                    : "0 4px 12px rgba(31,41,55,0.25)",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  opacity: pairing ? 0.7 : 1,
+                }}
+              >
+                {pairing ? <Spinner /> : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <path d="M8 21h8M12 17v4" />
+                  </svg>
+                )}
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>
+                  {pairingScreen ? "Đang chiếu trên máy chiếu ✓" : "Quét máy chiếu"}
+                </span>
+              </button>
               <button
                 onClick={() => navigate(`/teacher/monitor/${session.id}`)}
                 style={{

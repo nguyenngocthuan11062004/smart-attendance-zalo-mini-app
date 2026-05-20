@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import type { FaceVerificationResult } from "@/types";
 import { storageGetItem } from "@/utils/storage";
@@ -117,6 +117,31 @@ export async function verifyFace(
     matched: result.matched,
     confidence: result.confidence,
   };
+}
+
+/**
+ * Check if user has registered face data.
+ */
+export async function hasFaceData(userId: string): Promise<boolean> {
+  try {
+    const snap = await getDoc(doc(db, FACE_COLLECTION, userId));
+    return snap.exists();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Delete face data for the user (face descriptor + selfie reference).
+ * Required by privacy policy — user right to erasure.
+ */
+export async function deleteFaceData(userId: string): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, FACE_COLLECTION, userId));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function buildSkippedResult(): FaceVerificationResult {

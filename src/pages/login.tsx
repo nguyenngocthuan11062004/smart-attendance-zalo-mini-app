@@ -9,6 +9,7 @@ import { isValidMSSV, isValidHUSTEmail } from "@/utils/sanitize";
 import { signIn, clearLoggedOut, isLoggedOut } from "@/services/auth.service";
 import { isStudentVerified, sendOTP, verifyOTP, isEmailVerifyConfigured, isBypassMSSV } from "@/services/email-verify.service";
 import { redeemInviteCode } from "@/services/invite.service";
+import { openWebview } from "zmp-sdk/apis";
 
 type LoginStep = "mssv" | "email" | "otp" | "submitting" | "invite";
 
@@ -482,6 +483,24 @@ export default function LoginPage() {
             <p style={{ color: "#6b7280", fontSize: 14 }}>Đang đăng nhập...</p>
           </div>
         )}
+
+        {/* ── Privacy & Terms notice ── */}
+        <p style={{
+          fontSize: 12, color: "#9ca3af", textAlign: "center", lineHeight: 1.6,
+          marginTop: 8, padding: "0 8px",
+        }}>
+          Khi tiếp tục, bạn đồng ý với{" "}
+          <span
+            onClick={() => openWebview({ url: "https://inhust-legal.web.app/terms.html" })}
+            style={{ color: "#be1d2c", fontWeight: 600, textDecoration: "underline" }}
+          >Điều khoản</span>
+          {" "}và{" "}
+          <span
+            onClick={() => openWebview({ url: "https://inhust-legal.web.app/privacy-policy.html" })}
+            style={{ color: "#be1d2c", fontWeight: 600, textDecoration: "underline" }}
+          >Chính sách bảo mật</span>
+          {" "}của inHUST.
+        </p>
       </div>
     </Page>
   );

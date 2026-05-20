@@ -46,3 +46,5 @@ functions/node_modules/
 functions/lib/
 functions/seed-admin.js
 .playwright-mcp/
+*.xlsx#
+nguyen_ngoc_thuan_*.xlsx

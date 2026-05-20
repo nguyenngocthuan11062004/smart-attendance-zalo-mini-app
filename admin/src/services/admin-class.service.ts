@@ -64,7 +64,14 @@ export async function updateClass(
   classId: string,
   data: Partial<Pick<ClassDoc, "name" | "code" | "teacherId" | "teacherName" | "faceRequired" | "peerRequired" | "schedule" | "location">>
 ): Promise<void> {
-  await updateDoc(doc(db, CLASSES_COL, classId), data);
+  // Firestore reject undefined trong updateDoc — chỉ giữ các field có giá trị
+  // thực sự (caller có thể quên filter undefined).
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) cleaned[key] = value;
+  }
+  if (Object.keys(cleaned).length === 0) return; // không có gì để update
+  await updateDoc(doc(db, CLASSES_COL, classId), cleaned);
 }
 
 export async function deleteClass(classId: string): Promise<void> {

@@ -125,6 +125,18 @@ export interface SuspiciousPattern {
   severity: "low" | "medium" | "high";
 }
 
+export interface PairingTokenDoc {
+  token: string;
+  status: "pending" | "paired";
+  sessionId: string | null;
+  classId: string | null;
+  className: string | null;
+  teacherId: string | null;
+  createdAt: number;
+  expiresAt: number;
+  pairedAt?: number;
+}
+
 export interface AbsenceRequestDoc {
   id: string;
   studentId: string;

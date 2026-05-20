@@ -1,0 +1,354 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T5]{fontenc}
+
+\usepackage[vietnamese]{babel}
+
+\usepackage{enumitem}
+
+\usepackage{tabularx}
+
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 11/05/2026 đến ngày 16/05/2026}
+
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+
+\date{16 tháng 5 năm 2026}
+
+\begin{document}
+
+\maketitle
+
+
+% ── Color definitions ──
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+\definecolor{statusred}{HTML}{DC2626}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{sectionblue!80}}{\thesubsection.}{0.5em}{}
+
+% ═══════════════════════════════════════════════════════
+\section{Thông tin chung}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Xây dựng hệ thống điểm danh thông minh trên nền tảng Zalo Mini App \\
+\textbf{GVHD:} & Lê Bá Vui \\
+\textbf{Tuần báo cáo:} & Tuần 11/05 -- 16/05/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusgreen}{\textbf{Phát triển tính năng cổng máy chiếu + Đồng bộ hóa hệ thống}} \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Tóm tắt công việc tuần này}
+% ═══════════════════════════════════════════════════════
+
+Tuần này em tập trung giải quyết một vấn đề thực tế phát sinh khi triển khai pilot trên lớp: \textbf{giảng viên dùng Mini App trên điện thoại, mã QR điểm danh hiển thị quá nhỏ -- sinh viên ngồi cuối lớp không quét được}. Em đã thiết kế và triển khai tính năng \textbf{Cổng máy chiếu} (Teacher Display Pairing) cho phép GV ``ghép cặp'' điện thoại với máy tính lớp học qua mã QR ngắn hạn, sau đó chiếu QR điểm danh kích thước lớn lên máy chiếu kèm bảng giám sát thời gian thực. Song song, em cũng \textbf{tái thiết kế UI cổng chiếu} mang đậm bản sắc Bách Khoa và sửa hai lỗi đồng bộ thời gian/render quan trọng.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Thiết kế kiến trúc Pairing & Token 128-bit ngắn hạn 60s, one-shot claim transition & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+2 & Firestore rules + types & Collection \texttt{pairing\_tokens} với rule pending$\to$paired & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+3 & Pairing service (web + app) & \texttt{createPairingToken}, \texttt{subscribePairingToken}, \texttt{claimPairingToken} & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+4 & Port QR generator sang Admin & Crypto-js + qrcode + hook đồng bộ wall-clock & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+5 & PresentPage 3 trạng thái & Pairing $\to$ Displaying $\to$ Ended với live feed SV & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+6 & Nút ``Quét máy chiếu'' Mini App & \texttt{scanQRCode} + claim transition + toast feedback & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+7 & Sửa bug QR pairing nháy liên tục & Refactor \texttt{useEffect} deps + ref guard & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+8 & Đồng bộ countdown Mini App $\leftrightarrow$ Web & Wall-clock anchor \texttt{session.startedAt} cho cả 2 phía & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+9 & Nút reset/cập nhật GPS & Icon refresh trên GPS card với animation \texttt{spin} & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+10 & Tái thiết kế UI cổng chiếu & Logo HUST SVG + ảnh hero tòa C1 + design system Bách Khoa & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+11 & Wake Lock API & Chống máy tính lớp học sleep giữa tiết & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+12 & Kiểm chứng đa lớp song song & Verify pairing + sessions không xung đột chéo & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ═══════════════════════════════════════════════════════
+\section{Tính năng mới: Cổng máy chiếu (Teacher Display)}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Bối cảnh \& vấn đề}
+
+Trong các phiên thử nghiệm tại lớp, em phát hiện luồng điểm danh hiện tại có một bottleneck thực tế: GV mở Mini App trên điện thoại, bấm ``Bắt đầu phiên'', QR điểm danh hiển thị trên màn hình điện thoại $\sim$6cm. Sinh viên ngồi từ hàng thứ 3 trở đi không nhìn rõ -- phải lên gần bàn GV để quét, gây mất trật tự và kéo dài thời gian điểm danh từ $\sim$2 phút lên $\sim$8 phút. Yêu cầu: cần đẩy QR lên \textbf{máy tính lớp học/máy chiếu} với kích thước lớn ($\geq 60$cm) đồng thời giữ nguyên flow ``GV start/stop trên điện thoại'' (vì cần GPS, monitor, end-session).
+
+\subsection{Lựa chọn kiến trúc}
+
+Em cân nhắc 2 hướng:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Login email/password trên web} -- nhanh code nhưng GV phải gõ password trên máy lớp học (rủi ro lộ tài khoản, mỗi GV phải tạo Firebase Auth account riêng).
+  \item \textbf{Pairing QR ngắn hạn} -- web tạo token 128-bit hết hạn 60s, GV quét bằng Mini App đã đăng nhập, claim transaction one-shot. Không cần password trên máy lớp, token tự huỷ sau khi paired.
+\end{enumerate}
+
+Em chọn \textbf{phương án 2} vì: (i) phù hợp ngữ cảnh phòng học công cộng, (ii) tránh phải deploy Cloud Function tạo account hàng loạt (Firebase Spark plan không cho), (iii) đậm tính kỹ thuật để bảo vệ ĐATN.
+
+\subsection{Luồng pairing chi tiết}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Máy tính lớp học mở \texttt{inhust-admin.web.app/present} (không cần đăng nhập).
+  \item Web tạo doc \texttt{pairing\_tokens/\{token\}} với \texttt{status: "pending"}, \texttt{expiresAt: now + 60s}, render QR \texttt{inhust-pair://\{token\}}.
+  \item Web subscribe \texttt{onSnapshot} doc đó để chờ cập nhật.
+  \item GV mở Mini App $\to$ chọn lớp $\to$ ``Bắt đầu điểm danh'' $\to$ bấm nút mới ``Quét máy chiếu''.
+  \item Mini App gọi \texttt{scanQRCode()} của Zalo SDK $\to$ parse token $\to$ \texttt{claimPairingToken()} cập nhật doc về \texttt{status: "paired"} kèm \texttt{sessionId, classId, teacherId}.
+  \item Web nhận snapshot $\to$ tải session + secret HMAC $\to$ chuyển sang trạng thái \textbf{Displaying}: hiển thị QR điểm danh fullscreen + bảng live feed sinh viên vừa điểm danh.
+  \item Khi GV bấm ``Kết thúc phiên'' trên Mini App $\to$ session.status = \texttt{ended} $\to$ web chuyển sang trạng thái \textbf{Ended}: thống kê (Hợp lệ/Cần xem lại/Tổng), tự về màn ghép cặp sau 20s.
+\end{enumerate}
+
+\subsection{Bảo mật pairing}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Token \texttt{32 hex chars} sinh từ \texttt{crypto.getRandomValues(Uint8Array(16))} -- $2^{128}$ khả năng, không thể brute-force trong 60s.
+  \item Firestore rule \textbf{one-shot transition}: \texttt{allow update} chỉ cho phép \texttt{resource.data.status == 'pending'} $\to$ \texttt{request.resource.data.status == 'paired'}, không cho revert hoặc claim hai lần.
+  \item Token không chứa thông tin định danh -- chỉ là handle để nối session với máy tính.
+  \item Sau khi paired, token giữ lại để truy vết nhưng không còn ý nghĩa pairing (status đã chuyển).
+  \item Wake Lock API giữ màn hình máy chiếu không sleep, giảm rủi ro QR lỗi thời được snapshot lại.
+\end{itemize}
+
+\subsection{Files mới và sửa}
+
+\textbf{File mới (7):}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{admin/src/pages/PresentPage.tsx} -- 3 trạng thái (Pairing/Displaying/Ended).
+  \item \texttt{admin/src/services/pairing.service.ts} -- create + subscribe pairing tokens.
+  \item \texttt{admin/src/services/qr.service.ts} -- port từ Mini App.
+  \item \texttt{admin/src/utils/crypto.ts} -- HMAC-SHA256 ports.
+  \item \texttt{admin/src/hooks/useTeacherQR.ts} -- hook QR đồng bộ wall-clock anchor.
+  \item \texttt{src/services/pairing.service.ts} -- claim transition phía Mini App.
+  \item \texttt{admin/public/hust-logo.svg, hust-campus.jpg} -- assets thương hiệu.
+\end{itemize}
+
+\textbf{File sửa (8):}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{firestore.rules} -- thêm rule \texttt{pairing\_tokens}.
+  \item \texttt{src/types/index.ts}, \texttt{admin/src/types/index.ts} -- thêm interface \texttt{PairingTokenDoc}.
+  \item \texttt{admin/src/App.tsx} -- thêm route \texttt{/present} ngoài \texttt{AdminGuard}.
+  \item \texttt{src/pages/teacher/TeacherSession.tsx} -- thêm nút ``Quét máy chiếu'' + handler claim + state \texttt{pairingScreen}.
+  \item \texttt{src/hooks/useQRGenerator.ts} -- refactor đồng bộ wall-clock.
+  \item \texttt{src/css/app.scss} -- thêm \texttt{@keyframes spin}.
+  \item \texttt{admin/package.json} -- thêm \texttt{qrcode} + \texttt{crypto-js}.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Sửa lỗi và tinh chỉnh}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Bug 1: QR pairing nháy liên tục}
+
+\textbf{Hiện tượng:} Khi mở \texttt{/present}, mã QR pairing đổi mỗi 1-2 giây thay vì giữ ổn định 60s.
+
+\textbf{Nguyên nhân:} \texttt{useEffect} tạo token có dependency dạng trick:
+
+\begin{verbatim}
+useEffect(() => {
+  ...createPairingToken().then(setPairing)...
+}, [phase, pairing?.token === undefined ? 0 : 1, pairing?.expiresAt ?? 0]);
+\end{verbatim}
+
+Khi token được tạo, \texttt{pairing} chuyển từ \texttt{null} $\to$ \texttt{object} $\Rightarrow$ deps đổi từ \texttt{0} $\to$ \texttt{1} $\Rightarrow$ effect re-run $\Rightarrow$ tạo token mới $\Rightarrow$ vòng lặp vô hạn.
+
+\textbf{Fix:} Tách logic thành callback \texttt{issueNewToken()} ổn định, dùng hai effect riêng biệt với guard rõ ràng:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Effect 1 (tạo lần đầu): \texttt{if (pairing) return} -- chỉ chạy khi chưa có token.
+  \item Effect 2 (refresh khi expired): \texttt{useRef refreshingRef} chống re-entrance, không \texttt{setPairing(null)} trước khi tạo (giữ QR cũ trên màn hình tới khi QR mới render xong $\to$ không nháy đen).
+\end{itemize}
+
+\subsection{Bug 2: Đồng bộ countdown Mini App $\leftrightarrow$ Web}
+
+\textbf{Hiện tượng:} Mini App hiển thị ``Xoay sau 25s'' trong khi web hiển thị ``Mã mới sau 6s'' -- hai đồng hồ chạy độc lập, lệch pha tới $\sim$24s.
+
+\textbf{Nguyên nhân:} Mỗi hook QR (\texttt{useQRGenerator} bên Mini App, \texttt{useTeacherQR} bên web) tự đếm xuống từ 30 dựa theo thời điểm \texttt{useEffect} mount. Hai instance mount tại các thời điểm khác nhau $\Rightarrow$ phase khác nhau $\Rightarrow$ trông như không đồng bộ.
+
+\textbf{Fix:} Thêm trường \texttt{anchor: number} (giá trị \texttt{session.startedAt}) vào options của cả hai hook. Mỗi tick tính:
+
+\begin{verbatim}
+periodIndex = floor((now - anchor) / refreshIntervalMs)
+periodStart = anchor + periodIndex * refreshIntervalMs
+secondsLeft = ceil((refreshIntervalMs - (now - periodStart)) / 1000)
+\end{verbatim}
+
+Khi \texttt{periodIndex} thay đổi $\to$ trigger generate QR mới. Mọi instance dùng cùng \texttt{anchor} sẽ generate QR và hiển thị \texttt{secondsLeft} giống hệt nhau tại mọi thời điểm wall-clock.
+
+\textbf{Kết quả:} Mini App và Web hiển thị cùng số đếm, refresh cùng lúc. Hai mã QR có nội dung khác (khác timestamp + nonce + signature) nhưng đều hợp lệ vì cùng \texttt{hmacSecret}.
+
+\subsection{Cải tiến: Nút reset/cập nhật vị trí GPS}
+
+\textbf{Hiện tượng:} Đôi khi GV mở session nhưng GPS card hiển thị ``Chưa có vị trí'' -- có thể do quyền GPS bị từ chối hoặc cảm biến chậm. Trước đây không có cách reload, GV phải end + start lại session.
+
+\textbf{Fix:} Thêm icon refresh nhỏ (36$\times$36) ở góc phải GPS card, gọi \texttt{handleRefreshGPS()}:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Gọi lại \texttt{requestLocation()} (có cache 60s nhưng force fresh).
+  \item Khi loading: icon xoay với \texttt{@keyframes spin}, button disabled.
+  \item Khi xong: \texttt{updateSessionLocation()} ghi Firestore + toast báo kết quả (success/warning/error).
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Thiết kế UI cổng chiếu mang bản sắc Bách Khoa}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Bộ nhận diện}
+
+Phiên bản đầu của \texttt{PresentPage} dùng theme tối generic (radial gradient xám than) -- không gắn với Bách Khoa. Em tái thiết kế dùng:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Logo SVG chính thức} của ĐHBK Hà Nội (vector, sắc nét mọi kích thước).
+  \item \textbf{Ảnh tòa C1} (cờ đỏ trên đỉnh, kiến trúc gạch trắng đặc trưng) làm hero band cho 2 trong 3 màn.
+  \item \textbf{Bảng màu HUST}: đỏ \texttt{\#be1d2c} chính, đỏ tối \texttt{\#8a1421} cho gradient, xám sáng \texttt{\#f5f5f7} làm nền.
+  \item \textbf{Typography institutional}: uppercase letter-spacing 2-3px cho kicker, font-weight 800 cho heading, \texttt{tabular-nums} cho mọi con số.
+\end{itemize}
+
+\subsection{Ba màn hình}
+
+\textbf{Màn 1 -- Pairing} (240px hero):
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Hero ảnh tòa C1 + overlay \texttt{linear-gradient(105deg, redOpaque $\to$ transparent)} + vignette 0.15-0.25 $\to$ vẫn nhìn được kiến trúc.
+  \item Logo box trắng 96$\times$96 với \texttt{boxShadow 0 12px 32px} nổi trên ảnh.
+  \item Kicker ``CỔNG MÁY CHIẾU'' + tên trường + tên hệ thống + tên Trường CNTT\&TT.
+  \item Body grid 2 cột: QR card với badge ``MÃ GHÉP CẶP'' đỏ (bên trái) + heading ``Quét mã bên cạnh để bắt đầu chiếu'' + 3 step card đánh số đỏ (bên phải).
+\end{itemize}
+
+\textbf{Màn 2 -- Displaying} (slim header):
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Header rút gọn 18px padding (logo 52$\times$52) để tối đa không gian cho QR.
+  \item Bên phải header: LIVE badge xanh nhấp nháy + thời gian phiên ``$\boldsymbol{\Diamond}$ X phút''.
+  \item Title bar lớn: tên lớp font 32 + countdown pill ``Mã mới sau Ns'' viền đỏ.
+  \item Grid: QR điểm danh \texttt{min(60vh, 600px)} bên trái + cột phải gồm Counter card (số sinh viên đã điểm danh font 88) + Live feed 6 record gần nhất (animation \texttt{presentFeedIn}) phân màu theo trustScore (xanh hợp lệ / vàng review / đỏ vắng).
+\end{itemize}
+
+\textbf{Màn 3 -- Ended} (200px hero):
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Hero ảnh trường + kicker ``PHIÊN ĐIỂM DANH ĐÃ KẾT THÚC''.
+  \item Tên lớp + thời lượng (X phút).
+  \item Heading ``Cảm ơn các \textcolor{hustred}{kỹ sư tương lai}'' -- chất Bách Khoa.
+  \item 3 stat card lớn: Hợp lệ (xanh) -- Cần xem lại (vàng) -- Tổng điểm danh (đỏ HUST), số font 72 \texttt{tabular-nums}.
+  \item Tự động về màn ghép cặp sau 20s.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════
+\section{Kiểm chứng đa lớp dùng song song}
+% ═══════════════════════════════════════════════════════
+
+GVHD đã đặt câu hỏi quan trọng: ``Có chịu được nhiều lớp dùng cùng lúc không?''. Em phân tích từng thành phần:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Thành phần} & \textbf{Cô lập theo} \\
+\midrule
+\texttt{pairing\_tokens/\{token\}} & Token random 128-bit (xác suất trùng $\sim 0$) -- mỗi web instance tự sinh token độc lập. \\
+\addlinespace
+\texttt{sessions/\{sessionId\}} & Mỗi GV start một session riêng với \texttt{hmacSecret} riêng. \\
+\addlinespace
+QR điểm danh & Sign bằng \texttt{hmacSecret} của session đó -- SV chỉ điểm danh được vào đúng session đã quét. \\
+\addlinespace
+PresentPage listeners & Subscribe \texttt{onSnapshot} với \texttt{where sessionId == currentSession.id} -- không nhiễu chéo. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Kết luận:} Phòng A và phòng B mở \texttt{/present} cùng lúc, mỗi máy tự sinh pairing token riêng, mỗi GV pair với máy của mình. Không xung đột. Edge case duy nhất: GV bỏ quên web đang chiếu sau khi end session $\to$ sau 20s tự về pairing $\to$ GV khác có thể pair vào máy đó (đúng behavior, không phải bug).
+
+% ═══════════════════════════════════════════════════════
+\section{Khó khăn và giải pháp}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}X X@{}}
+\toprule
+\textbf{Khó khăn} & \textbf{Giải pháp / Hành động} \\
+\midrule
+\texttt{useEffect} dependency tricky gây vòng lặp render & Refactor sang \texttt{useCallback} + \texttt{useRef} guard, tách trách nhiệm rõ ràng giữa ``tạo lần đầu'' và ``refresh khi expired''. \\
+\addlinespace
+Hai countdown chạy song song trên hai thiết bị lệch pha & Đồng bộ qua wall-clock anchor (\texttt{session.startedAt}) -- mọi thiết bị tính theo cùng công thức $\Rightarrow$ luôn đồng bộ. \\
+\addlinespace
+Web không có Cloud Function thay GV gán role admin (Spark plan) & Chọn phương án pairing QR thay vì login email/password -- không cần tạo account web cho từng GV. \\
+\addlinespace
+Máy chiếu lớp học có thể tự sleep giữa tiết & Dùng Web Wake Lock API (có handle visibilitychange để re-acquire khi tab focus lại). \\
+\addlinespace
+Ảnh trường + overlay đỏ làm chữ trắng khó đọc & Thêm vignette 0.15-0.25 + \texttt{textShadow: 0 2px 12px rgba(0,0,0,0.3)} -- giữ được cả chữ rõ và kiến trúc tòa C1. \\
+\addlinespace
+Mini App chưa được \texttt{zmp deploy} sau các thay đổi (theo nguyên tắc chờ xác nhận) & Web đã deploy xong, đồng bộ countdown chỉ kích hoạt khi Mini App cũng deploy -- giữ hai mặt độc lập tới khi GVHD/em xác nhận chạy thật. \\
+\bottomrule
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Kế hoạch tuần tới (17/05 -- 23/05)}
+% ═══════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Deploy Mini App + test thực địa cổng máy chiếu:}
+  \begin{itemize}[leftmargin=1em]
+    \item \texttt{zmp deploy} sau khi GVHD xác nhận -- chạy thử trên máy chiếu thực của giảng đường.
+    \item Test edge case: hai máy tính cùng pair một session, mất mạng giữa giờ, token expired đúng lúc GV quét.
+    \item Đo thời gian thực: cold start /present, từ scan đến chuyển displaying, latency cập nhật live feed.
+  \end{itemize}
+  \item \textbf{Trở lại các vấn đề bảo mật từ tuần 04-09/05:}
+  \begin{itemize}[leftmargin=1em]
+    \item Triển khai Firebase Custom Token bridge từ Zalo \texttt{accessToken} (đã có \texttt{auth-token.service.ts}).
+    \item Viết lại Firestore rules dùng \texttt{request.auth.uid} thay \texttt{if true}.
+    \item Move HMAC verification về Cloud Function thay vì client (cần Blaze plan -- đang cân nhắc).
+  \end{itemize}
+  \item \textbf{Báo cáo ĐATN:}
+  \begin{itemize}[leftmargin=1em]
+    \item Chương ``Thiết kế hệ thống'': bổ sung sơ đồ pairing flow + sequence diagram.
+    \item Chương ``Triển khai'': mô tả 6 phase của tính năng cổng máy chiếu, các bug đồng bộ wall-clock.
+    \item Chương ``Đánh giá'': đo thực tế thời gian điểm danh trước/sau khi có cổng chiếu (mục tiêu giảm từ 8 phút $\to$ 2 phút).
+  \end{itemize}
+  \item \textbf{Hoàn thiện AbsenceRequest student-side} (đang 50\%) -- UI gửi đơn xin nghỉ trong Zalo Mini App.
+  \item \textbf{Test E2E với Playwright:} viết script tự động cho luồng pairing (mở web $\to$ scan token bằng API mock $\to$ verify chuyển displaying).
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════
+\section{Thống kê mã nguồn}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Loại công việc:} & Tính năng mới (Teacher Display) + Bug fix đồng bộ + UI redesign \\
+\textbf{Files thay đổi:} & 15 files (7 mới, 8 sửa) -- chưa kể assets \\
+\textbf{Insertions/Deletions:} & ${\sim}+1{,}450 / -180$ lines \\
+\textbf{Files mới chính:} & \texttt{PresentPage.tsx} ($\sim$700 lines), \texttt{pairing.service.ts} (web + app), \texttt{useTeacherQR.ts} \\
+\textbf{Assets mới:} & \texttt{hust-logo.svg} (39.6 KB), \texttt{hust-campus.jpg} (117.7 KB) \\
+\textbf{Dependencies thêm:} & \texttt{qrcode}, \texttt{crypto-js} (cùng \texttt{@types/*}) cho admin app \\
+\textbf{TypeScript:} & 0 lỗi mới (cả Mini App và Admin đều type-check sạch) \\
+\textbf{Firestore rules:} & Thêm 1 collection (\texttt{pairing\_tokens}) với rule one-shot transition \\
+\textbf{Deploy:} & Admin hosting + Firestore rules đã deploy. Mini App chờ xác nhận. \\
+\textbf{Vấn đề đã đóng:} & 2 bug đồng bộ (QR nháy + countdown lệch) + 1 cải tiến UX (reset GPS) \\
+\textbf{Vấn đề mở:} & Còn lại các vấn đề bảo mật từ tuần trước (chuyển sang tuần 17-23/05) \\
+\end{tabularx}
+
+
+\end{document}

@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
+import { openWebview } from "zmp-sdk/apis";
 import { sendChatMessage, resetChat } from "@/services/ai.service";
+import { storageGetItem, storageSetItem } from "@/utils/storage";
+
+const AI_CONSENT_KEY = "ai_chat_consent_v1";
 
 interface ChatMessage {
   id: number;
@@ -38,6 +42,8 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentGranted, setConsentGranted] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -52,6 +58,20 @@ export default function AIChatPage() {
   useEffect(() => {
     return () => { resetChat(); };
   }, []);
+
+  // Check consent on mount
+  useEffect(() => {
+    (async () => {
+      const stored = await storageGetItem(AI_CONSENT_KEY);
+      setConsentGranted(stored === "1");
+      setConsentChecked(true);
+    })();
+  }, []);
+
+  const acceptConsent = async () => {
+    await storageSetItem(AI_CONSENT_KEY, "1");
+    setConsentGranted(true);
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
@@ -89,6 +109,104 @@ export default function AIChatPage() {
   };
 
   const showWelcome = messages.length === 0;
+
+  // First-use consent screen — GDPR/Zalo policy compliance for third-party (Groq) data sharing
+  if (consentChecked && !consentGranted) {
+    return (
+      <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{
+          background: "#be1d2c",
+          padding: "calc(var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 12px",
+          display: "flex", alignItems: "center", gap: 12, flexShrink: 0,
+        }}>
+          <button onClick={() => navigate(-1)} style={{
+            width: 36, height: 36, borderRadius: 12, background: "rgba(255,255,255,0.13)",
+            border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>AI Assistant</span>
+        </div>
+
+        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
+          <div style={{
+            width: "100%", borderRadius: 20, padding: "28px 20px",
+            background: GRADIENT_BG,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: 18, background: "rgba(255,255,255,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <SparklesIcon size={32} />
+            </div>
+            <p style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Trợ lý AI inHUST</p>
+            <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>
+              Trước khi sử dụng, vui lòng đọc và đồng ý với điều khoản dưới đây.
+            </p>
+          </div>
+
+          <div style={{
+            background: "#ffffff", borderRadius: 16, padding: 20,
+            border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            display: "flex", flexDirection: "column", gap: 14,
+          }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>
+              Thông báo về việc xử lý dữ liệu bởi bên thứ ba
+            </p>
+            <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.6 }}>
+              Tin nhắn của bạn sẽ được gửi tới <strong>Groq Inc. (Hoa Kỳ)</strong> để xử lý
+              bằng mô hình ngôn ngữ Llama 3.3 70B nhằm tạo phản hồi. Vui lòng lưu ý:
+            </p>
+            <ul style={{ paddingLeft: 18, fontSize: 13, color: "#4b5563", lineHeight: 1.7 }}>
+              <li><strong>Không gửi</strong> thông tin nhạy cảm: mật khẩu, MSSV người khác, dữ liệu cá nhân, tài chính.</li>
+              <li>Tin nhắn có thể được Groq lưu tạm để vận hành dịch vụ; chúng tôi <strong>không kiểm soát</strong> chính sách của Groq.</li>
+              <li>Phản hồi AI <strong>có thể không chính xác</strong>; không thay thế tư vấn chính thức.</li>
+              <li>Bạn có thể thu hồi đồng ý bằng cách không sử dụng tính năng này.</li>
+            </ul>
+            <p style={{ fontSize: 12, color: "#6b7280" }}>
+              Chi tiết tại{" "}
+              <span
+                onClick={() => openWebview({ url: "https://inhust-legal.web.app/privacy-policy.html" })}
+                style={{ color: "#be1d2c", fontWeight: 600, textDecoration: "underline" }}
+              >Chính sách bảo mật</span>.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: "auto" }}>
+            <button
+              onClick={acceptConsent}
+              style={{
+                width: "100%", height: 52, borderRadius: 14,
+                background: GRADIENT_BG, border: "none", color: "#ffffff",
+                fontSize: 16, fontWeight: 700,
+              }}
+            >
+              Tôi đồng ý và tiếp tục
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              style={{
+                width: "100%", height: 48, borderRadius: 14,
+                background: "#ffffff", border: "1px solid rgba(0,0,0,0.08)",
+                fontSize: 15, fontWeight: 600, color: "#6b7280",
+              }}
+            >
+              Không, quay lại
+            </button>
+          </div>
+        </div>
+      </Page>
+    );
+  }
+
+  if (!consentChecked) {
+    return (
+      <Page style={{ background: "#f8f9fa", minHeight: "100vh" }} />
+    );
+  }
 
   return (
     <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0, display: "flex", flexDirection: "column" }}>

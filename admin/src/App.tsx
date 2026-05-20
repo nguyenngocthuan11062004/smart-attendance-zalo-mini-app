@@ -14,6 +14,7 @@ import SessionDetailPage from "@/pages/SessionDetailPage";
 import AbsenceRequestsPage from "@/pages/AbsenceRequestsPage";
 import FraudReportsPage from "@/pages/FraudReportsPage";
 import InviteCodesPage from "@/pages/InviteCodesPage";
+import PresentPage from "@/pages/PresentPage";
 
 const themeConfig = {
   token: {
@@ -30,6 +31,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/present" element={<PresentPage />} />
             <Route
               element={
                 <AdminGuard>

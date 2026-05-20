@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Layout, Menu, Avatar, Dropdown, theme } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Tooltip, theme } from "antd";
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -13,6 +13,7 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  DesktopOutlined,
 } from "@ant-design/icons";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
@@ -26,6 +27,7 @@ const menuItems = [
   { key: "/absence-requests", icon: <FileTextOutlined />, label: "Đơn xin phép" },
   { key: "/fraud-reports", icon: <WarningOutlined />, label: "Gian lận" },
   { key: "/invite-codes", icon: <KeyOutlined />, label: "Mã mời GV" },
+  { key: "/present", icon: <DesktopOutlined />, label: "Cổng máy chiếu" },
 ];
 
 export default function AdminLayout() {
@@ -38,6 +40,16 @@ export default function AdminLayout() {
   const selectedKey = menuItems.find((item) =>
     item.key === "/" ? location.pathname === "/" : location.pathname.startsWith(item.key)
   )?.key || "/";
+
+  const openPresent = () => window.open("/present", "_blank", "noopener,noreferrer");
+
+  const handleMenuClick = (key: string) => {
+    if (key === "/present") {
+      openPresent();
+      return;
+    }
+    navigate(key);
+  };
 
   const userMenu = {
     items: [
@@ -87,7 +99,7 @@ export default function AdminLayout() {
           mode="inline"
           selectedKeys={[selectedKey]}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => handleMenuClick(key)}
           style={{ border: "none", marginTop: 8 }}
         />
       </Sider>
@@ -110,12 +122,30 @@ export default function AdminLayout() {
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </div>
 
-          <Dropdown menu={userMenu} placement="bottomRight">
-            <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-              <Avatar icon={<UserOutlined />} style={{ background: "#be1d2c" }} />
-              <span style={{ fontWeight: 500 }}>{userDoc?.name || "Admin"}</span>
-            </div>
-          </Dropdown>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <Tooltip title="Mở trong tab mới — dùng trên máy tính lớp học để chiếu QR điểm danh">
+              <Button
+                type="primary"
+                icon={<DesktopOutlined />}
+                onClick={openPresent}
+                style={{
+                  background: "#be1d2c",
+                  borderColor: "#be1d2c",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 8px rgba(190,29,44,0.25)",
+                }}
+              >
+                Mở cổng máy chiếu
+              </Button>
+            </Tooltip>
+
+            <Dropdown menu={userMenu} placement="bottomRight">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <Avatar icon={<UserOutlined />} style={{ background: "#be1d2c" }} />
+                <span style={{ fontWeight: 500 }}>{userDoc?.name || "Admin"}</span>
+              </div>
+            </Dropdown>
+          </div>
         </Header>
 
         <Content style={{ margin: 24, minHeight: 280 }}>

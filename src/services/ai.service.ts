@@ -1,3 +1,6 @@
+import { httpsCallable } from "firebase/functions";
+import { functions } from "@/config/firebase";
+
 interface ChatMsg {
   role: "user" | "assistant";
   content: string;
@@ -9,48 +12,25 @@ export function resetChat() {
   chatHistory = [];
 }
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || "";
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+interface AiChatRequest {
+  message: string;
+  history: ChatMsg[];
+}
 
-const SYSTEM_PROMPT = `Bạn là trợ lý AI của inHUST — ứng dụng điểm danh thông minh tại Đại học Bách khoa Hà Nội (HUST).
-Bạn giúp sinh viên tra cứu lịch học, lịch thi, thông tin lớp học, và hướng dẫn sử dụng app.
-Trả lời ngắn gọn, thân thiện, bằng tiếng Việt.`;
+interface AiChatResponse {
+  reply: string;
+}
+
+const aiChatCallable = httpsCallable<AiChatRequest, AiChatResponse>(functions, "aiChat");
 
 export async function sendChatMessage(message: string): Promise<string> {
-  if (!GROQ_API_KEY) {
-    return "Tính năng AI Chat đang được cập nhật. Vui lòng thử lại sau!";
-  }
-
   try {
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...chatHistory,
-      { role: "user", content: message },
-    ];
-
-    const response = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages,
-        max_tokens: 1024,
-        temperature: 0.7,
-      }),
+    const { data } = await aiChatCallable({
+      message,
+      history: chatHistory,
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return "Đã vượt quá giới hạn request. Vui lòng thử lại sau ít phút.";
-      }
-      return "Không thể kết nối AI. Vui lòng thử lại sau.";
-    }
-
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "Xin lỗi, tôi không hiểu câu hỏi.";
+    const reply = data?.reply || "Xin lỗi, tôi không hiểu câu hỏi.";
 
     chatHistory.push({ role: "user", content: message });
     chatHistory.push({ role: "assistant", content: reply });
@@ -60,7 +40,17 @@ export async function sendChatMessage(message: string): Promise<string> {
     }
 
     return reply;
-  } catch {
-    return "Không thể kết nối. Vui lòng kiểm tra mạng và thử lại.";
+  } catch (err: any) {
+    const code = err?.code as string | undefined;
+    if (code === "functions/resource-exhausted") {
+      return "Đã vượt quá giới hạn request. Vui lòng thử lại sau ít phút.";
+    }
+    if (code === "functions/failed-precondition") {
+      return "Tính năng AI Chat đang được cập nhật. Vui lòng thử lại sau!";
+    }
+    if (code === "functions/unauthenticated") {
+      return "Vui lòng đăng nhập để sử dụng AI Chat.";
+    }
+    return "Không thể kết nối AI. Vui lòng kiểm tra mạng và thử lại.";
   }
 }

@@ -82,39 +82,57 @@ export default function ClassesPage() {
       const values = await form.validateFields();
       const teacher = teachers.find((t) => t.id === values.teacherId);
 
-      // Schedule chỉ valid khi cả 3 trường có giá trị — nếu thiếu, không lưu
-      // (để tránh ghi nửa vời, gây bug khi render TKB).
-      const hasFullSchedule =
-        values.dayOfWeek && values.startTime && values.endTime;
-      const schedule = hasFullSchedule
-        ? {
-            dayOfWeek: values.dayOfWeek,
-            startTime: (values.startTime as dayjs.Dayjs).format("HH:mm"),
-            endTime: (values.endTime as dayjs.Dayjs).format("HH:mm"),
-          }
-        : undefined;
+      // Schedule validation: nếu user đã điền 1+ trường thì phải đủ cả 3.
+      // Đầy đủ → lưu. Trống hoàn toàn → bỏ qua (không touch schedule).
+      const scheduleFieldsCount =
+        (values.dayOfWeek ? 1 : 0) +
+        (values.startTime ? 1 : 0) +
+        (values.endTime ? 1 : 0);
 
-      const baseData = {
+      if (scheduleFieldsCount > 0 && scheduleFieldsCount < 3) {
+        message.error("Lịch dạy phải có đủ Thứ + giờ bắt đầu + giờ kết thúc, hoặc bỏ trống cả 3");
+        setSubmitting(false);
+        return;
+      }
+
+      // Build payload — CHỈ thêm field có giá trị (Firestore reject undefined).
+      const payload: any = {
         name: values.name,
         code: values.code,
         teacherId: values.teacherId,
         teacherName: teacher?.name || "",
         faceRequired: values.faceRequired,
         peerRequired: values.peerRequired,
-        schedule,
-        location: values.location || undefined,
       };
 
+      if (scheduleFieldsCount === 3) {
+        payload.schedule = {
+          dayOfWeek: values.dayOfWeek,
+          startTime: (values.startTime as dayjs.Dayjs).format("HH:mm"),
+          endTime: (values.endTime as dayjs.Dayjs).format("HH:mm"),
+        };
+      }
+      // location chỉ thêm khi có giá trị; khi rỗng giữ nguyên giá trị cũ
+      // (không truyền undefined → tránh Firestore error)
+      if (values.location && values.location.trim()) {
+        payload.location = values.location.trim();
+      }
+
       if (editingClass) {
-        await updateClass(editingClass.id, baseData);
+        await updateClass(editingClass.id, payload);
         message.success("Đã cập nhật lớp");
       } else {
-        await createClass(baseData);
+        await createClass(payload);
         message.success("Đã tạo lớp mới");
       }
 
       setModalOpen(false);
       load();
+    } catch (err: any) {
+      // Nếu validateFields fail (lỗi trường name/code/teacher), antd tự hiển thị.
+      // Catch ở đây cho các lỗi khác (Firestore, network).
+      if (err?.errorFields) return; // form validation, đã có UI
+      message.error("Lưu thất bại: " + (err?.message || "Vui lòng thử lại"));
     } finally {
       setSubmitting(false);
     }

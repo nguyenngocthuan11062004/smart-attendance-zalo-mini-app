@@ -151,6 +151,18 @@ export interface FaceRegistrationDoc {
   updatedAt: number;
 }
 
+export interface PairingTokenDoc {
+  token: string;
+  status: "pending" | "paired";
+  sessionId: string | null;
+  classId: string | null;
+  className: string | null;
+  teacherId: string | null;
+  createdAt: number;
+  expiresAt: number;
+  pairedAt?: number;
+}
+
 export interface AbsenceRequestDoc {
   id: string;
   studentId: string;

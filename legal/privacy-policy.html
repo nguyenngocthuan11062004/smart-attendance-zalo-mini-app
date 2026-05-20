@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chính sách bảo mật - inHUST</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; line-height: 1.7; background: #f8f9fa; }
+    .header { background: #be1d2c; color: #fff; padding: 40px 20px; text-align: center; }
+    .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .header p { font-size: 14px; opacity: 0.85; }
+    .container { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+    h2 { font-size: 18px; font-weight: 700; color: #be1d2c; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 2px solid rgba(190,29,44,0.15); }
+    h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; }
+    p, li { font-size: 14px; margin-bottom: 8px; }
+    ul { padding-left: 20px; }
+    .info-box { background: #fff; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .info-box strong { color: #be1d2c; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    th { background: rgba(190,29,44,0.06); color: #be1d2c; font-weight: 600; }
+    .updated { text-align: center; color: #6b7280; font-size: 13px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    a { color: #be1d2c; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: rgba(190,29,44,0.1); color: #be1d2c; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Chính sách bảo mật</h1>
+    <p>inHUST - Điểm danh thông minh</p>
+  </div>
+  <div class="container">
+
+    <div class="info-box">
+      <strong>Ứng dụng:</strong> inHUST – Điểm Danh Thông Minh<br>
+      <strong>Nhà phát triển:</strong> Nguyễn Ngọc Thuận (SV ĐATN, ĐHBK Hà Nội)<br>
+      <strong>Liên hệ:</strong> <a href="mailto:nguyenngocthuan940@gmail.com">nguyenngocthuan940@gmail.com</a> – 0367444143<br>
+      <strong>Hiệu lực:</strong> 20/05/2026
+    </div>
+
+    <h2>1. Phạm vi áp dụng</h2>
+    <p>Chính sách này mô tả cách inHUST (sau đây gọi là "ứng dụng") thu thập, sử dụng, lưu trữ và bảo vệ dữ liệu cá nhân của người dùng. Bằng việc sử dụng ứng dụng, bạn đồng ý với các điều khoản dưới đây. Nếu không đồng ý, vui lòng ngưng sử dụng.</p>
+
+    <h2>2. Dữ liệu chúng tôi thu thập</h2>
+
+    <h3>2.1. Thông tin tài khoản Zalo</h3>
+    <ul>
+      <li><strong>Zalo ID</strong> (bắt buộc, lấy tự động qua <code>getUserID</code>) — định danh người dùng duy nhất.</li>
+      <li><strong>Tên hiển thị, ảnh đại diện</strong> — chỉ thu thập khi bạn bấm <em>"Cập nhật từ Zalo"</em> và đồng ý ở popup Zalo SDK.</li>
+      <li><strong>Số điện thoại</strong> — chỉ thu thập khi bạn yêu cầu trong trang Hồ sơ và đồng ý ở popup Zalo SDK.</li>
+    </ul>
+
+    <h3>2.2. Thông tin sinh viên / giảng viên</h3>
+    <ul>
+      <li><strong>MSSV</strong> hoặc <strong>email HUST</strong> (<code>@sis.hust.edu.vn</code> / <code>@hust.edu.vn</code>) — dùng để xác minh người dùng thuộc về Trường Đại học Bách khoa Hà Nội.</li>
+      <li><strong>OTP gửi qua email</strong> — mã 6 chữ số, hết hạn sau 5 phút, chỉ dùng cho mục đích xác minh.</li>
+      <li><strong>Vai trò</strong> (student / teacher / admin) và <strong>lớp được phân</strong>.</li>
+    </ul>
+
+    <h3>2.3. Dữ liệu sinh trắc học (khuôn mặt)</h3>
+    <ul>
+      <li>Bạn được yêu cầu đồng ý <strong>tường minh</strong> trước khi thu thập (xem màn hình "Đăng ký khuôn mặt").</li>
+      <li>Ứng dụng chụp <strong>2 ảnh selfie</strong> để phát hiện khuôn mặt và trích xuất <strong>vector đặc trưng 128 chiều</strong> (face descriptor).</li>
+      <li><strong>Chỉ vector đặc trưng</strong> được lưu trên Firestore (không thể tái dựng lại ảnh gốc). Ảnh selfie gốc được xử lý trên thiết bị và <strong>không gửi lên server</strong>.</li>
+      <li>Khi điểm danh, ảnh kiểm tra được so khớp cục bộ và xóa ngay sau khi xác minh.</li>
+    </ul>
+
+    <h3>2.4. Vị trí (GPS)</h3>
+    <ul>
+      <li>Chỉ thu thập <strong>khi điểm danh</strong>, để xác minh bạn có mặt tại lớp.</li>
+      <li>Yêu cầu quyền qua popup chuẩn của Zalo SDK. Bạn có thể từ chối, nhưng sẽ không thể tham gia điểm danh có ràng buộc GPS.</li>
+    </ul>
+
+    <h3>2.5. Dữ liệu sử dụng ứng dụng</h3>
+    <ul>
+      <li>Lịch sử điểm danh (timestamp, lớp, phiên, kết quả, điểm tin cậy).</li>
+      <li>Đơn xin nghỉ phép (lý do, file đính kèm nếu có).</li>
+      <li>Tin nhắn AI Chat (xem mục 4).</li>
+      <li>Log truy cập kỹ thuật (loại thiết bị, mạng, lỗi) — không gắn với danh tính.</li>
+    </ul>
+
+    <h2>3. Mục đích sử dụng</h2>
+    <ul>
+      <li>Cung cấp tính năng điểm danh thông minh, chống gian lận.</li>
+      <li>Xác minh danh tính người dùng (SV/GV thuộc HUST).</li>
+      <li>Quản lý lớp học, lịch học, báo cáo cho giảng viên / phòng đào tạo.</li>
+      <li>Hỗ trợ kỹ thuật và cải thiện chất lượng dịch vụ.</li>
+      <li>Tuân thủ nghĩa vụ pháp lý khi có yêu cầu từ cơ quan có thẩm quyền.</li>
+    </ul>
+
+    <h2>4. Bên thứ ba & chia sẻ dữ liệu</h2>
+    <p>Ứng dụng sử dụng các dịch vụ bên thứ ba sau đây để vận hành. Khi bạn dùng app, một số dữ liệu sẽ được xử lý bởi các bên này theo chính sách bảo mật riêng của họ:</p>
+    <table>
+      <thead>
+        <tr><th>Bên thứ ba</th><th>Dữ liệu xử lý</th><th>Mục đích</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Google Firebase</strong><br><span class="badge">Google LLC</span></td>
+          <td>Toàn bộ dữ liệu app (Firestore, Auth, Cloud Functions, Storage)</td>
+          <td>Hạ tầng backend, lưu trữ, xác thực</td>
+        </tr>
+        <tr>
+          <td><strong>Zalo Mini App Platform</strong><br><span class="badge">VNG Corporation</span></td>
+          <td>Zalo ID, tên, avatar, SĐT, vị trí, camera</td>
+          <td>SDK chạy mini app, xin quyền</td>
+        </tr>
+        <tr>
+          <td><strong>Groq Inc.</strong><br><span class="badge">USA – qua proxy</span></td>
+          <td>Nội dung tin nhắn AI Chat (Llama 3.3 70B)</td>
+          <td>Trả lời câu hỏi của bạn ở mục AI Chat. <strong>Bạn phải bấm đồng ý ở dialog trước lần dùng đầu tiên.</strong></td>
+        </tr>
+        <tr>
+          <td><strong>EmailJS</strong><br><span class="badge">USA</span></td>
+          <td>Email HUST, mã OTP</td>
+          <td>Gửi email xác minh sinh viên</td>
+        </tr>
+        <tr>
+          <td><strong>Microsoft Identity</strong><br><span class="badge">Tuỳ chọn</span></td>
+          <td>OAuth token Microsoft, email HUST</td>
+          <td>Liên kết tài khoản Microsoft HUST (chỉ khi bạn chủ động bấm liên kết)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Ngoài các bên trên, <strong>chúng tôi không bán, không trao đổi, không cho thuê</strong> dữ liệu cá nhân của bạn cho bất kỳ bên thứ ba nào khác.</p>
+
+    <h2>5. Lưu trữ & bảo mật</h2>
+    <ul>
+      <li>Dữ liệu được lưu trên <strong>Google Firebase (asia-southeast1, Singapore)</strong>.</li>
+      <li>Truy cập Firestore được kiểm soát bằng <strong>Security Rules</strong> dựa trên Zalo UID + Firebase Auth token.</li>
+      <li>Mọi kết nối đều qua <strong>HTTPS/TLS 1.2+</strong>.</li>
+      <li>Mật khẩu admin và OTP được hash, không lưu plain-text.</li>
+      <li>API key dịch vụ bên thứ ba (Groq, EmailJS) <strong>không bao giờ</strong> được lộ ra client; tất cả gọi qua Cloud Function proxy.</li>
+    </ul>
+
+    <h2>6. Quyền của người dùng</h2>
+    <p>Bạn có các quyền sau đây đối với dữ liệu của mình:</p>
+    <ul>
+      <li><strong>Truy cập</strong> — xem dữ liệu cá nhân, lịch sử điểm danh trong app.</li>
+      <li><strong>Chỉnh sửa</strong> — cập nhật tên, avatar, SĐT trong trang Hồ sơ.</li>
+      <li><strong>Xóa dữ liệu khuôn mặt</strong> — bấm nút <em>"Xóa dữ liệu khuôn mặt"</em> trong trang Hồ sơ. Việc xóa không ảnh hưởng tính năng khác.</li>
+      <li><strong>Thu hồi quyền</strong> — qua Cài đặt Zalo &gt; Mini App &gt; inHUST &gt; quản lý quyền.</li>
+      <li><strong>Xóa tài khoản</strong> — gửi yêu cầu qua email <a href="mailto:nguyenngocthuan940@gmail.com">nguyenngocthuan940@gmail.com</a>, chúng tôi xử lý trong vòng 7 ngày.</li>
+      <li><strong>Khiếu nại</strong> — nếu cho rằng quyền riêng tư bị vi phạm, vui lòng liên hệ chúng tôi trước; bạn cũng có quyền khiếu nại đến cơ quan bảo vệ dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.</li>
+    </ul>
+
+    <h2>7. Thời gian lưu trữ</h2>
+    <ul>
+      <li>Dữ liệu khuôn mặt: lưu đến khi bạn xóa hoặc tốt nghiệp + 1 năm.</li>
+      <li>Lịch sử điểm danh: lưu theo quy định lưu trữ học vụ của HUST (tối thiểu 1 năm sau khóa học).</li>
+      <li>OTP: tự động xóa sau 5 phút.</li>
+      <li>Log kỹ thuật: 30 ngày.</li>
+    </ul>
+
+    <h2>8. Đối tượng & độ tuổi</h2>
+    <p>Ứng dụng dành cho sinh viên, giảng viên, cán bộ Trường Đại học Bách khoa Hà Nội từ <strong>16 tuổi trở lên</strong>. Người dưới 16 tuổi không được sử dụng nếu chưa có sự đồng ý của người giám hộ.</p>
+
+    <h2>9. Cookie & lưu trữ thiết bị</h2>
+    <p>Ứng dụng sử dụng <code>Zalo Storage</code> (key-value local) để lưu phiên đăng nhập, cài đặt giao diện và cờ đồng ý (consent flags). Không có cookie tracking quảng cáo.</p>
+
+    <h2>10. Thay đổi chính sách</h2>
+    <p>Chính sách có thể được cập nhật. Mọi thay đổi quan trọng sẽ được thông báo qua app hoặc email. Việc tiếp tục sử dụng sau khi chính sách được cập nhật đồng nghĩa với việc bạn chấp nhận chính sách mới.</p>
+
+    <h2>11. Liên hệ</h2>
+    <div class="info-box">
+      <strong>Nhà phát triển:</strong> Nguyễn Ngọc Thuận<br>
+      <strong>Email:</strong> <a href="mailto:nguyenngocthuan940@gmail.com">nguyenngocthuan940@gmail.com</a><br>
+      <strong>SĐT:</strong> 0367444143<br>
+      <strong>GVHD:</strong> Lê Bá Vui – Trường Đại học Bách khoa Hà Nội
+    </div>
+
+    <p class="updated">Hiệu lực từ: 20/05/2026</p>
+  </div>
+</body>
+</html>
