@@ -1,0 +1,95 @@
+% =============================================
+% CHƯƠNG 1 — GIỚI THIỆU ĐỀ TÀI (6 trang)
+% Status: OUTLINE — chờ draft từ agent
+% =============================================
+
+\chapter{Giới thiệu đề tài}
+\label{ch:gioi-thieu}
+
+% [INTRO CHƯƠNG — 1 đoạn ~5 dòng]
+% Giới thiệu chương sẽ nói về: bối cảnh điểm danh truyền thống, vấn đề thực tiễn,
+% mục tiêu của đồ án, phạm vi giải quyết, đóng góp chính, và cấu trúc các chương tiếp theo.
+
+% ─────────────────────────────────────────────
+\section{Bối cảnh}
+\label{sec:boi-canh}
+% Ước lượng: 1 trang
+% Nguồn tài sản:
+%   - báo cáo tuần 16-21/03 mục "Thông tin chung"
+%   - CLAUDE.md mục Project Overview
+%   - Notion page 1
+% Nội dung cần có:
+%   - Thực trạng điểm danh tại trường ĐH (gọi tên, ký giấy, BLE Beacon, RFID, QR tĩnh...)
+%   - Hiện trạng tại ĐHBKHN cụ thể (nếu có data)
+%   - Bùng nổ điện thoại thông minh + Zalo (~75M user VN) tạo cơ hội
+%   - Tham chiếu IEEE 1-2 paper về smart attendance systems
+
+% ─────────────────────────────────────────────
+\section{Vấn đề thực tiễn và động lực}
+\label{sec:van-de}
+% Ước lượng: 1 trang
+% Nguồn:
+%   - báo cáo 11-16/05 mục "Bối cảnh & vấn đề" (bottleneck QR nhỏ trên điện thoại)
+%   - báo cáo 04-09/05 (8 UX issues khi pilot)
+% Nội dung:
+%   - Vấn đề 1: gian lận điểm danh hộ (proxy attendance)
+%   - Vấn đề 2: tốc độ chậm khi lớp đông >50 SV
+%   - Vấn đề 3: GV khó giám sát realtime, không có báo cáo dài hạn
+%   - Vấn đề 4: SV không có cách xin nghỉ chính thức trong hệ thống
+%   - Đặt câu hỏi nghiên cứu: làm thế nào kết hợp QR động + sinh trắc + xác minh ngang hàng
+%     để vừa nhanh vừa chống gian lận?
+
+% ─────────────────────────────────────────────
+\section{Mục tiêu của đồ án}
+\label{sec:muc-tieu}
+% Ước lượng: 1 trang
+% VIẾT MỚI hoàn toàn
+% Nội dung:
+%   - Mục tiêu tổng quát (1 câu)
+%   - 3-5 mục tiêu cụ thể, đo lường được:
+%     1. Xây dựng Mini App điểm danh dùng QR động 30s + HMAC-SHA256
+%     2. Tích hợp xác minh khuôn mặt (face verification) với ngưỡng ≥70%
+%     3. Cơ chế xác minh ngang hàng (peer-to-peer) tối thiểu 3 sinh viên
+%     4. Dashboard quản trị web cho phòng đào tạo + giảng viên
+%     5. Hệ thống chống gian lận 5 lớp với báo cáo tự động
+%   - Bảng tiêu chí thành công (SMART)
+
+% ─────────────────────────────────────────────
+\section{Phạm vi đề tài}
+\label{sec:pham-vi}
+% Ước lượng: 1 trang
+% Nguồn: memory project-constraints.md
+% Nội dung:
+%   - Phạm vi nghiệp vụ: SV - GV - Admin (3 vai trò)
+%   - Phạm vi kỹ thuật:
+%     * Frontend: Zalo Mini App (React 18 + TypeScript + Jotai)
+%     * Web Admin: Vite + Ant Design
+%     * Backend: Firebase Firestore + Cloud Functions (Spark plan)
+%   - Phạm vi triển khai: pilot trong khuôn khổ đồ án, KHÔNG triển khai production toàn trường
+%   - Phạm vi loại trừ: không tích hợp LMS, không tự động sinh báo cáo PDF cho phòng đào tạo,
+%     không tích hợp thẻ sinh viên RFID
+
+% ─────────────────────────────────────────────
+\section{Đóng góp chính}
+\label{sec:dong-gop}
+% Ước lượng: 1 trang
+% VIẾT MỚI hoàn toàn
+% Nội dung:
+%   - Đóng góp 1: Thiết kế cơ chế QR HMAC-SHA256 xoay 30s với phối hợp wall-clock đồng bộ
+%     giữa nhiều thiết bị (chi tiết Ch.4)
+%   - Đóng góp 2: Cơ chế "Cổng máy chiếu" (Teacher Display Pairing) qua QR token 128-bit,
+%     one-shot transition (chi tiết Ch.4)
+%   - Đóng góp 3: Thuật toán phát hiện gian lận 5 lớp (multi-tier anti-fraud)
+%   - Đóng góp 4: Hệ thống 3 vai trò với phân quyền Firestore rules + Custom Token
+%   - Đóng góp 5: Tích hợp tuân thủ chính sách Zalo (privacy, AI proxy, consent)
+
+% ─────────────────────────────────────────────
+\section{Bố cục quyển báo cáo}
+\label{sec:bo-cuc}
+% Ước lượng: 1 trang
+% VIẾT MỚI
+% Nội dung: liệt kê 5 chương + Mở đầu + Kết luận + Phụ lục, mỗi chương 2-3 dòng tóm tắt
+
+% ─────────────────────────────────────────────
+% \section*{Kết chương}
+% 1 đoạn 3-4 dòng tóm tắt chương 1, dẫn dắt sang chương 2 (khảo sát).

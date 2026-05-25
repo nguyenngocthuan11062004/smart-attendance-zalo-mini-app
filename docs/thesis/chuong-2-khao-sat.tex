@@ -1,0 +1,88 @@
+% =============================================
+% CHƯƠNG 2 — KHẢO SÁT VÀ PHÂN TÍCH YÊU CẦU (9 trang)
+% Status: OUTLINE — chờ draft từ agent
+% =============================================
+
+\chapter{Khảo sát và phân tích yêu cầu}
+\label{ch:khao-sat}
+
+% [INTRO CHƯƠNG — 1 đoạn]
+% Chương này khảo sát các hệ thống điểm danh hiện có (trong và ngoài nước),
+% phân tích ưu nhược điểm của từng cách tiếp cận, từ đó rút ra các yêu cầu
+% chức năng và phi chức năng cho hệ thống cần xây dựng.
+
+% ─────────────────────────────────────────────
+\section{Khảo sát các hệ thống điểm danh hiện có}
+\label{sec:khao-sat-he-thong}
+% Ước lượng: 3 trang
+% VIẾT MỚI nhiều, dùng IEEE refs
+% Nội dung:
+%   §2.1.1 Điểm danh truyền thống (gọi tên, ký giấy) — 0.5tr
+%   §2.1.2 RFID / Thẻ từ — 0.5tr (cite paper RFID attendance system)
+%   §2.1.3 NFC — 0.5tr
+%   §2.1.4 BLE Beacon — 0.5tr (cite Crowley et al, Apple iBeacon)
+%   §2.1.5 QR Code tĩnh — 0.5tr (vấn đề screenshot, share QR)
+%   §2.1.6 Nhận diện khuôn mặt độc lập — 0.5tr (cite FaceNet)
+%   * Mỗi mục: cơ chế hoạt động, ưu điểm, nhược điểm, ví dụ thực tế
+%   * Tham chiếu: tìm 4-6 paper IEEE qua agent citation
+
+\section{So sánh và bài học rút ra}
+\label{sec:so-sanh}
+% Ước lượng: 1.5 trang
+% Nội dung: bảng so sánh đa chiều
+%   - Tiêu chí: chi phí phần cứng, chi phí triển khai, độ chính xác, chống gian lận,
+%     trải nghiệm SV, khả năng mở rộng, có cần app riêng không
+%   - Bảng 2.1: ma trận 6 phương án × 7 tiêu chí
+%   - Bài học: cần kết hợp nhiều layer, không phương án đơn lẻ nào đủ tốt
+% Nguồn: báo cáo 13-18/04 mục "Nghiên cứu và tham khảo"
+
+% ─────────────────────────────────────────────
+\section{Phân tích đối tượng người dùng}
+\label{sec:doi-tuong}
+% Ước lượng: 1 trang
+% Nội dung:
+%   §2.3.1 Sinh viên — đặc điểm, kỳ vọng, ràng buộc (tốc độ <10s, không tốn data)
+%   §2.3.2 Giảng viên — đặc điểm, kỳ vọng (giám sát realtime, xuất báo cáo)
+%   §2.3.3 Phòng Đào tạo / Admin — đặc điểm (quản lý hàng loạt, import Excel, thống kê)
+
+% ─────────────────────────────────────────────
+\section{Yêu cầu chức năng}
+\label{sec:yeu-cau-cn}
+% Ước lượng: 1.5 trang
+% Nguồn: src/types/index.ts + 16 services + Notion page 3+4+5
+% Nội dung:
+%   Bảng 2.2 — Yêu cầu chức năng theo 3 vai trò
+%   Mỗi vai trò liệt kê 5-8 chức năng chính, đánh số FR-X.Y
+%   - SV: FR-S.1 đăng nhập Zalo, FR-S.2 đăng ký khuôn mặt, FR-S.3 quét QR, ...
+%   - GV: FR-T.1 tạo phiên, FR-T.2 giám sát realtime, FR-T.3 duyệt thủ công, ...
+%   - Admin: FR-A.1 quản lý SV, FR-A.2 quản lý lớp, FR-A.3 duyệt đơn xin nghỉ, ...
+
+% ─────────────────────────────────────────────
+\section{Yêu cầu phi chức năng}
+\label{sec:yeu-cau-pcn}
+% Ước lượng: 1.5 trang
+% Nguồn: SECURITY-REPORT.md
+% Nội dung:
+%   §2.5.1 Bảo mật — HMAC, OAuth, Firestore rules, encryption at rest
+%   §2.5.2 Hiệu năng — cold start <3s, quét QR <1s, render screen <500ms
+%   §2.5.3 Khả năng mở rộng — Firestore tự scale, target 5000 SV
+%   §2.5.4 Tính sẵn sàng — uptime 99% (giới hạn bởi Firebase Spark)
+%   §2.5.5 Trải nghiệm — UI tối ưu điện thoại Android+iOS, dark/light theme
+%   §2.5.6 Tuân thủ — Zalo Mini App Censorship Policy, GDPR-like privacy
+%   Bảng 2.3 — Tổng hợp NFR với metrics đo lường
+
+% ─────────────────────────────────────────────
+\section{Use case và Actor}
+\label{sec:use-case}
+% Ước lượng: 0.5 trang
+% Nguồn: Notion page 3, 4, 5 (sequence + state diagrams)
+% Nội dung:
+%   - Hình 2.1: Sơ đồ use case tổng thể (mermaid → PNG)
+%   - 3 Actors: SV, GV, Admin
+%   - 15-20 use case chính (đặt tên UC-NN)
+%   - Liệt kê use case theo bảng (không mô tả chi tiết — để chương 4)
+
+% ─────────────────────────────────────────────
+% \section*{Kết chương}
+% Tóm tắt: đã khảo sát 6 phương án, rút ra cần kết hợp đa layer; đã định nghĩa được
+% yêu cầu FR và NFR. Chương tiếp theo sẽ phân tích công nghệ cụ thể.

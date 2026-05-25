@@ -1,0 +1,97 @@
+% =============================================
+% CHƯƠNG 3 — CÔNG NGHỆ SỬ DỤNG (8 trang)
+% Status: OUTLINE — chờ draft từ agent
+% =============================================
+
+\chapter{Công nghệ sử dụng}
+\label{ch:cong-nghe}
+
+% [INTRO CHƯƠNG — 1 đoạn]
+% Chương này trình bày các công nghệ chính được lựa chọn để xây dựng hệ thống,
+% kèm theo lý do lựa chọn so với các phương án thay thế và những kiến thức nền
+% tảng (HMAC, OAuth, nhận diện khuôn mặt) được áp dụng trong đồ án.
+
+% ─────────────────────────────────────────────
+\section{Nền tảng Zalo Mini App}
+\label{sec:zalo}
+% Ước lượng: 1.5 trang
+% Nguồn: CLAUDE.md + .claude/skills/zalo-mini-app/references/
+% Nội dung:
+%   §3.1.1 Giới thiệu Zalo Mini App vs Native App vs PWA
+%   §3.1.2 Kiến trúc Mini App (ZMP SDK + WebView)
+%   §3.1.3 Các API chính sử dụng (authorize, getUserInfo, scanQRCode, ...)
+%   §3.1.4 Quy trình phát hành (Censorship Policy, ZNS)
+%   §3.1.5 Lý do chọn: 75M user VN, không cài app, OAuth tích hợp sẵn
+%   Bảng 3.1: So sánh Zalo Mini App vs PWA vs React Native
+
+% ─────────────────────────────────────────────
+\section{Frontend Stack: React 18 + TypeScript + Jotai + Tailwind}
+\label{sec:frontend}
+% Ước lượng: 1 trang
+% Nguồn: package.json + CLAUDE.md
+% Nội dung:
+%   §3.2.1 React 18 (concurrent features, hooks)
+%   §3.2.2 TypeScript 5.9 (type safety, prevent bugs)
+%   §3.2.3 Jotai (atomic state, vs Redux/Context)
+%   §3.2.4 Tailwind CSS 3 + SCSS (utility-first + custom theme)
+%   §3.2.5 Vite 5 + zmp-vite-plugin (build tool)
+%   * Mỗi mục 2-3 dòng + 1 dòng justification
+
+% ─────────────────────────────────────────────
+\section{Hệ sinh thái Firebase}
+\label{sec:firebase}
+% Ước lượng: 1.5 trang
+% Nguồn: Notion page 6 + functions/src
+% Nội dung:
+%   §3.3.1 Firestore (NoSQL document DB, realtime listeners)
+%   §3.3.2 Cloud Functions (serverless TypeScript, HTTPS callable)
+%   §3.3.3 Firebase Auth (Custom Token bridge từ Zalo OAuth)
+%   §3.3.4 Firebase Hosting (admin dashboard + legal pages)
+%   §3.3.5 Firebase Storage (face images, fraud screenshots)
+%   §3.3.6 Lý do chọn: Spark plan free tier, realtime built-in, scaling tự động
+%   Hình 3.1: Sơ đồ tích hợp Firebase trong dự án (mermaid)
+
+% ─────────────────────────────────────────────
+\section{HMAC-SHA256 và mã xác thực thông điệp}
+\label{sec:hmac}
+% Ước lượng: 1.5 trang
+% VIẾT MỚI hoàn toàn — cite RFC 2104, NIST FIPS 198-1
+% Nội dung:
+%   §3.4.1 Khái niệm Message Authentication Code (MAC)
+%   §3.4.2 Cấu trúc HMAC theo RFC 2104:
+%          HMAC(K, m) = H((K' ⊕ opad) || H((K' ⊕ ipad) || m))
+%   §3.4.3 Vì sao chọn SHA-256: collision resistance, được NIST chuẩn hoá
+%   §3.4.4 Ứng dụng trong QR động: payload = {sessionId, timestamp, nonce}, signature = HMAC
+%   §3.4.5 Tính an toàn: không thể giả mạo nếu không biết secret
+%   Hình 3.2: Sơ đồ tạo và xác minh HMAC trong dự án
+
+% ─────────────────────────────────────────────
+\section{Nhận diện khuôn mặt và FaceNet}
+\label{sec:face-recognition}
+% Ước lượng: 1.5 trang
+% VIẾT MỚI — cite Schroff et al "FaceNet" CVPR 2015, MTCNN
+% Nội dung:
+%   §3.5.1 Tổng quan bài toán face verification vs identification
+%   §3.5.2 CNN cho trích xuất embedding 128-D
+%   §3.5.3 Triplet loss (FaceNet) — kéo same-person gần, khác-person xa
+%   §3.5.4 Ngưỡng so khớp (similarity threshold) = 0.7 trong dự án
+%   §3.5.5 Library sử dụng: face-api.js / MediaPipe / TensorFlow.js
+%   §3.5.6 Hạn chế client-side: không live anti-spoofing (đây là trade-off đã ghi nhận)
+%   Hình 3.3: Pipeline face verification (detect → align → embed → compare)
+
+% ─────────────────────────────────────────────
+\section{OAuth 2.0 và xác thực Microsoft}
+\label{sec:oauth}
+% Ước lượng: 1 trang
+% Nguồn: microsoft-oauth.service.ts + RFC 6749
+% Nội dung:
+%   §3.6.1 OAuth 2.0 authorization code flow
+%   §3.6.2 PKCE cho mobile/SPA (RFC 7636)
+%   §3.6.3 Tích hợp Microsoft Identity Platform với @sis.hust.edu.vn
+%   §3.6.4 Custom Token bridge: Microsoft → Firebase Auth UID
+%   Hình 3.4: Sequence diagram OAuth flow (mermaid)
+
+% ─────────────────────────────────────────────
+% \section*{Kết chương}
+% Đã trình bày stack công nghệ và nền tảng lý thuyết. Chương tiếp theo sẽ
+% sử dụng các công nghệ này để thiết kế hệ thống tổng thể.

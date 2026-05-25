@@ -1,0 +1,161 @@
+% =============================================
+% CHƯƠNG 4 — PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG (13 trang) ★ LÕI ĐỒ ÁN
+% Status: OUTLINE — chờ draft từ agent
+% Đặc điểm: 90% tài sản đã có sẵn, chủ yếu biên tập
+% =============================================
+
+\chapter{Phân tích và thiết kế hệ thống}
+\label{ch:thiet-ke}
+
+% [INTRO CHƯƠNG — 1 đoạn]
+% Chương này trình bày thiết kế tổng thể và chi tiết của hệ thống, bao gồm:
+% kiến trúc 3 tầng, lược đồ dữ liệu, luồng xác thực, thuật toán QR HMAC xoay,
+% cơ chế xác minh ngang hàng, hệ thống chống gian lận và tính năng cổng máy chiếu.
+
+% ─────────────────────────────────────────────
+\section{Kiến trúc tổng thể}
+\label{sec:kien-truc}
+% Ước lượng: 1.5 trang
+% Nguồn: Notion page 1 + docs/architecture-diagram.html
+% Nội dung:
+%   §4.1.1 Mô hình 3 tầng: Client (Mini App + Admin Web) → Backend (Firebase) → Storage
+%   §4.1.2 Phân tách trách nhiệm:
+%     - Client: UI, validation, capture face/QR
+%     - Backend: validate, HMAC sign/verify, fraud detection
+%     - Storage: persist + realtime sync
+%   §4.1.3 Component diagram tổng quát
+%   Hình 4.1: Sơ đồ kiến trúc 3-tier (export từ Notion mermaid)
+%   Hình 4.2: Component diagram
+
+% ─────────────────────────────────────────────
+\section{Thiết kế cơ sở dữ liệu Firestore}
+\label{sec:db-design}
+% Ước lượng: 2 trang
+% Nguồn: src/types/index.ts (16 interfaces) + firestore.rules + Notion page 6
+% Nội dung:
+%   §4.2.1 Mô hình dữ liệu: document/collection vs relational
+%   §4.2.2 12 collection chính:
+%     users, classes, sessions, sessions/secrets, attendance,
+%     face_registrations, verified_students, oauth_states,
+%     fraud_reports, absence_requests, teacher_invites, pairing_tokens
+%   §4.2.3 Schema từng collection:
+%     Bảng 4.1: users (fields, types, indexes)
+%     Bảng 4.2: classes
+%     Bảng 4.3: sessions + sessions/secrets (subcollection)
+%     Bảng 4.4: attendance
+%     ... (5-6 bảng chính, các collection nhỏ gộp lại)
+%   §4.2.4 ER diagram (Notion page 6 → PNG)
+%   Hình 4.3: Sơ đồ thực thể-liên kết Firestore
+%   §4.2.5 Lý do chọn Firestore (denormalization, security rules, realtime)
+
+% ─────────────────────────────────────────────
+\section{Thiết kế luồng xác thực và phân quyền}
+\label{sec:auth-design}
+% Ước lượng: 1.5 trang
+% Nguồn: Notion page 3 + src/services/auth.service.ts
+% Nội dung:
+%   §4.3.1 Sequence: Zalo OAuth → Custom Token → Firebase Auth
+%   §4.3.2 3 vai trò và phân quyền:
+%     Bảng 4.5 — Ma trận quyền theo collection × role
+%   §4.3.3 Xác minh email HUST (sinh viên):
+%     - sendOTP → verifyOTP → setDoc(verified_students)
+%     - Bypass cho tài khoản demo (MSSV 20225413)
+%   §4.3.4 Mã mời giảng viên (teacher_invites)
+%   §4.3.5 Firestore Security Rules (snippet 5-7 dòng minh hoạ)
+%   Hình 4.4: Sequence diagram đăng nhập (Notion page 3)
+%   Hình 4.5: State diagram của user
+
+% ─────────────────────────────────────────────
+\section{Thuật toán QR HMAC xoay 30 giây}
+\label{sec:hmac-rotating}
+% Ước lượng: 1.5 trang
+% Nguồn: src/utils/crypto.ts + src/hooks/useQRGenerator.ts + báo cáo 11-16/05
+% Nội dung:
+%   §4.4.1 Vấn đề: QR tĩnh dễ bị screenshot và share
+%   §4.4.2 Giải pháp: QR động xoay 30s với HMAC signature
+%   §4.4.3 Thuật toán tạo QR (pseudocode):
+%     INPUT: sessionId, secret, anchor (session.startedAt), refreshInterval=30s
+%     periodIndex = floor((now - anchor) / refreshInterval)
+%     timestamp = anchor + periodIndex * refreshInterval
+%     nonce = randomBytes(8)
+%     payload = {sessionId, timestamp, nonce}
+%     signature = HMAC-SHA256(secret, JSON(payload))
+%     qrContent = base64(payload + signature)
+%   §4.4.4 Thuật toán xác minh phía SV
+%   §4.4.5 Đồng bộ wall-clock giữa GV (Mini App) và máy chiếu (Web Admin)
+%     - Dùng cùng anchor → cùng periodIndex → cùng thời điểm refresh
+%   §4.4.6 Phân tích an toàn: chống screenshot share (max 30s + 90s tolerance)
+%   Hình 4.6: Sơ đồ trạng thái QR xoay theo thời gian
+%   Hình 4.7: Pseudocode minh hoạ
+
+% ─────────────────────────────────────────────
+\section{Thiết kế UI/UX và bộ nhận diện}
+\label{sec:ui-design}
+% Ước lượng: 1.5 trang
+% Nguồn: CLAUDE.md Design System + báo cáo 11-16/05 (UI Bách Khoa)
+% Nội dung:
+%   §4.5.1 Bộ nhận diện Bách Khoa: đỏ HUST #be1d2c, logo SVG, ảnh tòa C1
+%   §4.5.2 Design tokens: màu sắc, typography, spacing, shadow
+%   §4.5.3 Component library tự xây: ScoreRing, DarkStatCard, DarkModal, ...
+%   §4.5.4 Pattern: header HUST đỏ, card trắng + shadow, bottom-sheet modal
+%   §4.5.5 Light theme chính, accent đỏ HUST
+%   Hình 4.8: Mock-up một số màn hình chính (đã capture)
+
+% ─────────────────────────────────────────────
+\section{Luồng điểm danh 4 bước cho sinh viên}
+\label{sec:attendance-flow}
+% Ước lượng: 2 trang
+% Nguồn: Notion page 4 + src/pages/student/StudentAttendance.tsx
+% Nội dung:
+%   §4.6.1 Tổng quan 4 bước
+%   §4.6.2 Bước 1 — Quét QR động của GV:
+%     - InlineQRScanner + jsQR
+%     - Validate HMAC + timestamp (90s expiry)
+%   §4.6.3 Bước 2 — Xác minh khuôn mặt:
+%     - Auto-scan, oval clip, ngưỡng 70%
+%   §4.6.4 Bước 3 — Trao đổi QR với bạn xung quanh (peer-to-peer):
+%     - Side-by-side: hiện QR riêng + scan QR bạn
+%     - Tối thiểu 3 peers
+%   §4.6.5 Bước 4 — Hoàn tất + trust score
+%   Hình 4.9: Flowchart 4 bước (Notion page 4)
+%   Hình 4.10: Screenshot từng bước
+
+% ─────────────────────────────────────────────
+\section{Hệ thống chống gian lận 5 lớp}
+\label{sec:anti-fraud}
+% Ước lượng: 2 trang
+% Nguồn: Notion page 4 + functions/src/services/fraud.service.ts
+% Nội dung:
+%   §4.7.1 Tổng quan: defense in depth
+%   §4.7.2 Lớp 1 — QR HMAC xoay (đã trình bày §4.4)
+%   §4.7.3 Lớp 2 — Face verification (ngưỡng 70%)
+%   §4.7.4 Lớp 3 — Peer verification (≥3 peers)
+%   §4.7.5 Lớp 4 — GPS geofencing (phạm vi 200m)
+%   §4.7.6 Lớp 5 — Trust score & Fraud Detection:
+%     - Cloud Function quét pattern (high-score buddy, GPS-mismatch, time-anomaly, ...)
+%     - 7 loại fraud type
+%   §4.7.7 Workflow xử lý fraud report (GV review → SV kháng nghị)
+%   Hình 4.11: Sơ đồ kiến trúc anti-fraud 5 lớp
+%   Bảng 4.6: Phân loại 7 loại gian lận và cách phát hiện
+
+% ─────────────────────────────────────────────
+\section{Tính năng Cổng máy chiếu (Teacher Display)}
+\label{sec:projector}
+% Ước lượng: 1.5 trang
+% Nguồn: memory feature-projector-pairing.md + báo cáo 11-16/05
+% Nội dung:
+%   §4.8.1 Bối cảnh: QR điện thoại quá nhỏ cho lớp đông
+%   §4.8.2 Kiến trúc pairing:
+%     - Web tạo token 128-bit hết hạn 60s
+%     - GV scan token bằng Mini App → claim transaction
+%   §4.8.3 Firestore one-shot rule: pending → paired (không revert, không claim 2 lần)
+%   §4.8.4 Đồng bộ countdown wall-clock giữa Mini App ↔ Web
+%   §4.8.5 Wake Lock API chống máy chiếu sleep
+%   §4.8.6 3 trạng thái UI: Pairing → Displaying → Ended
+%   Hình 4.12: Sequence diagram pairing flow
+%   Hình 4.13: 3 màn hình UI cổng chiếu
+
+% ─────────────────────────────────────────────
+% \section*{Kết chương}
+% Đã trình bày kiến trúc và 8 thành phần thiết kế cốt lõi. Chương 5 trình bày
+% triển khai cụ thể và kết quả kiểm thử.

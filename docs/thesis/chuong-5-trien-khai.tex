@@ -1,0 +1,149 @@
+% =============================================
+% CHƯƠNG 5 — TRIỂN KHAI VÀ KIỂM THỬ (9 trang)
+% Status: OUTLINE — chờ draft từ agent
+% =============================================
+
+\chapter{Triển khai và kiểm thử}
+\label{ch:trien-khai}
+
+% [INTRO CHƯƠNG]
+% Chương này mô tả chi tiết quá trình triển khai từ thiết kế ở chương 4 thành
+% sản phẩm thực tế, bao gồm các module Mini App, dashboard quản trị, Cloud Functions,
+% kết quả kiểm thử, đánh giá bảo mật và hiệu năng, cũng như quy trình phát hành.
+
+% ─────────────────────────────────────────────
+\section{Triển khai Mini App}
+\label{sec:trien-khai-miniapp}
+% Ước lượng: 1.5 trang
+% Nguồn: code src/ + screenshots (CẦN CHỤP qua Playwright)
+% Nội dung:
+%   §5.1.1 Cấu trúc thư mục (98 files, ~15.9K dòng)
+%   §5.1.2 Các trang chính:
+%     - splash, welcome, login (với 3 bước MSSV → email → OTP)
+%     - home (dashboard, calendar, menu)
+%     - student/* (6 trang)
+%     - teacher/* (7 trang)
+%     - AIChatPage
+%   §5.1.3 Module dùng chung: 10 hooks, 9 UI components
+%   §5.1.4 Tích hợp Zalo SDK (authorize, getUserInfo, scanQRCode, ...)
+%   Hình 5.1: Cấu trúc thư mục mini app
+%   Hình 5.2: Screenshot 4 màn hình chính (splash, login, home, attendance)
+
+% ─────────────────────────────────────────────
+\section{Triển khai Admin Dashboard}
+\label{sec:trien-khai-admin}
+% Ước lượng: 1 trang
+% Nguồn: báo cáo 23-28/03 + admin/src/pages
+% Nội dung:
+%   §5.2.1 Tech stack: Vite + React + Ant Design + Recharts + xlsx
+%   §5.2.2 12 trang chính: Dashboard, Users, Classes, ClassDetail, Attendance,
+%     AbsenceRequests, FraudReports, PresentPage, ...
+%   §5.2.3 Tính năng đặc biệt: import Excel SV/Lớp, export Excel báo cáo, charts
+%   §5.2.4 Phân quyền: Firebase Auth email/password (tách biệt Zalo OAuth)
+%   §5.2.5 Deploy: Firebase Hosting `inhust-admin.web.app`
+%   Hình 5.3: Screenshot Dashboard tổng quan + một trang chi tiết
+
+% ─────────────────────────────────────────────
+\section{Triển khai Cloud Functions}
+\label{sec:trien-khai-functions}
+% Ước lượng: 1 trang
+% Nguồn: functions/src/index.ts (17 hàm)
+% Nội dung:
+%   §5.3.1 Danh sách 17 hàm theo module:
+%     - session: createSession, endSession
+%     - attendance: submitAttendance, manualAttendance
+%     - trust: calculateTrustScore
+%     - fraud: detectFraud, generateFraudReport
+%     - face: registerFace, verifyFace
+%     - auth: createCustomToken, oauthCallback
+%     - admin: dashboardStats, bulkAssignStudents, reviewAbsenceRequest, createAccount
+%     - ai: aiChat (Groq proxy)
+%   §5.3.2 Pattern chung: httpsCallable, requireAuth middleware
+%   §5.3.3 Hạn chế Spark plan: không deploy được (chỉ test emulator)
+%   Bảng 5.1: 17 Cloud Functions với mô tả ngắn
+
+% ─────────────────────────────────────────────
+\section{Kiểm thử}
+\label{sec:kiem-thu}
+% Ước lượng: 2 trang
+% Nguồn: docs/test-scenarios.md (29 TC) + báo cáo các tuần
+% Nội dung:
+%   §5.4.1 Chiến lược kiểm thử:
+%     - Unit test (TypeScript): Jest cho utility functions
+%     - Integration test: emulator Firebase
+%     - E2E test: Playwright (kế hoạch, chưa triển khai đầy đủ)
+%     - Manual test: 29 test case theo kịch bản
+%   §5.4.2 Kết quả unit test
+%   §5.4.3 Kết quả manual test (29 TC):
+%     Bảng 5.2 — TC | Mô tả ngắn | Kỳ vọng | Kết quả | Pass/Fail
+%     (lấy từ test-scenarios.md, tổng hợp gọn 15-20 hàng quan trọng)
+%   §5.4.4 Bug đã phát hiện và sửa (chọn 3-5 bug có giá trị):
+%     - Race condition useEffect dependency (báo cáo 11-16/05)
+%     - Wall-clock sync between devices (báo cáo 11-16/05)
+%     - GPS pre-warm timing (báo cáo 04-09/05)
+%     - Firebase initializeApp twice (báo cáo 18-23/05)
+%     - Privacy Policy 404 (báo cáo 18-23/05)
+
+% ─────────────────────────────────────────────
+\section{Đánh giá bảo mật}
+\label{sec:bao-mat}
+% Ước lượng: 1.5 trang
+% Nguồn: docs/SECURITY-REPORT.md (đã có 7.6/10)
+% Nội dung:
+%   §5.5.1 Phương pháp đánh giá: rubric 10 lĩnh vực
+%   §5.5.2 Bảng 5.3 — Điểm 10 lĩnh vực bảo mật:
+%     1. Authentication, 2. Authorization, 3. Data validation,
+%     4. Encryption, 5. Session management, 6. API security,
+%     7. Privacy, 8. Audit logging, 9. Rate limiting, 10. Compliance
+%   §5.5.3 Các lỗ hổng đã fix (lấy từ SECURITY-REPORT "DA FIX"):
+%     - Groq API key client-side → Cloud Function proxy
+%     - HMAC secret client → server-side
+%     - Firestore rules `if true` → role-based
+%     - Pairing token guess → 128-bit random + one-shot
+%   §5.5.4 Hạn chế còn lại (lấy từ "Chua lam duoc - Dai han"):
+%     - Spark plan chưa có rate limiting backend
+%     - Face anti-spoofing chưa có liveness
+%     - Cần audit log dài hạn
+
+% ─────────────────────────────────────────────
+\section{Đánh giá hiệu năng}
+\label{sec:hieu-nang}
+% Ước lượng: 1 trang
+% VIẾT MỚI — cần đo thực tế
+% Nội dung:
+%   §5.6.1 Phương pháp đo: Lighthouse, React DevTools, Firestore usage console
+%   §5.6.2 Bảng 5.4 — Metrics đo được:
+%     - Cold start Mini App: __ms
+%     - Render splash → home: __ms
+%     - QR scan to verification: __s
+%     - Firestore reads per session: __ docs
+%     - Bundle size: __ KB
+%   §5.6.3 Bottleneck đã xử lý:
+%     - N+1 query trong TeacherClassDetail (báo cáo 04-09/05)
+%     - GPS pre-warm để giảm wait time
+%   §5.6.4 Hướng tối ưu tiếp theo (đề xuất cho phần kết luận)
+
+% ─────────────────────────────────────────────
+\section{Quy trình phát hành và tuân thủ}
+\label{sec:phat-hanh}
+% Ước lượng: 1 trang
+% Nguồn: báo cáo 18-23/05 + legal/*.html
+% Nội dung:
+%   §5.7.1 Đăng ký Mini App trên Zalo Platform
+%   §5.7.2 Tuân thủ Zalo Censorship Policy:
+%     - Privacy Policy 11 mục
+%     - Terms of Service
+%     - Consent dialog AI Chat
+%     - Quyền xoá dữ liệu khuôn mặt
+%   §5.7.3 Quyền API được cấp:
+%     - OA Send Message: 13 quyền duyệt
+%     - ZNS API: 3 quyền duyệt
+%   §5.7.4 Hạn chế khi triển khai chính thức:
+%     - Cần OA verified để dùng ZNS production
+%     - Cần Quyết định thành lập trường để vào danh mục Giáo dục
+%   §5.7.5 Phương án cho phạm vi đồ án: danh mục "Công cụ", demo qua sandbox
+
+% ─────────────────────────────────────────────
+% \section*{Kết chương}
+% Đã triển khai đầy đủ thiết kế chương 4 và đánh giá theo 4 chiều: chức năng,
+% bảo mật, hiệu năng, tuân thủ. Chương cuối tổng kết kết quả và đề xuất phát triển.

@@ -1,0 +1,296 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T5]{fontenc}
+
+\usepackage[vietnamese]{babel}
+
+\usepackage{enumitem}
+
+\usepackage{tabularx}
+
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 18/05/2026 đến ngày 23/05/2026}
+
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+
+\date{23 tháng 5 năm 2026}
+
+\begin{document}
+
+\maketitle
+
+
+% ── Color definitions ──
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+\definecolor{statusred}{HTML}{DC2626}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ──
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+\titleformat{\subsection}{\normalsize\bfseries\color{sectionblue!80}}{\thesubsection.}{0.5em}{}
+
+% ═══════════════════════════════════════════════════════
+\section{Thông tin chung}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Xây dựng hệ thống điểm danh thông minh trên nền tảng Zalo Mini App \\
+\textbf{GVHD:} & Lê Bá Vui \\
+\textbf{Tuần báo cáo:} & Tuần 18/05 -- 23/05/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusamber}{\textbf{Tuân thủ chính sách Zalo \& Đăng ký quyền API cho thông báo đẩy}} \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Tóm tắt công việc tuần này}
+% ═══════════════════════════════════════════════════════
+
+Đây là tuần \textbf{chuyển từ phát triển tính năng sang giai đoạn tuân thủ và đăng ký quyền} để có thể đưa Mini App lên store Zalo. Trọng tâm gồm bốn nhóm việc: (i) tuân thủ chính sách kiểm duyệt Zalo (Censorship Policy) -- bao gồm di chuyển khoá API ra khỏi client, viết Chính sách bảo mật đầy đủ, thêm consent dialog cho AI; (ii) xử lý các lỗi kiểm duyệt do Zalo phản hồi (404 trang chính sách, danh mục app chưa phù hợp); (iii) đăng ký và được duyệt các quyền OA Send Message + ZNS để chuẩn bị tính năng thông báo đẩy tự động; (iv) bổ sung cơ chế bypass xác minh email cho tài khoản demo phục vụ bảo vệ ĐATN.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Đổi tên app theo policy Zalo & Từ ``Smart Attendance'' chung chung $\to$ ``inHUST -- Điểm Danh Thông Minh'' & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+2 & Chuyển Groq API key sang Cloud Function & Endpoint \texttt{aiChat} -- key không còn lộ trong bundle & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+3 & Consent dialog AI Chat lần đầu & Modal cảnh báo chia sẻ dữ liệu cho bên thứ ba & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+4 & Privacy Policy đầy đủ 11 mục & \texttt{legal/privacy-policy.html} liệt kê mọi dịch vụ third-party & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+5 & Link Privacy + Terms ở Login + Profile & Footer login + nút trong profile & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+6 & Quyền xoá dữ liệu khuôn mặt & \texttt{deleteFaceData()}, modal xác nhận trong profile & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+7 & Deploy Firebase hosting \texttt{legal} & Sửa lỗi 404 ``Không xem được nội dung Chính sách bảo mật'' & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+8 & Đăng ký quyền OA Send Message & 13 API gửi tin nhắn OA \textbf{đã được Zalo duyệt} & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+9 & Đăng ký quyền ZNS API & 3 API ZNS (gửi, gửi RSA, Journey Token) \textbf{đã được duyệt} & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+10 & Phân tích phương án push notification & So sánh ZNS / OA 48h / Subscribe / In-app & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+11 & Bypass xác minh email cho tài khoản demo & MSSV 20225413 vào thẳng, không cần OTP & \textcolor{statusgreen}{\textbf{Hoàn thành}} \\
+12 & Xử lý lỗi danh mục app & Yêu cầu đổi sang ``Giáo dục -- Đại học, Cao đẳng, Trung cấp'' & \textcolor{statusamber}{\textbf{Đang chờ duyệt}} \\
+13 & Xác thực Mini App (eKYC + giấy tờ trường) & Hoàn tất eKYC, chuẩn bị Quyết định thành lập ĐHBK & \textcolor{statusamber}{\textbf{Đang chuẩn bị giấy tờ}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ═══════════════════════════════════════════════════════
+\section{Tuân thủ chính sách kiểm duyệt Zalo}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Bối cảnh}
+
+Để đẩy Mini App lên Production cho phép sinh viên cài đặt qua Zalo, em phải gửi app vào quy trình duyệt của Zalo. Đầu tuần em đọc lại \textbf{Zalo Mini App Censorship Policy} và phát hiện ba điểm vi phạm tiềm tàng cần xử lý trước khi nộp:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Khoá API bên thứ ba lưu ở client} -- biến môi trường \texttt{VITE\_GROQ\_API\_KEY} đi vào bundle Vite, ai cũng decode được bằng DevTools $\Rightarrow$ vi phạm mục ``Bảo vệ thông tin xác thực''.
+  \item \textbf{Không có Chính sách bảo mật đầy đủ} -- Privacy Policy cũ chỉ là placeholder, không liệt kê các dịch vụ third-party (Firebase, Zalo SDK, Groq, EmailJS, Microsoft OAuth) $\Rightarrow$ vi phạm mục 6.1 (minh bạch dữ liệu).
+  \item \textbf{Không có consent rõ ràng cho AI Chat} -- người dùng nhập câu hỏi vào ô chat, gói tin được gửi qua Groq mà không thông báo $\Rightarrow$ vi phạm mục về chia sẻ dữ liệu cho bên thứ ba.
+\end{enumerate}
+
+\subsection{Khắc phục cụ thể}
+
+\textbf{Khoá API} (vấn đề 1): Em chuyển toàn bộ luồng AI Chat từ gọi trực tiếp Groq sang gọi Cloud Function \texttt{aiChat}. Phía Mini App chỉ gửi \texttt{messages[]}, Cloud Function sở hữu \texttt{GROQ\_API\_KEY} (cấu hình qua \texttt{firebase functions:secrets:set}), gọi Groq rồi trả về cho client. Bundle Vite sau khi build không còn chứa key, có thể \texttt{grep} kiểm tra để xác nhận.
+
+\textbf{Privacy Policy} (vấn đề 2): Em viết lại file \texttt{legal/privacy-policy.html} 11 mục bao gồm: (1) phạm vi áp dụng, (2) dữ liệu thu thập, (3) cách dùng dữ liệu, (4) bên thứ ba (liệt kê chi tiết Firebase Firestore/Functions/Storage, Zalo SDK, Groq AI, EmailJS, Microsoft OAuth, từng dịch vụ ghi rõ loại dữ liệu chuyển và link policy của họ), (5) lưu trữ, (6) bảo mật, (7) quyền của người dùng (trong đó có quyền yêu cầu xoá dữ liệu khuôn mặt), (8) cookie, (9) trẻ em (chỉ phục vụ sinh viên $\geq 16$ tuổi), (10) thay đổi chính sách, (11) liên hệ. Cùng đó là \texttt{terms.html} điều khoản sử dụng.
+
+\textbf{Consent AI Chat} (vấn đề 3): Em thêm modal \texttt{DarkModal} hiện ra lần đầu khi user vào \texttt{/ai-chat}, giải thích rõ ``Câu hỏi của bạn sẽ được gửi cho Groq Inc. (Hoa Kỳ) để xử lý. Bạn có thể từ chối và quay lại''. Bấm đồng ý $\to$ lưu \texttt{ai\_chat\_consent\_v1=true} vào device storage; bấm từ chối $\to$ quay về \texttt{/home}. Modal không hiện lại trừ khi user xoá storage.
+
+\textbf{Quyền xoá dữ liệu} (bổ sung tự nguyện): Theo nguyên tắc dữ liệu cá nhân, em thêm hàm \texttt{deleteFaceData(userId)} (xoá doc \texttt{face\_data/\{uid\}} và ảnh trên Storage), kèm nút ``Xoá dữ liệu khuôn mặt'' trong trang Profile với modal xác nhận hai bước.
+
+\subsection{Sửa lỗi sau khi nộp xét duyệt}
+
+Khi nộp lần đầu, Zalo trả về hai lỗi:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textit{``App version cannot be saved. Please try again.''} -- nguyên nhân là build Vite cảnh báo \texttt{firebase/app initializeApp} bị gọi hai lần do import vòng giữa \texttt{config/firebase.ts} và \texttt{services/auth.service.ts}. Em refactor import, build sạch lại.
+  \item \textit{``Không xem được nội dung Chính sách bảo mật, vui lòng kiểm tra lại.''} -- nguyên nhân là Firebase Hosting target \texttt{legal} đã cấu hình trong \texttt{firebase.json}/\texttt{.firebaserc} nhưng \textbf{chưa bao giờ chạy} \texttt{firebase deploy --only hosting:legal} $\to$ URL \texttt{https://inhust-legal.web.app/privacy-policy.html} trả \textbf{HTTP 404}. Em deploy lại, xác nhận URL trả 200, gửi Zalo kiểm tra lại.
+\end{enumerate}
+
+\subsection{Lỗi danh mục app -- chưa giải quyết xong}
+
+Zalo phản hồi: \textit{``Danh mục không phù hợp với nội dung App, vui lòng tạo ticket đổi sang Giáo dục -- Đại học, Cao đẳng, Trung cấp và hoàn tất xác thực theo hướng dẫn tại link sau''}. Em đã đọc tài liệu chính thức tại \texttt{miniapp.zaloplatforms.com/documents/.../mini-app-verification/} và xác định yêu cầu chính xác:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Tier} & \textbf{Giấy tờ bắt buộc} \\
+\midrule
+1 (mọi app) & Tài khoản Zalo \textbf{đã eKYC thành công} (đối với chủ sở hữu cá nhân) \\
+\addlinespace
+2 (regulated -- giáo dục) & \textbf{Quyết định thành lập / Giấy phép hoạt động} của cơ sở giáo dục \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Em đã hoàn tất eKYC tài khoản Zalo cá nhân. Phần ``Quyết định thành lập ĐHBK Hà Nội'' đang chuẩn bị (file công khai theo Nghị định 147/CP ngày 06/03/1956 và quyết định bổ sung 2022 về việc chuyển từ ``Trường ĐHBK'' thành ``ĐHBK Hà Nội''). Thời gian Zalo duyệt 3--5 ngày làm việc kể từ khi đủ hồ sơ.
+
+% ═══════════════════════════════════════════════════════
+\section{Đăng ký quyền API thông báo đẩy (OA + ZNS)}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Mục tiêu}
+
+Một feedback từ tuần thí điểm: GV mong muốn ``hệ thống tự nhắc sinh viên trước giờ điểm danh 15--30 phút'' -- giảm tỷ lệ vắng do quên lịch. Để làm được điều này, app cần khả năng \textbf{đẩy thông báo (push notification)} cho sinh viên kể cả khi không mở Mini App. Em phân tích bốn phương án trên hệ sinh thái Zalo và chọn lối đi.
+
+\subsection{So sánh các phương án}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l X c l@{}}
+\toprule
+\textbf{Phương án} & \textbf{Cơ chế} & \textbf{Cửa sổ 48h?} & \textbf{Yêu cầu} \\
+\midrule
+ZNS Template & Gửi template đã duyệt cho số điện thoại Zalo bất kỳ lúc nào & Không & OA verified + template duyệt + phí/tin \\
+\addlinespace
+OA Send Message & Gửi tin text/link/sticker qua OA & \textbf{Có} -- chỉ gửi được trong 48h từ tương tác cuối của user & OA thường \\
+\addlinespace
+Subscribe Notification & User opt-in để OA gửi broadcast & Có (giới hạn) & OA verified \\
+\addlinespace
+In-app via Firestore listener & SV mở app thấy badge + toast & Không áp dụng & Không cần Zalo duyệt \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Kết quả đăng ký quyền}
+
+Tuần này em đã nộp đơn cho hai nhóm API trên trang Developer của Zalo:
+
+\textbf{OA Send Message API} -- \textcolor{statusgreen}{\textbf{Đã được duyệt 13 API}}: Gửi tin nhắn text, hình ảnh, liên kết, gif, file, sticker, tin nhắn tương tác, lấy trạng thái tin, trả lời tin, tải lên ảnh/gif/file (limit 5000/tháng), gửi yêu cầu cập nhật thông tin user.
+
+\textbf{ZNS API} -- \textcolor{statusgreen}{\textbf{Đã được duyệt 3 API}}: Gửi ZNS, Gửi ZNS với hệ mã hoá RSA, Khởi tạo Journey Token (cho chuỗi thông báo có trạng thái).
+
+\subsection{Chiến lược triển khai trong app}
+
+Sau khi cân nhắc, em chọn \textbf{kết hợp ZNS + In-app} chứ không dùng OA Send Message API cho luồng nhắc lịch -- vì OA bị giới hạn cửa sổ 48h, không phù hợp với scheduled reminder. Cụ thể:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{ZNS (push thật)}: Cloud Function \texttt{scheduledAttendanceReminder} chạy cron mỗi 15 phút $\to$ query session sắp diễn ra trong 30 phút $\to$ gọi ZNS API gửi tin theo template ``Nhắc lịch điểm danh môn \{course\} lúc \{time\} tại \{room\}'' cho SV trong lớp. Yêu cầu OA verified -- đang phụ thuộc kết quả xác thực ở mục 3.4.
+  \item \textbf{In-app fallback}: Firestore doc \texttt{notifications/\{userId\}} + listener trong app $\to$ khi SV mở app thấy badge số + toast. Không phụ thuộc Zalo duyệt, hoạt động ngay.
+  \item \textbf{OA Send Message dự phòng}: Khi SV chủ động nhắn cho OA (vd: hỏi lịch), bot OA có thể reply trong cửa sổ 48h kèm link Mini App.
+\end{itemize}
+
+\textit{Lưu ý ràng buộc}: Cloud Function ZNS cần đăng nhập Firebase Blaze plan (hiện đang Spark) $\Rightarrow$ phần ZNS sẽ chỉ demo trên \textbf{Sandbox ZNS} (free 500 tin/tháng cho 5 số điện thoại test) cho bảo vệ ĐATN, ghi rõ trong báo cáo phần ``Giới hạn \& hướng phát triển''.
+
+% ═══════════════════════════════════════════════════════
+\section{Bypass xác minh email cho tài khoản demo}
+% ═══════════════════════════════════════════════════════
+
+\subsection{Bối cảnh}
+
+Hệ thống yêu cầu sinh viên xác minh tài khoản Zalo với MSSV qua email \texttt{@sis.hust.edu.vn} (gửi OTP qua EmailJS, free 200 tin/tháng). Khi demo bảo vệ hoặc cho GVHD trải nghiệm, việc bắt nhập email + OTP gây ngắt mạch trình bày. Cần cơ chế bỏ qua xác minh cho một số MSSV được chỉ định.
+
+\subsection{Thiết kế}
+
+File \texttt{src/services/email-verify.service.ts} đã có sẵn cơ chế \texttt{VITE\_BYPASS\_MSSV} đọc từ \texttt{.env.local}, nhưng chỉ hoạt động khi \texttt{import.meta.env.DEV === true} -- bản production sau \texttt{zmp deploy} sẽ bỏ qua hoàn toàn. Để bypass còn hiệu lực trên production demo, em tách hai cơ chế song song:
+
+\begin{verbatim}
+const HARDCODED_BYPASS = ["20225413"]; // luôn hoạt động (DEV + PROD)
+
+function getBypassList(): string[] {
+  const envList = import.meta.env.DEV
+    ? ((import.meta.env.VITE_BYPASS_MSSV as string | undefined) || "")
+        .split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  return [...HARDCODED_BYPASS, ...envList];
+}
+\end{verbatim}
+
+\textbf{Tác động:} MSSV 20225413 đăng nhập thẳng vào \texttt{/home} sau khi nhập MSSV, bỏ qua bước email + OTP, ngay cả trên bản đã \texttt{zmp deploy}. Các MSSV khác vẫn phải xác minh email bình thường. Danh sách hardcode rất ngắn (chỉ tài khoản demo cá nhân) và được ghi rõ trong báo cáo ĐATN ở mục ``Giới hạn \& Trade-off''.
+
+% ═══════════════════════════════════════════════════════
+\section{Khó khăn và giải pháp}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}X X@{}}
+\toprule
+\textbf{Khó khăn} & \textbf{Giải pháp / Hành động} \\
+\midrule
+Khoá Groq API nằm trong bundle client $\to$ vi phạm policy Zalo về bảo mật thông tin xác thực & Chuyển sang Cloud Function proxy \texttt{aiChat}, key chỉ tồn tại trên server. Grep bundle sau build để xác nhận. \\
+\addlinespace
+Privacy Policy URL trả 404 dù file đã viết xong $\to$ Zalo từ chối duyệt & Phát hiện target \texttt{hosting:legal} chưa từng deploy. Chạy \texttt{firebase deploy --only hosting:legal}, verify URL trả 200. \\
+\addlinespace
+Build Vite cảnh báo \texttt{firebase initializeApp} gọi 2 lần & Refactor import cycle giữa \texttt{config/firebase.ts} và \texttt{services/auth.service.ts}. \\
+\addlinespace
+Danh mục app sai theo Zalo $\to$ phải đổi sang ``Giáo dục -- ĐH/CĐ/TC'' và xác thực bổ sung & Đọc tài liệu chính thức \texttt{mini-app-verification}, xác định hai tier giấy tờ. Hoàn tất eKYC, đang chuẩn bị Quyết định thành lập ĐHBK. \\
+\addlinespace
+OA chưa verified $\to$ ZNS chưa chạy được production & Lên kế hoạch dùng \textbf{ZNS Sandbox} cho demo ĐATN (free 500 tin/tháng), ghi rõ giới hạn vào báo cáo. \\
+\addlinespace
+Bypass MSSV ENV-based không chạy trên bản production demo & Tách hardcode list (chạy ở mọi mode) + env list (chỉ DEV), giữ phạm vi bypass tối thiểu. \\
+\addlinespace
+EmailJS chỉ free 200 tin/tháng $\to$ scale tới 5000 SV không khả thi & Lưu trạng thái \texttt{verified} vào Firestore (\texttt{verified\_students}) -- mỗi tài khoản chỉ xác minh \textbf{một lần duy nhất}, không lặp lại sau lần đầu. \\
+\bottomrule
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Kế hoạch tuần tới (24/05 -- 30/05)}
+% ═══════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Hoàn tất xác thực Mini App với Zalo:}
+  \begin{itemize}[leftmargin=1em]
+    \item Lấy file Quyết định thành lập ĐHBK Hà Nội (PDF rõ nét).
+    \item Nộp form \texttt{go.zalo.me/miniappverification} kèm eKYC.
+    \item Tạo ticket đổi danh mục sang ``Giáo dục -- Đại học, Cao đẳng, Trung cấp''.
+    \item Đợi 3--5 ngày làm việc, theo dõi và phản hồi nếu Zalo yêu cầu bổ sung.
+  \end{itemize}
+  \item \textbf{Triển khai luồng thông báo đẩy:}
+  \begin{itemize}[leftmargin=1em]
+    \item Đăng ký ZNS Sandbox, tạo template ``Nhắc lịch điểm danh'' chờ duyệt.
+    \item Viết \texttt{functions/src/services/zns.service.ts} (gọi ZNS API + OAuth token refresh).
+    \item Viết Cloud Function cron \texttt{scheduledAttendanceReminder} (Firebase Scheduler, mỗi 15 phút).
+    \item Đồng thời: viết module in-app notification (Firestore + listener) làm fallback miễn phí.
+    \item Trang admin: lịch sử gửi ZNS + quota còn lại.
+  \end{itemize}
+  \item \textbf{AbsenceRequest student-side:} hoàn thiện UI gửi đơn xin nghỉ trong Mini App (đang 50\%).
+  \item \textbf{Trở lại các vấn đề bảo mật:}
+  \begin{itemize}[leftmargin=1em]
+    \item Firebase Custom Token bridge từ Zalo accessToken.
+    \item Viết lại Firestore rules dùng \texttt{request.auth.uid}.
+  \end{itemize}
+  \item \textbf{Báo cáo ĐATN:} bổ sung chương ``Tuân thủ \& Triển khai'' với các quyết định kiến trúc tuần này (proxy Cloud Function, consent dialog, xoá dữ liệu cá nhân, ZNS Sandbox).
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════
+\section{Thống kê tuần}
+% ═══════════════════════════════════════════════════════
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Loại công việc:} & Tuân thủ chính sách + đăng ký quyền API + sửa lỗi kiểm duyệt + bypass demo \\
+\textbf{Commit chính:} & \texttt{490b3ac} -- ``feat: cổng máy chiếu + compliance Zalo policy'' (20/05) \\
+\textbf{Files thay đổi:} & 7 files trong nhóm compliance (\texttt{ai.service.ts}, \texttt{privacy-policy.html}, \texttt{profile.tsx}, \texttt{login.tsx}, \texttt{AIChatPage.tsx}, \texttt{face.service.ts}, \texttt{app-config.json}) + sửa \texttt{email-verify.service.ts} \\
+\textbf{Quyền Zalo được duyệt:} & 13 API OA Send Message + 3 API ZNS \\
+\textbf{Quyền Zalo còn chờ:} & Đổi danh mục + Xác thực Mini App (tier 2 -- giáo dục) \\
+\textbf{Deploy:} & Firebase Hosting \texttt{legal} (mới deploy), Firestore rules. Mini App chưa \texttt{zmp deploy} bản mới (chờ xác thực Zalo). \\
+\textbf{Lỗi Zalo đã đóng:} & 2 (Privacy 404, build initializeApp twice) \\
+\textbf{Lỗi Zalo còn mở:} & 1 (Danh mục app -- cần giấy tờ trường) \\
+\textbf{Tài liệu đọc thêm:} & Zalo Mini App Censorship Policy, Mini App Verification Doc, ZNS API Spec, EmailJS limits \\
+\end{tabularx}
+
+% ═══════════════════════════════════════════════════════
+\section{Kết luận}
+% ═══════════════════════════════════════════════════════
+
+Tuần này không phát triển tính năng người dùng mới, nhưng là \textbf{tuần bản lề về tuân thủ} -- quyết định khả năng đưa app lên Production. Em đã đóng được phần lớn các yêu cầu của Zalo (8/9 mục compliance + 16/16 quyền API đã đăng ký được duyệt), còn lại một việc cứng là xác thực Mini App theo nhóm danh mục giáo dục -- phụ thuộc giấy tờ pháp lý của ĐHBK, không thể đẩy nhanh hơn quy trình. Trong thời gian chờ, em đã chuẩn bị đầy đủ kiến trúc cho luồng thông báo đẩy (ZNS + in-app fallback) để có thể triển khai ngay khi tài khoản OA được verified.
+
+Kế hoạch tuần tới sẽ song song hai luồng: (a) theo đuổi xác thực Zalo tới cùng, (b) code phần ZNS service + cron + trang quản lý thông báo để khi Zalo duyệt xong là app có thể đẩy thông báo thật cho sinh viên ngay.
+
+\end{document}
