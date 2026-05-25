@@ -18,13 +18,17 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "";
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 phút
 const VERIFIED_COLLECTION = "verified_students";
 
-// MSSV bypass — chỉ hoạt động khi BUILD ở chế độ DEV và env có VITE_BYPASS_MSSV.
-// Production build (zmp deploy / vite build --mode production) sẽ bỏ qua hoàn toàn.
-// Set trong .env.local: VITE_BYPASS_MSSV=20225413,20210000
+// MSSV bypass — luôn bỏ qua bước xác minh email cho các MSSV trong danh sách này.
+// HARDCODED_BYPASS: hoạt động ở cả DEV lẫn PROD (dành cho tài khoản test/demo ĐATN).
+// VITE_BYPASS_MSSV (env): chỉ hoạt động ở DEV mode, đọc từ .env.local.
+const HARDCODED_BYPASS = ["20225413"];
+
 function getBypassList(): string[] {
-  if (!import.meta.env.DEV) return [];
-  const raw = (import.meta.env.VITE_BYPASS_MSSV as string | undefined) || "";
-  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const envList = import.meta.env.DEV
+    ? ((import.meta.env.VITE_BYPASS_MSSV as string | undefined) || "")
+        .split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  return [...HARDCODED_BYPASS, ...envList];
 }
 
 /**
