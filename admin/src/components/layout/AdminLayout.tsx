@@ -91,7 +91,7 @@ export default function AdminLayout() {
               transition: "all 0.2s",
             }}
           >
-            {collapsed ? "iH" : "inHUST Admin"}
+            {collapsed ? "ZC" : "Zimo Checkin Admin"}
           </span>
         </div>
 

@@ -102,7 +102,7 @@ export default function WelcomePage() {
               <line x1="12" y1="3" x2="12" y2="21" />
             </svg>
           </div>
-          <span style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", letterSpacing: 3 }}>inHUST</span>
+          <span style={{ fontSize: 36, fontWeight: 800, color: "#ffffff", letterSpacing: 3 }}>Zimo Checkin</span>
           <span style={{ fontSize: 16, fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: 1 }}>Điểm danh thông minh</span>
         </div>
       </div>

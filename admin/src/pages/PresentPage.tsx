@@ -336,7 +336,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               textShadow: "0 2px 12px rgba(0,0,0,0.3)",
             }}
           >
-            inHUST · Hệ thống điểm danh thông minh
+            Zimo Checkin · Hệ thống điểm danh thông minh
           </div>
           <div
             style={{
@@ -400,7 +400,7 @@ function SlimHeader({ right }: { right?: React.ReactNode }) {
             ĐH Bách khoa Hà Nội
           </div>
           <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, letterSpacing: -0.3, marginTop: 1 }}>
-            inHUST · Điểm danh thông minh
+            Zimo Checkin · Điểm danh thông minh
           </div>
         </div>
       </div>
@@ -527,7 +527,7 @@ function PairingScreen({ qr, secondsLeft, error }: { qr: string; secondsLeft: nu
           </h1>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Step n={1} title="Mở inHUST trên Zalo" desc="Đăng nhập với tài khoản giảng viên" />
+            <Step n={1} title="Mở Zimo Checkin trên Zalo" desc="Đăng nhập với tài khoản giảng viên" />
             <Step n={2} title="Chọn lớp & bắt đầu phiên" desc="Lớp dạy → chọn lớp → bấm 'Bắt đầu điểm danh'" />
             <Step n={3} title="Chạm 'Quét máy chiếu'" desc="Nút màu đen dưới khu vực QR — quét mã trên màn hình này" />
           </div>

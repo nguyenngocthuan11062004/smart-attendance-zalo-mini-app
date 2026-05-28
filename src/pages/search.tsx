@@ -152,7 +152,7 @@ export default function SearchPage() {
           <div className="flex items-center justify-between">
             <div style={{ width: 26 }} />
             <span style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: 1.5 }}>
-              inHUST
+              Zimo Checkin
             </span>
             <div className="relative">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">

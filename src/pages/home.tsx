@@ -8,7 +8,7 @@ import { globalErrorAtom } from "@/store/ui";
 import { getStudentClasses, getTeacherClasses } from "@/services/class.service";
 import { getActiveSessionForClass } from "@/services/session.service";
 import type { ClassDoc, SessionDoc } from "@/types";
-import logo from "@/static/icon_inhust.png";
+import logo from "@/static/icon_zimo.png";
 import bkLogo from "@/static/bk_logo.png";
 
 /* ── helpers ─────────────────────────────────────── */
@@ -192,7 +192,7 @@ export default function HomePage() {
                 fontFamily: "system-ui, sans-serif",
               }}
             >
-              inHUST
+              Zimo Checkin
             </span>
             {/* Notification bell */}
             <div className="relative">

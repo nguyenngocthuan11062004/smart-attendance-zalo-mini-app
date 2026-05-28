@@ -499,7 +499,7 @@ export default function LoginPage() {
             onClick={() => openWebview({ url: "https://inhust-legal.web.app/privacy-policy.html" })}
             style={{ color: "#be1d2c", fontWeight: 600, textDecoration: "underline" }}
           >Chính sách bảo mật</span>
-          {" "}của inHUST.
+          {" "}của Zimo Checkin.
         </p>
       </div>
     </Page>

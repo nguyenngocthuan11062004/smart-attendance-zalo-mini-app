@@ -198,7 +198,7 @@ export default function SplashPage() {
             fontFamily: "Inter, system-ui, sans-serif",
           }}
         >
-          inHUST
+          Zimo Checkin
         </span>
       </div>
     </Page>

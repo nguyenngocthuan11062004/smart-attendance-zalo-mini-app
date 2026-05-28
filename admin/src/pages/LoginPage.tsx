@@ -36,12 +36,12 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img
-            src="/icon_inhust.png"
-            alt="inHUST"
+            src="/icon_zimo.png"
+            alt="Zimo Checkin"
             style={{ width: 80, height: 80, borderRadius: 20, margin: "0 auto 16px", display: "block" }}
           />
           <Title level={3} style={{ margin: 0 }}>
-            InHUST Admin
+            Zimo Checkin Admin
           </Title>
           <Text type="secondary">Hệ thống quản lý điểm danh thông minh</Text>
         </div>

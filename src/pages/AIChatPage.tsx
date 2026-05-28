@@ -142,7 +142,7 @@ export default function AIChatPage() {
             }}>
               <SparklesIcon size={32} />
             </div>
-            <p style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Trợ lý AI inHUST</p>
+            <p style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>Trợ lý AI Zimo Checkin</p>
             <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>
               Trước khi sử dụng, vui lòng đọc và đồng ý với điều khoản dưới đây.
             </p>
@@ -237,7 +237,7 @@ export default function AIChatPage() {
           </div>
           <div>
             <p style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", margin: 0 }}>AI Assistant</p>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.73)", margin: 0 }}>Trợ lý thông minh inHUST</p>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.73)", margin: 0 }}>Trợ lý thông minh Zimo Checkin</p>
           </div>
         </div>
 
@@ -275,7 +275,7 @@ export default function AIChatPage() {
               </div>
               <p style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>Xin chào! 👋</p>
               <p style={{ fontSize: 13, color: "#6b7280", textAlign: "center", lineHeight: 1.5, margin: 0 }}>
-                Tôi là trợ lý AI của inHUST. Tôi có thể giúp bạn tra cứu thông tin lớp học, lịch thi, điểm danh và nhiều thứ khác.
+                Tôi là trợ lý AI của Zimo Checkin. Tôi có thể giúp bạn tra cứu thông tin lớp học, lịch thi, điểm danh và nhiều thứ khác.
               </p>
             </div>
 

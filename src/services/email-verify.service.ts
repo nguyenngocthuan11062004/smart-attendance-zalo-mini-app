@@ -99,7 +99,7 @@ export async function sendOTP(
       to_email: email,
       otp_code: otp,
       student_name: mssv,
-      app_name: "inHUST Attendance",
+      app_name: "Zimo Checkin",
     }, PUBLIC_KEY);
 
     return { success: true, message: `Đã gửi mã xác minh đến ${email}` };
