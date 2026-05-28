@@ -4,7 +4,6 @@ import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { getStudentClasses, getTeacherClasses, getClassStudents, getClassByCode } from "@/services/class.service";
-import bkLogo from "@/static/bk_logo.png";
 import type { ClassDoc } from "@/types";
 
 type SearchType = "gv" | "sv" | "hocphan" | "lop";
@@ -162,18 +161,6 @@ export default function SearchPage() {
             </div>
           </div>
         </div>
-        <img
-          src={bkLogo}
-          alt="Bách Khoa"
-          style={{
-            position: "absolute",
-            left: 16,
-            bottom: -24,
-            width: 56,
-            height: 56,
-            objectFit: "contain",
-          }}
-        />
       </div>
 
       {/* -- Search section -- */}

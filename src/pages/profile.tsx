@@ -12,7 +12,6 @@ import { deleteFaceData, hasFaceData } from "@/services/face.service";
 // Microsoft OAuth hidden — requires Cloud Functions & redirects outside Zalo (causes rejection)
 // import MicrosoftLinkCard from "@/components/profile/MicrosoftLinkCard";
 import DarkModal from "@/components/ui/DarkModal";
-import bkLogo from "@/static/bk_logo.png";
 import bgProfile from "@/static/bgprofile.jpg";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -161,20 +160,6 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        {/* BK logo at header/photo boundary */}
-        <img
-          src={bkLogo}
-          alt="Bách Khoa"
-          style={{
-            position: "absolute",
-            left: 16,
-            bottom: -24,
-            width: 56,
-            height: 56,
-            objectFit: "contain",
-            zIndex: 10,
-          }}
-        />
       </div>
 
       {/* -- Profile card with bgprofile background (no gap) -- */}

@@ -9,7 +9,6 @@ import { getStudentClasses, getTeacherClasses } from "@/services/class.service";
 import { getActiveSessionForClass } from "@/services/session.service";
 import type { ClassDoc, SessionDoc } from "@/types";
 import logo from "@/static/icon_zimo.png";
-import bkLogo from "@/static/bk_logo.png";
 
 /* ── helpers ─────────────────────────────────────── */
 
@@ -204,19 +203,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* BK logo – straddles the header/body boundary */}
-        <img
-          src={bkLogo}
-          alt="Bách Khoa"
-          style={{
-            position: "absolute",
-            left: 16,
-            bottom: -24,
-            width: 56,
-            height: 56,
-            objectFit: "contain",
-          }}
-        />
       </div>
 
       <div style={{ padding: "0 16px", paddingBottom: "calc(90px + env(safe-area-inset-bottom, 0px))" }}>
