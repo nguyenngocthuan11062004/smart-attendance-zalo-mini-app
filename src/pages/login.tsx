@@ -201,7 +201,7 @@ export default function LoginPage() {
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#be1d2c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" />
               </svg>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#be1d2c" }}>Sinh viên HUST</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#be1d2c" }}>Sinh viên</span>
             </div>
 
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -246,7 +246,7 @@ export default function LoginPage() {
           </>
         )}
 
-        {/* ── BƯỚC 2: EMAIL HUST ── */}
+        {/* ── BƯỚC 2: EMAIL TRƯỜNG ── */}
         {step === "email" && (
           <>
             <div style={{
@@ -261,7 +261,7 @@ export default function LoginPage() {
                 <p style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>Xác minh danh tính sinh viên</p>
               </div>
               <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6 }}>
-                Nhập email HUST của bạn để nhận mã xác minh. Chỉ cần xác minh một lần duy nhất.
+                Nhập email do trường cấp để nhận mã xác minh. Chỉ cần xác minh một lần duy nhất.
               </p>
               <div style={{
                 background: "rgba(190,29,44,0.06)", borderRadius: 10, padding: "8px 12px",
@@ -275,7 +275,7 @@ export default function LoginPage() {
             </div>
 
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>Email HUST</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>Email sinh viên</p>
               <input
                 placeholder="ten.xx123456@sis.hust.edu.vn"
                 value={email}

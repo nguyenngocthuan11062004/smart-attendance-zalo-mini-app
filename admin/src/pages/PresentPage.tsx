@@ -31,8 +31,7 @@ const BG_LIGHT = "#f5f5f7";
 const TEXT_PRIMARY = "#111827";
 const TEXT_SECONDARY = "#6b7280";
 
-const LOGO_SRC = "/hust-logo.svg";
-const CAMPUS_SRC = "/hust-campus.jpg";
+const LOGO_SRC = "/icon_zimo.png";
 
 export default function PresentPage() {
   const [phase, setPhase] = useState<Phase>("pairing");
@@ -247,22 +246,12 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
       style={{
         position: "relative",
         height,
-        backgroundImage: `url(${CAMPUS_SRC})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center 40%",
+        background: `linear-gradient(135deg, ${HUST_RED} 0%, ${HUST_RED_DARK} 100%)`,
         overflow: "hidden",
         borderRadius: "0 0 32px 32px",
         boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
       }}
     >
-      {/* Red gradient overlay */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `linear-gradient(105deg, ${HUST_RED}f5 0%, ${HUST_RED}d0 35%, ${HUST_RED}80 65%, transparent 100%)`,
-        }}
-      />
       {/* Vignette */}
       <div
         style={{
@@ -296,7 +285,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
             flexShrink: 0,
           }}
         >
-          <img src={LOGO_SRC} alt="HUST" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <img src={LOGO_SRC} alt="Zimo Checkin" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </div>
         <div>
           {kicker ? (
@@ -323,7 +312,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               textShadow: "0 2px 8px rgba(0,0,0,0.25)",
             }}
           >
-            Trường Đại học Bách khoa Hà Nội
+            Hệ thống điểm danh thông minh
           </div>
           <div
             style={{
@@ -336,7 +325,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               textShadow: "0 2px 12px rgba(0,0,0,0.3)",
             }}
           >
-            Zimo Checkin · Hệ thống điểm danh thông minh
+            Zimo Checkin
           </div>
           <div
             style={{
@@ -347,7 +336,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               fontStyle: "italic",
             }}
           >
-            Trường Công nghệ Thông tin và Truyền thông · SoICT
+            Cổng máy chiếu · Pairing QR
           </div>
         </div>
       </div>
@@ -385,7 +374,7 @@ function SlimHeader({ right }: { right?: React.ReactNode }) {
             boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
           }}
         >
-          <img src={LOGO_SRC} alt="HUST" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <img src={LOGO_SRC} alt="Zimo Checkin" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </div>
         <div>
           <div
@@ -397,7 +386,7 @@ function SlimHeader({ right }: { right?: React.ReactNode }) {
               textTransform: "uppercase",
             }}
           >
-            ĐH Bách khoa Hà Nội
+            Cổng máy chiếu
           </div>
           <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, letterSpacing: -0.3, marginTop: 1 }}>
             Zimo Checkin · Điểm danh thông minh
@@ -1206,7 +1195,7 @@ function FooterCredit() {
         letterSpacing: 1,
       }}
     >
-      <span>© SoICT — Trường CNTT&TT, ĐH Bách khoa Hà Nội</span>
+      <span>© Zimo Checkin</span>
       <span>inhust-admin.web.app/present</span>
     </div>
   );

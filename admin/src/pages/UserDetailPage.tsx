@@ -129,7 +129,7 @@ export default function UserDetailPage() {
             <Title level={4} style={{ margin: 0 }}>{user.name}</Title>
             <Space style={{ marginTop: 4 }}>
               <Tag color={roleColor[user.role] || "default"}>{roleLabel[user.role] || user.role}</Tag>
-              {user.hustVerified && <Tag color="green">HUST Verified</Tag>}
+              {user.hustVerified && <Tag color="green">Đã xác minh email</Tag>}
               {user.faceRegistered && <Tag color="cyan">Face đã đăng ký</Tag>}
             </Space>
           </div>

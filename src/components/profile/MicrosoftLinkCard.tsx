@@ -79,7 +79,7 @@ export default function MicrosoftLinkCard() {
         <span style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>Liên kết Microsoft 365</span>
       </div>
       <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 16 }}>
-        Xác thực tài khoản sinh viên HUST bằng email Microsoft 365 (@sis.hust.edu.vn)
+        Xác thực tài khoản sinh viên bằng email Microsoft 365 do trường cấp
       </p>
 
       {state === "error" && (

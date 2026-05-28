@@ -89,7 +89,7 @@ export default function UsersPage() {
       render: (v: string) => v || "—",
     },
     {
-      title: "HUST",
+      title: "Xác minh",
       key: "hust",
       width: 80,
       render: (_, r) => (
