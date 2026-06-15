@@ -12,6 +12,7 @@ import { db } from "@/config/firebase";
 import {
   createPairingToken,
   subscribePairingToken,
+  deletePairingToken,
   buildPairingQRContent,
 } from "@/services/pairing.service";
 import { reverseGeocode, formatCoords } from "@/services/geocode.service";
@@ -31,7 +32,8 @@ const BG_LIGHT = "#f5f5f7";
 const TEXT_PRIMARY = "#111827";
 const TEXT_SECONDARY = "#6b7280";
 
-const LOGO_SRC = "/icon_zimo.png";
+const LOGO_SRC = "/hust-logo.svg";
+const CAMPUS_SRC = "/hust-campus.jpg";
 
 export default function PresentPage() {
   const [phase, setPhase] = useState<Phase>("pairing");
@@ -43,12 +45,17 @@ export default function PresentPage() {
   const [attendance, setAttendance] = useState<AttendanceDoc[]>([]);
   const [classDoc, setClassDoc] = useState<ClassDoc | null>(null);
   const [address, setAddress] = useState<string>("");
-  const [now, setNow] = useState(Date.now());
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const tokenRef = useRef<string | null>(null);
 
+  // Dọn token khi rời trang → pairing_tokens không tích tụ
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    return () => {
+      if (tokenRef.current) {
+        deletePairingToken(tokenRef.current);
+        tokenRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -75,7 +82,10 @@ export default function PresentPage() {
   const issueNewToken = useCallback(async () => {
     setPairingError("");
     try {
+      const prev = tokenRef.current;
       const tok = await createPairingToken();
+      tokenRef.current = tok.token;
+      if (prev) deletePairingToken(prev); // dọn token trước (vd sau khi 1 phiên kết thúc)
       const dataURL = await QRCode.toDataURL(buildPairingQRContent(tok.token), {
         width: 560,
         margin: 1,
@@ -90,22 +100,12 @@ export default function PresentPage() {
     }
   }, []);
 
+  // Tạo 1 mã ghép cặp khi vào màn pairing (KHÔNG tự làm mới mỗi 60s nữa)
   useEffect(() => {
     if (phase !== "pairing") return;
     if (pairing) return;
     issueNewToken();
   }, [phase, pairing, issueNewToken]);
-
-  const refreshingRef = useRef(false);
-  useEffect(() => {
-    if (phase !== "pairing" || !pairing) return;
-    if (now <= pairing.expiresAt) return;
-    if (refreshingRef.current) return;
-    refreshingRef.current = true;
-    issueNewToken().finally(() => {
-      refreshingRef.current = false;
-    });
-  }, [phase, pairing, now, issueNewToken]);
 
   useEffect(() => {
     if (phase !== "pairing" || !pairing) return;
@@ -211,13 +211,7 @@ export default function PresentPage() {
   const { qrDataURL, secondsLeft } = useTeacherQR(qrOptions);
 
   if (phase === "pairing") {
-    return (
-      <PairingScreen
-        qr={pairingQR}
-        secondsLeft={pairing ? Math.max(0, Math.ceil((pairing.expiresAt - now) / 1000)) : 0}
-        error={pairingError}
-      />
-    );
+    return <PairingScreen qr={pairingQR} error={pairingError} />;
   }
   if (phase === "displaying" && session) {
     return (
@@ -246,12 +240,22 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
       style={{
         position: "relative",
         height,
-        background: `linear-gradient(135deg, ${HUST_RED} 0%, ${HUST_RED_DARK} 100%)`,
+        backgroundImage: `url(${CAMPUS_SRC})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center 40%",
         overflow: "hidden",
         borderRadius: "0 0 32px 32px",
         boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
       }}
     >
+      {/* Red gradient overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: `linear-gradient(105deg, ${HUST_RED}f5 0%, ${HUST_RED}d0 35%, ${HUST_RED}80 65%, transparent 100%)`,
+        }}
+      />
       {/* Vignette */}
       <div
         style={{
@@ -285,7 +289,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
             flexShrink: 0,
           }}
         >
-          <img src={LOGO_SRC} alt="Zimo Checkin" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <img src={LOGO_SRC} alt="HUST" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </div>
         <div>
           {kicker ? (
@@ -312,7 +316,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               textShadow: "0 2px 8px rgba(0,0,0,0.25)",
             }}
           >
-            Hệ thống điểm danh thông minh
+            Trường Đại học Bách khoa Hà Nội
           </div>
           <div
             style={{
@@ -325,7 +329,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               textShadow: "0 2px 12px rgba(0,0,0,0.3)",
             }}
           >
-            Zimo Checkin
+            inHUST · Hệ thống điểm danh thông minh
           </div>
           <div
             style={{
@@ -336,7 +340,7 @@ function HeroBanner({ height = 240, kicker }: { height?: number; kicker?: string
               fontStyle: "italic",
             }}
           >
-            Cổng máy chiếu · Pairing QR
+            Trường Công nghệ Thông tin và Truyền thông · SoICT
           </div>
         </div>
       </div>
@@ -374,7 +378,7 @@ function SlimHeader({ right }: { right?: React.ReactNode }) {
             boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
           }}
         >
-          <img src={LOGO_SRC} alt="Zimo Checkin" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <img src={LOGO_SRC} alt="HUST" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </div>
         <div>
           <div
@@ -386,10 +390,10 @@ function SlimHeader({ right }: { right?: React.ReactNode }) {
               textTransform: "uppercase",
             }}
           >
-            Cổng máy chiếu
+            ĐH Bách khoa Hà Nội
           </div>
           <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, letterSpacing: -0.3, marginTop: 1 }}>
-            Zimo Checkin · Điểm danh thông minh
+            inHUST · Điểm danh thông minh
           </div>
         </div>
       </div>
@@ -401,7 +405,7 @@ function SlimHeader({ right }: { right?: React.ReactNode }) {
 // ─────────────────────────────────────────────────────────────────
 // Pairing screen — hero ảnh trường + 2 cột QR/hướng dẫn
 // ─────────────────────────────────────────────────────────────────
-function PairingScreen({ qr, secondsLeft, error }: { qr: string; secondsLeft: number; error: string }) {
+function PairingScreen({ qr, error }: { qr: string; error: string }) {
   return (
     <div style={pageStyle}>
       <HeroBanner height={240} kicker="Cổng máy chiếu" />
@@ -480,7 +484,7 @@ function PairingScreen({ qr, secondsLeft, error }: { qr: string; secondsLeft: nu
                 }}
               />
               <span style={{ fontSize: 15, color: TEXT_SECONDARY, fontWeight: 600 }}>
-                Mã làm mới sau {secondsLeft}s
+                Đang chờ giảng viên quét
               </span>
             </div>
           </div>
@@ -516,7 +520,7 @@ function PairingScreen({ qr, secondsLeft, error }: { qr: string; secondsLeft: nu
           </h1>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Step n={1} title="Mở Zimo Checkin trên Zalo" desc="Đăng nhập với tài khoản giảng viên" />
+            <Step n={1} title="Mở inHUST trên Zalo" desc="Đăng nhập với tài khoản giảng viên" />
             <Step n={2} title="Chọn lớp & bắt đầu phiên" desc="Lớp dạy → chọn lớp → bấm 'Bắt đầu điểm danh'" />
             <Step n={3} title="Chạm 'Quét máy chiếu'" desc="Nút màu đen dưới khu vực QR — quét mã trên màn hình này" />
           </div>
@@ -1195,7 +1199,7 @@ function FooterCredit() {
         letterSpacing: 1,
       }}
     >
-      <span>© Zimo Checkin</span>
+      <span>© SoICT — Trường CNTT&TT, ĐH Bách khoa Hà Nội</span>
       <span>inhust-admin.web.app/present</span>
     </div>
   );

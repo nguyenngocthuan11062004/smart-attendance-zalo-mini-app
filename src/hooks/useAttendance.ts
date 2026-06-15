@@ -28,9 +28,9 @@ export function useAttendance(sessionId: string | undefined, studentId: string |
   }, [sessionId, studentId, setMyAttendance]);
 
   const checkIn = useCallback(
-    async (classId: string, studentName: string, qrPayload?: QRPayload, config?: { faceRequired?: boolean; peerRequired?: boolean }, location?: GeoLocation) => {
+    async (classId: string, studentName: string, studentMssv: string, qrPayload?: QRPayload, config?: { faceRequired?: boolean; peerRequired?: boolean }, location?: GeoLocation) => {
       if (!sessionId || !studentId) return null;
-      const record = await checkInStudent(sessionId, classId, studentId, studentName, qrPayload, location);
+      const record = await checkInStudent(sessionId, classId, studentId, studentName, studentMssv, qrPayload, location, config);
       setMyAttendance(record);
       const faceReq = config?.faceRequired !== false;
       const peerReq = config?.peerRequired !== false;

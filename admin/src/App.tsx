@@ -12,8 +12,8 @@ import ClassDetailPage from "@/pages/ClassDetailPage";
 import AttendancePage from "@/pages/AttendancePage";
 import SessionDetailPage from "@/pages/SessionDetailPage";
 import AbsenceRequestsPage from "@/pages/AbsenceRequestsPage";
+import TeacherRequestsPage from "@/pages/TeacherRequestsPage";
 import FraudReportsPage from "@/pages/FraudReportsPage";
-import InviteCodesPage from "@/pages/InviteCodesPage";
 import PresentPage from "@/pages/PresentPage";
 
 const themeConfig = {
@@ -41,6 +41,7 @@ export default function App() {
             >
               <Route path="/" element={<DashboardPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/teacher-requests" element={<TeacherRequestsPage />} />
               <Route path="/users/:userId" element={<UserDetailPage />} />
               <Route path="/classes" element={<ClassesPage />} />
               <Route path="/classes/:classId" element={<ClassDetailPage />} />
@@ -48,7 +49,6 @@ export default function App() {
               <Route path="/attendance/sessions/:sessionId" element={<SessionDetailPage />} />
               <Route path="/absence-requests" element={<AbsenceRequestsPage />} />
               <Route path="/fraud-reports" element={<FraudReportsPage />} />
-              <Route path="/invite-codes" element={<InviteCodesPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

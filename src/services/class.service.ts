@@ -57,6 +57,17 @@ export async function getClassByCode(code: string): Promise<ClassDoc | null> {
   return { id: d.id, ...d.data() } as ClassDoc;
 }
 
+/** Toàn bộ lớp trong hệ thống — dùng cho trang tìm kiếm. */
+export async function getAllClasses(): Promise<ClassDoc[]> {
+  if (isMockMode()) return mockDb.getAllClasses();
+  const cached = await cacheGet<ClassDoc[]>("all_classes");
+  if (cached) return cached;
+  const snap = await getDocs(collection(db, CLASSES));
+  const result = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
+  await cacheSet("all_classes", result, 2 * 60 * 1000);
+  return result;
+}
+
 export async function getTeacherClasses(teacherId: string): Promise<ClassDoc[]> {
   if (isMockMode()) return mockDb.getTeacherClasses(teacherId);
   const cached = await cacheGet<ClassDoc[]>(`teacher_classes_${teacherId}`);
@@ -68,17 +79,22 @@ export async function getTeacherClasses(teacherId: string): Promise<ClassDoc[]> 
   return result;
 }
 
-export async function getStudentClasses(studentId: string): Promise<ClassDoc[]> {
-  if (isMockMode()) return mockDb.getStudentClasses(studentId);
-  const cached = await cacheGet<ClassDoc[]>(`student_classes_${studentId}`);
+/**
+ * SV chỉ thấy lớp mà MSSV của họ nằm trong danh sách chính thức (rosterMssv).
+ * Truyền MSSV của SV (không phải userId).
+ */
+export async function getStudentClasses(mssv: string): Promise<ClassDoc[]> {
+  if (!mssv) return [];
+  if (isMockMode()) return mockDb.getStudentClasses(mssv);
+  const cached = await cacheGet<ClassDoc[]>(`student_classes_${mssv}`);
   if (cached) return cached;
   const q = query(
     collection(db, CLASSES),
-    where("studentIds", "array-contains", studentId)
+    where("rosterMssv", "array-contains", mssv)
   );
   const snap = await getDocs(q);
   const result = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc);
-  await cacheSet(`student_classes_${studentId}`, result, 2 * 60 * 1000);
+  await cacheSet(`student_classes_${mssv}`, result, 2 * 60 * 1000);
   return result;
 }
 

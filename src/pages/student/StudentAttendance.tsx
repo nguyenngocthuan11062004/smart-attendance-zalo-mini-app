@@ -227,7 +227,7 @@ export default function StudentAttendance() {
       haptic("success");
       setOptimisticScan("success");
 
-      await checkIn(session.classId, user?.name || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
+      await checkIn(session.classId, user?.name || "", user?.mssv || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
       // Load peer secret from session subcollection (open rules)
       if (!peerSecret && sessionId) {
         const secret = session.hmacSecret || await getSessionSecret(sessionId);

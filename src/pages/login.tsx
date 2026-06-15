@@ -6,12 +6,12 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/store/auth";
 import { globalLoadingAtom } from "@/store/ui";
 import { isValidMSSV, isValidHUSTEmail } from "@/utils/sanitize";
-import { signIn, clearLoggedOut, isLoggedOut } from "@/services/auth.service";
+import { signIn, clearLoggedOut, isLoggedOut, requestTeacherApproval, subscribeUserDoc } from "@/services/auth.service";
 import { isStudentVerified, sendOTP, verifyOTP, isEmailVerifyConfigured, isBypassMSSV } from "@/services/email-verify.service";
-import { redeemInviteCode } from "@/services/invite.service";
+import { cacheRemove } from "@/utils/cache";
 import { openWebview } from "zmp-sdk/apis";
 
-type LoginStep = "mssv" | "email" | "otp" | "submitting" | "invite";
+type LoginStep = "mssv" | "email" | "otp" | "submitting" | "teacher" | "teacher-pending";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -28,11 +28,16 @@ export default function LoginPage() {
   const [otpError, setOtpError] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [inviteCode, setInviteCode] = useState("");
-  const [inviteError, setInviteError] = useState("");
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [teacherName, setTeacherName] = useState("");
+  const [teacherDept, setTeacherDept] = useState("");
+  const [teacherError, setTeacherError] = useState("");
+  const [teacherSubmitting, setTeacherSubmitting] = useState(false);
+  const [teacherRejected, setTeacherRejected] = useState(false);
 
   useEffect(() => {
+    // Đang ở luồng giảng viên (nhập tên / chờ duyệt) → KHÔNG auto-redirect theo role cũ
+    // (vd tài khoản đang là student/bypass). Màn chờ duyệt tự điều hướng khi admin duyệt.
+    if (step === "teacher" || step === "teacher-pending") return;
     if (!currentUser || !currentUser.role) return;
     // Teacher/admin → vào luôn
     if (currentUser.role === "teacher" || currentUser.role === "admin") {
@@ -46,7 +51,30 @@ export default function LoginPage() {
     isStudentVerified(currentUser.id).then((verified) => {
       if (verified) navigate("/home", { replace: true });
     });
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, step]);
+
+  // Màn chờ duyệt GV: lắng nghe realtime. Admin duyệt → vào /home; từ chối → báo lỗi.
+  useEffect(() => {
+    if (step !== "teacher-pending" || !currentUser) return;
+    const unsub = subscribeUserDoc(currentUser.id, (u) => {
+      if (!u) return;
+      if (u.role === "teacher" || u.role === "admin") {
+        setCurrentUser(u);
+        navigate("/home", { replace: true });
+      } else if (u.teacherRejected || u.pendingTeacher === false) {
+        setCurrentUser(u);
+        setTeacherRejected(true);
+      }
+    });
+    return () => unsub();
+  }, [step, currentUser?.id, navigate, setCurrentUser]);
+
+  // Mở lại app khi đang chờ duyệt (chưa có role) → khôi phục màn chờ
+  useEffect(() => {
+    if (step === "mssv" && currentUser?.pendingTeacher && !currentUser.role) {
+      setStep("teacher-pending");
+    }
+  }, [currentUser, step]);
 
   // Bước 1: Nhập MSSV → kiểm tra đã verify chưa
   const handleMSSVSubmit = async () => {
@@ -56,11 +84,13 @@ export default function LoginPage() {
     setMssvError("");
     clearLoggedOut();
 
-    // Ensure user exists
+    // Ensure user exists. KHÔNG setCurrentUser ở đây: doc trên Firestore có thể
+    // còn role + mssv của lần đăng nhập TRƯỚC → effect redirect sẽ nhảy vào
+    // /home với mssv cũ (hiện lớp của tài khoản cũ) trước khi selectRole kịp
+    // ghi mssv mới. Atom chỉ được set trong selectRole với mssv MỚI.
     let user = currentUser;
     if (!user) {
       user = await signIn();
-      setCurrentUser(user);
     }
 
     // Bypass MSSV admin/test, đã verify, hoặc EmailJS chưa cấu hình → vào luôn
@@ -100,10 +130,10 @@ export default function LoginPage() {
     if (otp.length !== 6) { setOtpError("Mã xác minh gồm 6 chữ số"); return; }
     setOtpError("");
 
+    // Không setCurrentUser với doc cũ — xem ghi chú ở handleMSSVSubmit
     let user = currentUser;
     if (!user) {
       user = await signIn();
-      setCurrentUser(user);
     }
 
     const result = await verifyOTP(otp.trim(), user.id);
@@ -114,32 +144,34 @@ export default function LoginPage() {
     }
   };
 
-  // Bước invite: Xác minh mã mời giảng viên
-  const handleInviteSubmit = async () => {
-    const trimmed = inviteCode.trim().toUpperCase();
-    if (!trimmed) { setInviteError("Vui lòng nhập mã mời"); return; }
-    if (trimmed.length < 4 || trimmed.length > 10) { setInviteError("Mã mời gồm 4-10 ký tự"); return; }
-    setInviteError("");
-    setInviteLoading(true);
-
+  // Bước GV: gửi yêu cầu làm giảng viên → chờ phòng đào tạo (admin) duyệt
+  const handleTeacherRegister = async () => {
+    const name = teacherName.trim();
+    if (name.length < 2) { setTeacherError("Vui lòng nhập họ và tên"); return; }
+    setTeacherError("");
+    clearLoggedOut();
+    setTeacherSubmitting(true);
     try {
       let user = currentUser;
       if (!user) {
         user = await signIn();
+      }
+      // GV/Admin đã được duyệt từ trước (logout xong đăng nhập lại) → vào thẳng,
+      // KHÔNG gửi lại yêu cầu duyệt
+      if (user.role === "teacher" || user.role === "admin") {
         setCurrentUser(user);
-      }
-
-      const result = await redeemInviteCode(trimmed, user.id);
-      if (result.success) {
-        await selectRole("teacher");
         navigate("/home", { replace: true });
-      } else {
-        setInviteError(result.error || "Mã mời không hợp lệ");
+        return;
       }
+      setCurrentUser(user);
+      await requestTeacherApproval(user.id, name, teacherDept.trim() || undefined);
+      setCurrentUser({ ...user, name, pendingTeacher: true, teacherRejected: false });
+      setTeacherRejected(false);
+      setStep("teacher-pending");
     } catch {
-      setInviteError("Đã xảy ra lỗi. Vui lòng thử lại.");
+      setTeacherError("Đã xảy ra lỗi. Vui lòng thử lại.");
     } finally {
-      setInviteLoading(false);
+      setTeacherSubmitting(false);
     }
   };
 
@@ -147,7 +179,10 @@ export default function LoginPage() {
   // User có thể cập nhật tên/avatar sau ở trang Profile
   const completeLogin = async (user: any, mssvValue: string) => {
     setStep("submitting");
-    await selectRole("student", mssvValue);
+    // Xóa cache lớp của MSSV này → lần vào home đầu tiên LUÔN tra Firestore
+    // tươi xem MSSV có những lớp gì (tránh dính cache của phiên trước)
+    await cacheRemove(`student_classes_${mssvValue}`).catch(() => {});
+    await selectRole("student", mssvValue, user);
     navigate("/home", { replace: true });
   };
 
@@ -234,7 +269,7 @@ export default function LoginPage() {
             </button>
 
             <button
-              onClick={() => { setInviteCode(""); setInviteError(""); setStep("invite"); }}
+              onClick={() => { setTeacherError(""); setStep("teacher"); }}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 fontSize: 13, color: "#6b7280", textDecoration: "underline",
@@ -391,8 +426,8 @@ export default function LoginPage() {
           </>
         )}
 
-        {/* ── BƯỚC INVITE: MÃ MỜI GIẢNG VIÊN ── */}
-        {step === "invite" && (
+        {/* ── BƯỚC GV: ĐĂNG KÝ LÀM GIẢNG VIÊN ── */}
+        {step === "teacher" && (
           <>
             <div style={{
               width: "100%", height: 100, borderRadius: 16,
@@ -400,9 +435,9 @@ export default function LoginPage() {
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#be1d2c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" /><path d="M10 17l5-5-5-5" /><path d="M15 12H3" />
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
               </svg>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#be1d2c" }}>Đăng nhập giảng viên</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#be1d2c" }}>Đăng ký giảng viên</span>
             </div>
 
             <div style={{
@@ -412,39 +447,46 @@ export default function LoginPage() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#be1d2c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
+                  <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
                 </svg>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>Nhập mã mời</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>Gửi yêu cầu cấp quyền</p>
               </div>
               <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6 }}>
-                Nhập mã mời do Phòng Đào tạo cấp để đăng nhập với vai trò giảng viên.
+                Nhập họ tên để gửi yêu cầu. Phòng Đào tạo sẽ duyệt và cấp quyền giảng viên cho bạn.
               </p>
             </div>
 
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>Mã mời giảng viên</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>Họ và tên</p>
               <input
-                placeholder="VD: GV2026ABC"
-                value={inviteCode}
-                onChange={(e) => {
-                  setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10));
-                  setInviteError("");
-                }}
-                maxLength={10}
+                placeholder="VD: Nguyễn Văn A"
+                value={teacherName}
+                onChange={(e) => { setTeacherName(e.target.value); setTeacherError(""); }}
                 style={{
-                  width: "100%", height: 56, borderRadius: 12,
+                  width: "100%", height: 48, borderRadius: 12,
                   background: "#ffffff", padding: "0 16px",
-                  border: inviteError ? "1px solid #ef4444" : "1px solid rgba(0,0,0,0.06)",
-                  fontSize: 20, fontWeight: 700, color: "#1a1a1a", outline: "none",
-                  boxSizing: "border-box", textAlign: "center", letterSpacing: 4,
+                  border: teacherError ? "1px solid #ef4444" : "1px solid rgba(0,0,0,0.06)",
+                  fontSize: 15, color: "#1a1a1a", outline: "none", boxSizing: "border-box",
                 }}
               />
-              {inviteError && <p style={{ fontSize: 13, color: "#ef4444" }}>{inviteError}</p>}
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginTop: 4 }}>Bộ môn / Khoa (tùy chọn)</p>
+              <input
+                placeholder="VD: Bộ môn Kỹ thuật Máy tính"
+                value={teacherDept}
+                onChange={(e) => setTeacherDept(e.target.value)}
+                style={{
+                  width: "100%", height: 48, borderRadius: 12,
+                  background: "#ffffff", padding: "0 16px",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  fontSize: 15, color: "#1a1a1a", outline: "none", boxSizing: "border-box",
+                }}
+              />
+              {teacherError && <p style={{ fontSize: 13, color: "#ef4444" }}>{teacherError}</p>}
             </div>
 
             <div style={{ width: "100%", display: "flex", gap: 12 }}>
               <button
-                onClick={() => { setInviteCode(""); setInviteError(""); setStep("mssv"); }}
+                onClick={() => { setTeacherError(""); setStep("mssv"); }}
                 style={{
                   flex: 1, height: 48, borderRadius: 12,
                   background: "#f0f0f5", border: "none",
@@ -454,25 +496,71 @@ export default function LoginPage() {
                 Quay lại
               </button>
               <button
-                onClick={handleInviteSubmit}
-                disabled={inviteLoading || inviteCode.length < 4}
+                onClick={handleTeacherRegister}
+                disabled={teacherSubmitting || teacherName.trim().length < 2}
                 style={{
                   flex: 2, height: 48, borderRadius: 12,
-                  background: inviteCode.length >= 4 ? "#be1d2c" : "#d4d4d4",
+                  background: teacherName.trim().length >= 2 ? "#be1d2c" : "#d4d4d4",
                   border: "none", color: "#ffffff",
                   fontSize: 15, fontWeight: 700,
-                  opacity: inviteLoading ? 0.7 : 1,
+                  opacity: teacherSubmitting ? 0.7 : 1,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 }}
               >
-                {inviteLoading ? <Spinner /> : null}
-                {inviteLoading ? "Đang xác minh..." : "Xác nhận"}
+                {teacherSubmitting ? <Spinner /> : null}
+                {teacherSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
               </button>
             </div>
+          </>
+        )}
 
-            <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", lineHeight: 1.5 }}>
-              Liên hệ Phòng Đào tạo nếu bạn chưa có mã mời.
-            </p>
+        {/* ── MÀN CHỜ PHÒNG ĐÀO TẠO DUYỆT ── */}
+        {step === "teacher-pending" && (
+          <>
+            <div style={{
+              width: "100%", background: "#ffffff", borderRadius: 16, padding: "28px 20px",
+              border: "1px solid rgba(0,0,0,0.04)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+            }}>
+              {teacherRejected ? (
+                <>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 28, background: "rgba(239,68,68,0.1)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>Yêu cầu bị từ chối</p>
+                  <p style={{ fontSize: 13, color: "#6b7280", textAlign: "center", lineHeight: 1.6 }}>
+                    Phòng Đào tạo chưa duyệt yêu cầu giảng viên của bạn. Vui lòng liên hệ để được hỗ trợ.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Spinner />
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a" }}>Đang chờ duyệt</p>
+                  <p style={{ fontSize: 13, color: "#6b7280", textAlign: "center", lineHeight: 1.6 }}>
+                    Yêu cầu giảng viên của <strong>{teacherName || currentUser?.name}</strong> đã được gửi tới
+                    Phòng Đào tạo. Màn hình sẽ tự chuyển khi được duyệt.
+                  </p>
+                  <div style={{ background: "rgba(190,29,44,0.06)", borderRadius: 10, padding: "8px 14px" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#be1d2c" }}>Đang đồng bộ realtime…</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => { setTeacherRejected(false); setStep("mssv"); }}
+              style={{
+                width: "100%", height: 48, borderRadius: 12,
+                background: "#f0f0f5", border: "none",
+                fontSize: 15, fontWeight: 600, color: "#6b7280",
+              }}
+            >
+              Quay lại đăng nhập
+            </button>
           </>
         )}
 

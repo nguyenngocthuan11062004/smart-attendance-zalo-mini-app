@@ -4,11 +4,11 @@ import { Layout, Menu, Avatar, Dropdown, Button, Tooltip, theme } from "antd";
 import {
   DashboardOutlined,
   TeamOutlined,
+  UserAddOutlined,
   BookOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
   WarningOutlined,
-  KeyOutlined,
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
@@ -22,11 +22,11 @@ const { Header, Sider, Content } = Layout;
 const menuItems = [
   { key: "/", icon: <DashboardOutlined />, label: "Tổng quan" },
   { key: "/users", icon: <TeamOutlined />, label: "Người dùng" },
+  { key: "/teacher-requests", icon: <UserAddOutlined />, label: "Duyệt giảng viên" },
   { key: "/classes", icon: <BookOutlined />, label: "Lớp học" },
   { key: "/attendance", icon: <CheckCircleOutlined />, label: "Điểm danh" },
   { key: "/absence-requests", icon: <FileTextOutlined />, label: "Đơn xin phép" },
   { key: "/fraud-reports", icon: <WarningOutlined />, label: "Gian lận" },
-  { key: "/invite-codes", icon: <KeyOutlined />, label: "Mã mời GV" },
   { key: "/present", icon: <DesktopOutlined />, label: "Cổng máy chiếu" },
 ];
 

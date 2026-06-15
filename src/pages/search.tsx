@@ -3,8 +3,9 @@ import { Page, Avatar } from "zmp-ui";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
-import { getStudentClasses, getTeacherClasses, getClassStudents, getClassByCode } from "@/services/class.service";
-import type { ClassDoc } from "@/types";
+import { getAllClasses, getClassByCode } from "@/services/class.service";
+import { getUsersByRole } from "@/services/auth.service";
+import type { ClassDoc, UserDoc } from "@/types";
 
 type SearchType = "gv" | "sv" | "hocphan" | "lop";
 
@@ -35,17 +36,14 @@ export default function SearchPage() {
   const [searched, setSearched] = useState(false);
   const [allClasses, setAllClasses] = useState<ClassDoc[]>([]);
 
-  // Load all accessible classes on mount
+  const [allTeachers, setAllTeachers] = useState<UserDoc[]>([]);
+
+  // Load toàn bộ lớp + GV trong hệ thống — vừa để tìm kiếm trên cả database,
+  // vừa hiển thị sẵn khi chưa gõ từ khóa (trang không bị trống)
   useEffect(() => {
-    if (!user?.id || !role) return;
-    const loadClasses = async () => {
-      const classes = role === "teacher"
-        ? await getTeacherClasses(user.id)
-        : await getStudentClasses(user.id);
-      setAllClasses(classes);
-    };
-    loadClasses();
-  }, [user?.id, role]);
+    getAllClasses().then(setAllClasses).catch(() => {});
+    getUsersByRole("teacher").then(setAllTeachers).catch(() => {});
+  }, []);
 
   const handleSearch = useCallback(async () => {
     const q = query.trim().toLowerCase();
@@ -58,67 +56,64 @@ export default function SearchPage() {
       const found: SearchResult[] = [];
 
       if (searchType === "lop" || searchType === "hocphan") {
-        // Search classes by name or code
-        for (const c of allClasses) {
+        // Tìm lớp/học phần trên TOÀN BỘ database theo tên hoặc mã
+        const classes = allClasses.length > 0 ? allClasses : await getAllClasses();
+        for (const c of classes) {
           if (c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)) {
             found.push({
               id: c.id,
               title: c.name,
-              subtitle: `Mã: ${c.code} · ${c.studentIds.length} sinh viên`,
+              subtitle: `Mã: ${c.code} · GV: ${c.teacherName} · ${c.studentIds.length} SV`,
               type: "class",
-              path: role === "teacher" ? `/teacher/class/${c.id}` : undefined,
+              // Chỉ điều hướng vào chi tiết khi là lớp của chính GV này
+              path: role === "teacher" && c.teacherId === user.id ? `/teacher/class/${c.id}` : undefined,
             });
           }
         }
-        // Also try exact code search
+        // Fallback: tra mã chính xác (phòng khi cache lớp chưa kịp cập nhật)
         if (found.length === 0) {
           const byCode = await getClassByCode(q);
           if (byCode) {
             found.push({
               id: byCode.id,
               title: byCode.name,
-              subtitle: `Mã: ${byCode.code} · ${byCode.studentIds.length} sinh viên`,
+              subtitle: `Mã: ${byCode.code} · GV: ${byCode.teacherName} · ${byCode.studentIds.length} SV`,
               type: "class",
-              path: role === "teacher" ? `/teacher/class/${byCode.id}` : undefined,
+              path: role === "teacher" && byCode.teacherId === user.id ? `/teacher/class/${byCode.id}` : undefined,
             });
           }
         }
       } else if (searchType === "sv") {
-        // Search students across enrolled classes
-        const allStudentIds = new Set<string>();
-        for (const c of allClasses) {
-          for (const sid of c.studentIds) allStudentIds.add(sid);
-        }
-        if (allStudentIds.size > 0) {
-          const students = await getClassStudents([...allStudentIds]);
-          for (const s of students) {
-            if (s.name.toLowerCase().includes(q)) {
-              const inClasses = allClasses.filter(c => c.studentIds.includes(s.id)).map(c => c.name);
-              found.push({
-                id: s.id,
-                title: s.name,
-                subtitle: inClasses.length > 0 ? inClasses.join(", ") : "Sinh viên",
-                avatar: s.avatar,
-                type: "student",
-              });
-            }
+        // Tìm sinh viên trên toàn bộ database theo tên hoặc MSSV
+        const students = await getUsersByRole("student");
+        for (const s of students) {
+          const nameMatch = s.name.toLowerCase().includes(q);
+          const mssvMatch = !!s.mssv && s.mssv.toLowerCase().includes(q);
+          if (nameMatch || mssvMatch) {
+            const inClasses = allClasses
+              .filter(c => c.studentIds.includes(s.id) || (!!s.mssv && c.rosterMssv?.includes(s.mssv)))
+              .map(c => c.name);
+            found.push({
+              id: s.id,
+              title: s.name,
+              subtitle: [s.mssv ? `MSSV: ${s.mssv}` : null, inClasses.length > 0 ? inClasses.join(", ") : "Sinh viên"]
+                .filter(Boolean).join(" · "),
+              avatar: s.avatar,
+              type: "student",
+            });
           }
         }
       } else if (searchType === "gv") {
-        // Search teachers from class data
-        const teacherMap = new Map<string, { name: string; classes: string[] }>();
-        for (const c of allClasses) {
-          if (!teacherMap.has(c.teacherId)) {
-            teacherMap.set(c.teacherId, { name: c.teacherName, classes: [] });
-          }
-          teacherMap.get(c.teacherId)!.classes.push(c.name);
-        }
-        for (const [tid, info] of teacherMap) {
-          if (info.name.toLowerCase().includes(q)) {
+        // Tìm giảng viên trên toàn bộ database theo tên
+        const teachers = await getUsersByRole("teacher");
+        for (const t of teachers) {
+          if (t.name.toLowerCase().includes(q)) {
+            const classCount = allClasses.filter(c => c.teacherId === t.id).length;
             found.push({
-              id: tid,
-              title: info.name,
-              subtitle: `Giảng viên · ${info.classes.length} lớp`,
+              id: t.id,
+              title: t.name,
+              subtitle: classCount > 0 ? `Giảng viên · ${classCount} lớp` : "Giảng viên",
+              avatar: t.avatar,
               type: "teacher",
             });
           }
@@ -134,6 +129,29 @@ export default function SearchPage() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
   };
+
+  // Khi CHƯA tìm kiếm → hiển thị sẵn toàn bộ lớp học + giảng viên trong hệ
+  // thống để trang không bị trống (sinh động ngay khi mở tab)
+  const defaultRows: SearchResult[] = [
+    ...allClasses.map((c) => ({
+      id: c.id,
+      title: c.name,
+      subtitle: `Mã: ${c.code} · GV: ${c.teacherName} · ${c.studentIds.length} SV`,
+      type: "class" as const,
+      path: role === "teacher" && c.teacherId === user?.id ? `/teacher/class/${c.id}` : undefined,
+    })),
+    ...allTeachers.map((t) => {
+      const classCount = allClasses.filter((c) => c.teacherId === t.id).length;
+      return {
+        id: t.id,
+        title: t.name,
+        subtitle: classCount > 0 ? `Giảng viên · ${classCount} lớp` : "Giảng viên",
+        avatar: t.avatar || undefined,
+        type: "teacher" as const,
+      };
+    }),
+  ];
+  const displayRows = searched ? results : defaultRows;
 
   return (
     <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
@@ -293,7 +311,16 @@ export default function SearchPage() {
             </div>
           )}
 
-          {!loading && results.map((r, index) => (
+          {!loading && !searched && displayRows.length > 0 && (
+            <p style={{
+              fontSize: 11, fontWeight: 600, color: "#9ca3af",
+              textTransform: "uppercase", letterSpacing: 1, marginBottom: 8,
+            }}>
+              Có trong hệ thống · {allClasses.length} lớp · {allTeachers.length} giảng viên
+            </p>
+          )}
+
+          {!loading && displayRows.map((r, index) => (
             <button
               key={r.id}
               className={`animate-stagger-${Math.min(index + 1, 10)}`}

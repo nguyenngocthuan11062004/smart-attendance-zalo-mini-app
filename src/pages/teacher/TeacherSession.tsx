@@ -122,8 +122,8 @@ export default function TeacherSession() {
     setStarting(true);
     try {
       const newSession = await startSession(classDoc.id, classDoc.name, user.id, selectedDuration, {
-        faceRequired: classDoc.faceRequired ?? true,
-        peerRequired: classDoc.peerRequired ?? true,
+        faceRequired: classDoc.faceRequired ?? false,
+        peerRequired: classDoc.peerRequired ?? false,
       });
       setSession(newSession);
       setActiveSession(newSession);
@@ -206,7 +206,10 @@ export default function TeacherSession() {
       // Tính trust score client-side cho tất cả attendance records
       const records = await getSessionAttendance(session.id);
       for (const r of records) {
-        const score = computeTrustScore(r.peerCount, r.faceVerification);
+        const score = computeTrustScore(r.peerCount, r.faceVerification, {
+          faceRequired: session.faceRequired,
+          peerRequired: session.peerRequired,
+        });
         if (score !== r.trustScore) {
           await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
         }

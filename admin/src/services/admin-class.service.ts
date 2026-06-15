@@ -31,6 +31,28 @@ export async function getClassById(classId: string): Promise<ClassDoc | null> {
   return { id: snap.id, ...snap.data() } as ClassDoc;
 }
 
+/**
+ * Đặt danh sách chính thức (roster) cho lớp từ file Excel.
+ * Lưu roster (tên) + rosterMssv (để SV lọc lớp theo MSSV).
+ */
+export async function setClassRoster(
+  classId: string,
+  students: { mssv: string; name: string }[]
+): Promise<number> {
+  // Dedup theo MSSV, bỏ dòng thiếu MSSV
+  const map = new Map<string, string>();
+  for (const s of students) {
+    const mssv = (s.mssv || "").trim();
+    if (mssv) map.set(mssv, (s.name || "").trim());
+  }
+  const roster = Array.from(map, ([mssv, name]) => ({ mssv, name }));
+  await updateDoc(doc(db, CLASSES_COL, classId), {
+    roster,
+    rosterMssv: roster.map((r) => r.mssv),
+  });
+  return roster.length;
+}
+
 export async function createClass(data: {
   name: string;
   code: string;
@@ -49,8 +71,8 @@ export async function createClass(data: {
     teacherId: data.teacherId,
     teacherName: data.teacherName,
     studentIds: [],
-    faceRequired: data.faceRequired ?? true,
-    peerRequired: data.peerRequired ?? true,
+    faceRequired: data.faceRequired ?? false,
+    peerRequired: data.peerRequired ?? false,
     createdAt: Date.now(),
   };
   if (data.schedule) payload.schedule = data.schedule;
@@ -87,6 +109,30 @@ export async function addStudentsToClass(classId: string, studentIds: string[]):
 export async function removeStudentFromClass(classId: string, studentId: string): Promise<void> {
   await updateDoc(doc(db, CLASSES_COL, classId), {
     studentIds: arrayRemove(studentId),
+  });
+}
+
+/**
+ * Xóa 1 SV khỏi danh sách chính thức của lớp theo MSSV:
+ * gỡ khỏi roster + rosterMssv, đồng thời gỡ tài khoản liên kết (nếu có)
+ * khỏi studentIds. removeStudentFromClass cũ chỉ gỡ studentIds nên roster
+ * vẫn giữ SV → bảng hiển thị lệch.
+ */
+export async function removeRosterEntry(
+  classId: string,
+  mssv: string,
+  linkedUserId?: string
+): Promise<void> {
+  const ref = doc(db, CLASSES_COL, classId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data() as ClassDoc;
+  const roster = (data.roster ?? []).filter((e) => e.mssv !== mssv);
+  const rosterMssv = (data.rosterMssv ?? []).filter((m) => m !== mssv);
+  await updateDoc(ref, {
+    roster,
+    rosterMssv,
+    ...(linkedUserId ? { studentIds: arrayRemove(linkedUserId) } : {}),
   });
 }
 

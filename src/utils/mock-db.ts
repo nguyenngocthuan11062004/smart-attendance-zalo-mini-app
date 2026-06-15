@@ -47,6 +47,7 @@ export const mockDb = {
   getUser(id: string) { return store.users.get(id) || null; },
   setUser(u: UserDoc) { store.users.set(u.id, u); },
   getUsersByIds(ids: string[]) { return ids.map(id => store.users.get(id)).filter(Boolean) as UserDoc[]; },
+  getAllUsers() { return [...store.users.values()]; },
 
   // Classes
   getClass(id: string) { return store.classes.get(id) || null; },
@@ -58,6 +59,7 @@ export const mockDb = {
   getTeacherClasses(teacherId: string) {
     return [...store.classes.values()].filter(c => c.teacherId === teacherId);
   },
+  getAllClasses() { return [...store.classes.values()]; },
   getStudentClasses(studentId: string) {
     return [...store.classes.values()].filter(c => c.studentIds.includes(studentId));
   },

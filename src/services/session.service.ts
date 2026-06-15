@@ -33,8 +33,8 @@ export async function startSession(
     hmacSecret: generateNonce() + generateNonce(),
     qrRefreshInterval: 30,
     durationMinutes,
-    faceRequired: config?.faceRequired ?? true,
-    peerRequired: config?.peerRequired ?? true,
+    faceRequired: config?.faceRequired ?? false,
+    peerRequired: config?.peerRequired ?? false,
     startedAt: Date.now(),
   };
   if (isMockMode()) {

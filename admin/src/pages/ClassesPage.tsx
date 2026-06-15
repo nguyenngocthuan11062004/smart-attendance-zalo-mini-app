@@ -53,7 +53,7 @@ export default function ClassesPage() {
   const openCreateModal = () => {
     setEditingClass(null);
     form.resetFields();
-    form.setFieldsValue({ faceRequired: true, peerRequired: true });
+    form.setFieldsValue({ faceRequired: false, peerRequired: false });
     setModalOpen(true);
   };
 

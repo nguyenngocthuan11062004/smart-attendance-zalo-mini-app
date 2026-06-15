@@ -10,7 +10,7 @@ import {
   updateUserRole,
   requestTeacherRole,
 } from "@/services/auth.service";
-import type { UserRole } from "@/types";
+import type { UserRole, UserDoc } from "@/types";
 
 /**
  * Provides auth actions (selectRole, logout).
@@ -27,17 +27,19 @@ export function useAuth() {
   const setSelectedClass = useSetAtom(selectedClassAtom);
 
   const selectRole = useCallback(
-    async (role: UserRole, mssv?: string) => {
-      if (!currentUser) return;
+    // userOverride: dùng user vừa signIn() trong cùng tick (closure currentUser còn null)
+    async (role: UserRole, mssv?: string, userOverride?: UserDoc) => {
+      const u = userOverride ?? currentUser;
+      if (!u) return;
       try {
         setLoading(true);
         if (role === "teacher") {
           // Teacher role must be assigned server-side
-          await requestTeacherRole(currentUser.id);
+          await requestTeacherRole(u.id);
         } else {
-          await updateUserRole(currentUser.id, role, mssv);
+          await updateUserRole(u.id, role, mssv);
         }
-        setCurrentUser({ ...currentUser, role, mssv: mssv || currentUser.mssv, updatedAt: Date.now() });
+        setCurrentUser({ ...u, role, mssv: mssv || u.mssv, updatedAt: Date.now() });
       } catch (err: any) {
         setError(err.message || "Cập nhật vai trò thất bại");
       } finally {

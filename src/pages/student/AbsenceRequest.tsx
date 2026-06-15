@@ -47,7 +47,7 @@ export default function AbsenceRequest() {
   // Load classes once
   useEffect(() => {
     if (!user) return;
-    getStudentClasses(user.id)
+    getStudentClasses(user.mssv || "")
       .then(setClasses)
       .catch(() => setError("Không tải được danh sách lớp"));
   }, [user, setError]);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card, Table, Button, Space, Typography, Tag, Descriptions, Upload, Spin,
@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import {
   getClassById, getClassStudents, addStudentsToClass,
-  removeStudentFromClass, getTeachers,
+  removeStudentFromClass, removeRosterEntry, getTeachers, setClassRoster,
 } from "@/services/admin-class.service";
 import { getSessionsByClass } from "@/services/admin-attendance.service";
 import { createOrFindStudents, getAllStudents } from "@/services/admin-user.service";
@@ -19,6 +19,15 @@ import type { ClassDoc, UserDoc, SessionDoc } from "@/types";
 import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
+
+/** 1 dòng trong bảng SV: entry roster + tài khoản liên kết (nếu có) */
+interface StudentRow {
+  key: string;
+  mssv: string;
+  name: string;
+  linked: UserDoc | null;
+  inRoster: boolean;
+}
 
 export default function ClassDetailPage() {
   const { classId } = useParams<{ classId: string }>();
@@ -56,7 +65,6 @@ export default function ClassDetailPage() {
         getClassStudents(classDoc.studentIds),
         getSessionsByClass(classId),
       ]);
-      console.log("studentIds:", classDoc.studentIds, "found:", studs.length, studs);
       setStudents(studs);
       setSessions(sess);
     } finally {
@@ -65,6 +73,38 @@ export default function ClassDetailPage() {
   };
 
   useEffect(() => { load(); }, [classId]);
+
+  // ── Bảng SV: roster (danh sách chính thức) là NGUỒN SỰ THẬT ──────────
+  // `mssv` trên user doc là TỰ KHAI khi đăng nhập — 1 tài khoản Zalo có thể
+  // đổi MSSV mỗi lần login. Nếu render thẳng studentIds → bảng hiện MSSV mới
+  // nhất của tài khoản (vd "Zalo User · 20256666") thay vì danh sách lớp.
+  // Cách đúng: duyệt roster → đối chiếu tài khoản liên kết theo MSSV;
+  // tài khoản nằm trong studentIds nhưng MSSV ngoài roster → gắn cờ cảnh báo.
+  const studentRows = useMemo<StudentRow[]>(() => {
+    if (!cls) return [];
+    const roster = cls.roster ?? [];
+    if (roster.length === 0) {
+      // Lớp cũ chưa có roster → hiển thị theo tài khoản liên kết như trước
+      return students.map((u) => ({
+        key: u.id, mssv: u.mssv || u.id, name: u.name, linked: u, inRoster: true,
+      }));
+    }
+    const rows: StudentRow[] = roster.map((e) => ({
+      key: e.mssv,
+      mssv: e.mssv,
+      name: e.name,
+      // Tài khoản liên kết: user doc có mssv trùng, hoặc placeholder id = mssv
+      linked: students.find((u) => u.mssv === e.mssv || u.id === e.mssv) ?? null,
+      inRoster: true,
+    }));
+    const rosterSet = new Set(roster.map((e) => e.mssv));
+    for (const u of students) {
+      if (!rosterSet.has(u.mssv || "") && !rosterSet.has(u.id)) {
+        rows.push({ key: `extra_${u.id}`, mssv: u.mssv || "—", name: u.name, linked: u, inRoster: false });
+      }
+    }
+    return rows;
+  }, [cls, students]);
 
   // ── Search & add students from DB ─────────────────────────────────────
   const handleOpenAddModal = async () => {
@@ -180,14 +220,17 @@ export default function ClassDetailPage() {
 
     setImportLoading(true);
     try {
+      // Ghi danh sách chính thức (roster) — SV chỉ thấy lớp nếu MSSV nằm trong đây
+      await setClassRoster(classId, valid.map((s) => ({ mssv: s.mssv, name: s.name })));
+      // Giữ luôn studentIds để trang chi tiết hiển thị (tên SV)
       const ids = await createOrFindStudents(valid);
       await addStudentsToClass(classId, ids);
-      message.success(`Đã thêm ${ids.length} sinh viên vào lớp`);
+      message.success(`Đã cập nhật danh sách lớp: ${valid.length} sinh viên`);
       setImportModalOpen(false);
       setImportPreview([]);
       load();
     } catch {
-      message.error("Lỗi import sinh viên");
+      message.error("Lỗi import danh sách");
     } finally {
       setImportLoading(false);
     }
@@ -201,8 +244,21 @@ export default function ClassDetailPage() {
     load();
   };
 
+  // Xóa theo dòng roster: gỡ khỏi roster + rosterMssv + tài khoản liên kết
+  const handleRemoveRow = async (row: StudentRow) => {
+    if (!classId) return;
+    if (row.inRoster) {
+      await removeRosterEntry(classId, row.mssv, row.linked?.id);
+    } else if (row.linked) {
+      // Tài khoản ngoài danh sách → chỉ gỡ liên kết khỏi studentIds
+      await removeStudentFromClass(classId, row.linked.id);
+    }
+    message.success("Đã xóa sinh viên khỏi lớp");
+    load();
+  };
+
   // ── Columns ───────────────────────────────────────────────────────────
-  const studentColumns: ColumnsType<UserDoc> = [
+  const studentColumns: ColumnsType<StudentRow> = [
     {
       title: "#", key: "index", width: 50,
       render: (_, __, i) => i + 1,
@@ -214,22 +270,35 @@ export default function ClassDetailPage() {
           <UserOutlined />
           <div>
             <div style={{ fontWeight: 500 }}>{r.name}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{r.mssv || r.id}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{r.mssv}</Text>
           </div>
         </Space>
       ),
     },
-    { title: "Khoa", dataIndex: "department", key: "department", render: (v: string) => v || "—" },
-    { title: "Email", dataIndex: "email", key: "email", render: (v: string) => v || "—" },
-    { title: "SĐT", dataIndex: "phone", key: "phone", width: 130, render: (v: string) => v || "—" },
+    {
+      title: "Tài khoản", key: "account", width: 150,
+      render: (_, r) => {
+        if (!r.inRoster) {
+          return <Tag color="red">Ngoài danh sách lớp</Tag>;
+        }
+        return r.linked
+          ? <Tag color="green">Đã liên kết</Tag>
+          : <Tag>Chưa đăng nhập app</Tag>;
+      },
+    },
+    { title: "Khoa", key: "department", render: (_, r) => r.linked?.department || "—" },
+    { title: "Email", key: "email", render: (_, r) => r.linked?.email || "—" },
+    { title: "SĐT", key: "phone", width: 130, render: (_, r) => r.linked?.phone || "—" },
     {
       title: "Face", key: "face", width: 80,
-      render: (_, r) => r.faceRegistered ? <Tag color="green">OK</Tag> : <Tag>Chưa</Tag>,
+      render: (_, r) => r.linked
+        ? (r.linked.faceRegistered ? <Tag color="green">OK</Tag> : <Tag>Chưa</Tag>)
+        : "—",
     },
     {
       title: "", key: "actions", width: 60,
       render: (_, r) => (
-        <Popconfirm title="Xóa sinh viên khỏi lớp?" onConfirm={() => handleRemoveStudent(r.id)} okText="Xóa" cancelText="Hủy">
+        <Popconfirm title="Xóa sinh viên khỏi lớp?" onConfirm={() => handleRemoveRow(r)} okText="Xóa" cancelText="Hủy">
           <Button size="small" danger icon={<DeleteOutlined />} />
         </Popconfirm>
       ),
@@ -286,7 +355,7 @@ export default function ClassDetailPage() {
         <Descriptions column={{ xs: 1, sm: 2, lg: 3 }}>
           <Descriptions.Item label="Mã lớp">{cls.code}</Descriptions.Item>
           <Descriptions.Item label="Giảng viên">{cls.teacherName}</Descriptions.Item>
-          <Descriptions.Item label="Số sinh viên">{cls.studentIds.length}</Descriptions.Item>
+          <Descriptions.Item label="Số sinh viên">{cls.roster?.length ?? cls.studentIds.length}</Descriptions.Item>
           <Descriptions.Item label="Lịch dạy">
             {cls.schedule
               ? `${["", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"][cls.schedule.dayOfWeek] || "?"} · ${cls.schedule.startTime}–${cls.schedule.endTime}`
@@ -310,18 +379,21 @@ export default function ClassDetailPage() {
       </Card>
 
       <Card
-        title={`Sinh viên (${cls.studentIds.length})`}
+        title={`Sinh viên (${studentRows.filter((r) => r.inRoster).length})`}
         extra={
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAddModal}>
               Thêm sinh viên
+            </Button>
+            <Button icon={<DownloadOutlined />} onClick={downloadStudentTemplate}>
+              Tải file mẫu
             </Button>
             <Upload
               accept=".xlsx,.xls,.csv"
               showUploadList={false}
               beforeUpload={(file) => { handleFileSelect(file); return false; }}
             >
-              <Button icon={<UploadOutlined />}>Import Excel/CSV</Button>
+              <Button icon={<UploadOutlined />}>Import danh sách (Excel)</Button>
             </Upload>
             <Button
               icon={<DownloadOutlined />}
@@ -334,10 +406,23 @@ export default function ClassDetailPage() {
         }
         style={{ marginBottom: 24 }}
       >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Định dạng file Excel hợp lệ"
+          description={
+            <span>
+              File cần 2 cột <strong>bắt buộc</strong>: <strong>MSSV</strong> và <strong>Họ tên</strong>{" "}
+              (tùy chọn: Email, Khoa). Mỗi sinh viên 1 dòng. Bấm <strong>“Tải file mẫu”</strong> để xem đúng định dạng.{" "}
+              Sinh viên chỉ thấy lớp khi <strong>MSSV của họ nằm trong danh sách này</strong>.
+            </span>
+          }
+        />
         <Table
-          dataSource={students}
+          dataSource={studentRows}
           columns={studentColumns}
-          rowKey="id"
+          rowKey="key"
           pagination={{ pageSize: 20 }}
           size="middle"
           scroll={{ x: 800 }}

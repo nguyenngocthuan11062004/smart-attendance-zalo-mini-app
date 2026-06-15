@@ -82,6 +82,40 @@ export async function updateUserRole(userId: string, role: UserRole): Promise<vo
   });
 }
 
+/**
+ * Danh sách user đang chờ duyệt làm giảng viên (pendingTeacher == true).
+ */
+export async function getPendingTeachers(): Promise<UserDoc[]> {
+  const q = query(collection(db, USERS_COL), where("pendingTeacher", "==", true));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as UserDoc)
+    .sort((a, b) => (b.teacherRequestedAt || 0) - (a.teacherRequestedAt || 0));
+}
+
+/**
+ * Duyệt: gán role = "teacher", tắt cờ chờ.
+ */
+export async function approveTeacher(userId: string): Promise<void> {
+  await updateDoc(doc(db, USERS_COL, userId), {
+    role: "teacher",
+    pendingTeacher: false,
+    teacherRejected: false,
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Từ chối: tắt cờ chờ + đánh dấu bị từ chối (giữ nguyên role hiện tại).
+ */
+export async function rejectTeacher(userId: string): Promise<void> {
+  await updateDoc(doc(db, USERS_COL, userId), {
+    pendingTeacher: false,
+    teacherRejected: true,
+    updatedAt: Date.now(),
+  });
+}
+
 export async function getUserStats(): Promise<{
   total: number;
   students: number;

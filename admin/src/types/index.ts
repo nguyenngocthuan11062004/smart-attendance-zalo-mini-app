@@ -14,6 +14,9 @@ export interface UserDoc {
   program?: string;
   className?: string;
   faceRegistered?: boolean;
+  pendingTeacher?: boolean;
+  teacherRequestedAt?: number;
+  teacherRejected?: boolean;
   cccdNumber?: string;
   cccdName?: string;
   cccdDob?: string;
@@ -44,6 +47,8 @@ export interface ClassDoc {
   teacherId: string;
   teacherName: string;
   studentIds: string[];
+  rosterMssv?: string[];                          // danh sách MSSV chính thức (để lọc lớp cho SV)
+  roster?: { mssv: string; name: string }[];      // roster đầy đủ tên để hiển thị
   faceRequired?: boolean;
   peerRequired?: boolean;
   schedule?: ClassSchedule;
@@ -89,6 +94,7 @@ export interface AttendanceDoc {
   classId: string;
   studentId: string;
   studentName: string;
+  studentMssv?: string;
   checkedInAt: number;
   peerVerifications: PeerVerification[];
   peerCount: number;

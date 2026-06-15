@@ -29,15 +29,26 @@ export async function checkInStudent(
   classId: string,
   studentId: string,
   studentName: string,
+  studentMssv?: string,
   _qrPayload?: QRPayload,
-  location?: GeoLocation
+  location?: GeoLocation,
+  config?: { faceRequired?: boolean; peerRequired?: boolean }
 ): Promise<AttendanceDoc> {
+  // Điểm danh xong nghĩa là đã hoàn tất các bước BẮT BUỘC của phiên: với phiên
+  // không yêu cầu face/peer thì SV "present" ngay. Tính trustScore theo config
+  // phiên thay vì ghi cứng "absent" — nếu không, màn Phiên điểm danh (đếm
+  // === "present") và máy chiếu (đếm !== "absent") sẽ KHÔNG thấy SV cho tới khi
+  // phiên kết thúc (lúc đó backfill mới tính lại). TeacherMonitor tính lại
+  // client-side nên không bị, nhưng 2 màn kia đọc thẳng field này.
+  const initialScore = computeTrustScore(0, undefined, config);
+
   if (isMockMode()) {
     const existing = mockDb.getMyAttendance(sessionId, studentId);
     if (existing) return existing;
     const created = mockDb.createAttendance({
       sessionId, classId, studentId, studentName,
-      checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: "absent",
+      ...(studentMssv ? { studentMssv } : {}),
+      checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: initialScore,
     });
     mockDb.notifyAttendanceChange(sessionId, studentId);
     return created;
@@ -61,10 +72,11 @@ export async function checkInStudent(
     classId,
     studentId,
     studentName,
+    ...(studentMssv ? { studentMssv } : {}),
     checkedInAt: Date.now(),
     peerVerifications: [],
     peerCount: 0,
-    trustScore: "absent",
+    trustScore: initialScore,
     ...(location ? { location } : {}),
   };
 

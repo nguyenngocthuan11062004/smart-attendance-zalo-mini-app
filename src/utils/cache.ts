@@ -5,10 +5,26 @@
 import { storageSetItem, storageGetItem, storageRemoveItem } from "@/utils/storage";
 
 const CACHE_PREFIX = "inhust_";
+// Zalo SDK storage không liệt kê được key theo prefix → tự lưu index các key
+// đã cache để cacheClearAll() xóa được hết trên Zalo thật (vd logout đổi tài khoản).
+const CACHE_INDEX_KEY = `${CACHE_PREFIX}__keys`;
 
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
+}
+
+async function addKeyToIndex(fullKey: string): Promise<void> {
+  try {
+    const raw = await storageGetItem(CACHE_INDEX_KEY);
+    const keys: string[] = raw ? JSON.parse(raw) : [];
+    if (!keys.includes(fullKey)) {
+      keys.push(fullKey);
+      await storageSetItem(CACHE_INDEX_KEY, JSON.stringify(keys));
+    }
+  } catch {
+    // best-effort — index hỏng thì cacheClearAll vẫn quét localStorage
+  }
 }
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
@@ -30,6 +46,7 @@ export async function cacheSet<T>(key: string, data: T, ttlMs: number = 5 * 60 *
   try {
     const entry: CacheEntry<T> = { data, expiresAt: Date.now() + ttlMs };
     await storageSetItem(CACHE_PREFIX + key, JSON.stringify(entry));
+    await addKeyToIndex(CACHE_PREFIX + key);
   } catch {
     // storage full or unavailable - silently fail
   }
@@ -40,10 +57,20 @@ export async function cacheRemove(key: string): Promise<void> {
 }
 
 export async function cacheClearAll(): Promise<void> {
-  // Note: Zalo SDK does not expose a way to list keys with a prefix.
-  // Fall back to localStorage for prefix-based cleanup (dev mode).
-  // In production Zalo environment, individual cacheRemove calls
-  // should be used for known keys.
+  // 1. Xóa theo index (hoạt động cả trên Zalo SDK storage)
+  try {
+    const raw = await storageGetItem(CACHE_INDEX_KEY);
+    if (raw) {
+      const keys: string[] = JSON.parse(raw);
+      for (const k of keys) {
+        await storageRemoveItem(k);
+      }
+    }
+    await storageRemoveItem(CACHE_INDEX_KEY);
+  } catch {
+    // ignore
+  }
+  // 2. Quét thêm localStorage theo prefix (dev mode / fallback)
   try {
     const keys = Object.keys(localStorage).filter((k) => k.startsWith(CACHE_PREFIX));
     for (const k of keys) {

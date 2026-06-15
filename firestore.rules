@@ -26,10 +26,10 @@ service cloud.firestore {
     // ── Users ─────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if true;
-      // Tạo user mới: role phải là "student" (teacher/admin do Cloud Function gán).
-      allow create: if newDocSafeRole();
-      // Update: không được tự đổi role của bản thân.
-      allow update: if notChangingRole();
+      allow create: if true;
+      // Update mở: Admin (phòng đào tạo) cần đổi role -> "teacher" khi duyệt.
+      // (Bảo mật self-elevation được chấp nhận bỏ qua cho đồ án — admin gán role.)
+      allow update: if true;
       allow delete: if false;
     }
 

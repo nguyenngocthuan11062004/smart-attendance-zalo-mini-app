@@ -14,6 +14,10 @@ export interface UserDoc {
   program?: string;
   className?: string;
   faceRegistered?: boolean;
+  // Đăng ký làm giảng viên — chờ phòng đào tạo (admin) duyệt
+  pendingTeacher?: boolean;
+  teacherRequestedAt?: number;
+  teacherRejected?: boolean;
   cccdNumber?: string;
   cccdName?: string;
   cccdDob?: string;
@@ -46,6 +50,10 @@ export interface ClassDoc {
   teacherId: string;
   teacherName: string;
   studentIds: string[];
+  // Danh sách chính thức (roster) import từ Excel của GV.
+  // SV chỉ thấy lớp nếu MSSV của họ nằm trong rosterMssv.
+  rosterMssv?: string[];                          // để query array-contains
+  roster?: { mssv: string; name: string }[];      // để hiển thị tên chính thức
   faceRequired?: boolean;  // default true
   peerRequired?: boolean;  // default true
   // Lịch dạy cố định trong tuần — dùng để hiển thị TKB cho GV
@@ -94,6 +102,7 @@ export interface AttendanceDoc {
   classId: string;
   studentId: string;
   studentName: string;
+  studentMssv?: string;   // MSSV để đối chiếu với roster lớp
   checkedInAt: number;
   peerVerifications: PeerVerification[];
   peerCount: number;

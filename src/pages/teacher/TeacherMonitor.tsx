@@ -59,7 +59,7 @@ export default function TeacherMonitor() {
         getClassById(sess.classId).then(async (cls) => {
           if (cls) {
             setClassDoc(cls);
-            setTotalStudents(cls.studentIds.length);
+            setTotalStudents(cls.roster?.length ?? cls.studentIds.length);
             const students = await getClassStudents(cls.studentIds);
             setAllStudents(students.map((s) => ({ id: s.id, name: s.name })));
           }
@@ -82,7 +82,22 @@ export default function TeacherMonitor() {
   const present = recordsWithScore.filter((r) => r.trustScore === "present").length;
   const review = recordsWithScore.filter((r) => r.trustScore === "review").length;
   const checkedIn = recordsWithScore.length;
-  const absentCount = totalStudents > 0 ? totalStudents - checkedIn : 0;
+
+  // Đối chiếu danh sách chính thức (roster): vắng = SV trong roster chưa điểm danh
+  const roster = classDoc?.roster ?? null;
+  const useRoster = !!(roster && roster.length);
+  const checkedInKeys = new Set<string>();
+  records.forEach((r) => { if (r.studentMssv) checkedInKeys.add(r.studentMssv); checkedInKeys.add(r.studentId); });
+  const absentStudentList = useRoster
+    ? roster!.filter((e) => !checkedInKeys.has(e.mssv)).map((e) => ({ id: e.mssv, name: e.name }))
+    : allStudents.filter((s) => !checkedInKeys.has(s.id));
+  // Vắng = SV trong danh sách chưa điểm danh + record đã quét nhưng bị chấm absent.
+  // Thẻ stat và chip filter phải dùng CÙNG một con số (trước đây chip chỉ đếm
+  // records absent → hiện "Vắng 0" trong khi thẻ trên "Vắng 1").
+  const absentRecordCount = recordsWithScore.filter((r) => r.trustScore === "absent").length;
+  const absentCount =
+    (useRoster ? absentStudentList.length : (totalStudents > 0 ? totalStudents - checkedIn : 0)) +
+    absentRecordCount;
   const progressPercent = totalStudents > 0 ? Math.round((checkedIn / totalStudents) * 100) : 0;
 
   const filteredRecords = recordsWithScore.filter((r) => {
@@ -103,7 +118,7 @@ export default function TeacherMonitor() {
       // Tính trust score client-side
       const records = await getSessionAttendance(sessionId);
       for (const r of records) {
-        const score = computeTrustScore(r.peerCount, r.faceVerification);
+        const score = computeTrustScore(r.peerCount, r.faceVerification, sessionConfig);
         if (score !== r.trustScore) {
           await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
         }
@@ -118,9 +133,6 @@ export default function TeacherMonitor() {
       setShowEndConfirm(false);
     }
   };
-
-  const checkedInIds = new Set(records.map((r) => r.studentId));
-  const absentStudentList = allStudents.filter((s) => !checkedInIds.has(s.id));
 
   const handleManualSubmit = async () => {
     if (!manualTarget || !sessionId) return;
@@ -143,8 +155,11 @@ export default function TeacherMonitor() {
     { key: "all", label: "Tất cả", count: checkedIn },
     { key: "present", label: "Có mặt", count: present },
     { key: "review", label: "Xem xét", count: review },
-    { key: "absent", label: "Vắng", count: recordsWithScore.filter((r) => r.trustScore === "absent").length },
+    { key: "absent", label: "Vắng", count: absentCount },
   ];
+
+  // Filter "Vắng" → hiện thêm danh sách SV CHƯA điểm danh (không có record)
+  const absentStudentsToShow = filter === "absent" ? absentStudentList : [];
 
   // SVG score ring arc
   const r = 27; const cx = 32; const cy = 32; const strokeW = 5;
@@ -268,7 +283,7 @@ export default function TeacherMonitor() {
         </div>
 
         {/* Attendance list */}
-        {filteredRecords.length === 0 ? (
+        {filteredRecords.length === 0 && absentStudentsToShow.length === 0 ? (
           <div style={{
             background: "#ffffff", borderRadius: 16, padding: 32,
             border: "1px solid rgba(0,0,0,0.04)",
@@ -365,6 +380,31 @@ export default function TeacherMonitor() {
                 </div>
               );
             })}
+
+            {/* SV trong danh sách lớp CHƯA điểm danh (chỉ hiện ở filter "Vắng") */}
+            {absentStudentsToShow.map((s) => (
+              <div key={`absent_${s.id}`} style={{
+                background: "#ffffff", borderRadius: 12, padding: 14,
+                border: "1px solid rgba(0,0,0,0.04)",
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 14, background: "#9ca3af",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <span style={{ color: "#ffffff", fontSize: 14, fontWeight: 700 }}>
+                    {s.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{s.name}</span>
+                  <span style={{ fontSize: 12, color: "#9ca3af" }}>{s.id}</span>
+                </div>
+                <div style={{ background: "#fee2e2", borderRadius: 8, padding: "4px 10px" }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#ef4444" }}>Chưa điểm danh</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

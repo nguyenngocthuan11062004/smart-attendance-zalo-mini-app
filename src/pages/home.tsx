@@ -120,7 +120,7 @@ export default function HomePage() {
       try {
         const classes = role === "teacher"
           ? await getTeacherClasses(user.id)
-          : await getStudentClasses(user.id);
+          : await getStudentClasses(user.mssv || "");
         setTodayClasses(classes);
 
         const results = await Promise.all(
@@ -293,8 +293,10 @@ export default function HomePage() {
                   const isActive = selectedDay === null
                     ? d.toDateString() === today.toDateString()
                     : dayNum === selectedDay;
-                  const dow = d.getDay();
-                  const hasClass = dow >= 1 && dow <= 5;
+                  // Chấm xanh CHỈ khi có lớp học lịch cố định vào thứ này
+                  // (schedule.dayOfWeek: 1=Thứ Hai..7=CN; JS getDay: 0=CN..6)
+                  const isoDow = d.getDay() === 0 ? 7 : d.getDay();
+                  const hasClass = todayClasses.some((c) => c.schedule?.dayOfWeek === isoDow);
                   return (
                     <button
                       key={i}

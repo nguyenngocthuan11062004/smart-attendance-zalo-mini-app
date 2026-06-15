@@ -1,7 +1,8 @@
 import { getUserID, getUserInfo, getAccessToken as zmpGetAccessToken, authorize, getPhoneNumber } from "zmp-sdk/apis";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, onSnapshot, where } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "@/config/firebase";
+import { isMockMode, mockDb } from "@/utils/mock-db";
 import type { UserDoc, UserRole } from "@/types";
 import { storageSetItem, storageGetItem, storageRemoveItem } from "@/utils/storage";
 
@@ -130,31 +131,32 @@ export async function requestPhoneNumber(): Promise<string | null> {
 
 // --- Sign out ---
 
+// Cờ logout BỀN VỮNG: lưu cả vào storage để sống qua việc đóng/mở app.
+// Nếu chỉ dùng biến RAM, mở lại app sẽ auto sign-in khôi phục role+mssv CŨ
+// từ Firestore → vào thẳng home với lớp của tài khoản trước, không qua màn
+// nhập MSSV.
+const LOGGED_OUT_KEY = "logged_out";
 let _loggedOut = false;
 export function isLoggedOut(): boolean { return _loggedOut; }
-export function clearLoggedOut(): void { _loggedOut = false; }
+export function clearLoggedOut(): void {
+  _loggedOut = false;
+  storageRemoveItem(LOGGED_OUT_KEY).catch(() => {});
+}
 
-export async function signOutUser(userId?: string): Promise<void> {
+export async function signOutUser(_userId?: string): Promise<void> {
   _loggedOut = true;
-  // Reset role + MSSV trên Firestore → lần đăng nhập sau phải chọn lại
-  if (userId) {
-    try {
-      await withTimeout(
-        setDoc(doc(db, "users", userId), { role: "", mssv: "", updatedAt: Date.now() }, { merge: true }),
-        3000
-      );
-    } catch { /* ignore */ }
-    // Xóa verified_students → phải verify email lại
-    try {
-      const { deleteDoc: delDoc } = await import("firebase/firestore");
-      await delDoc(doc(db, "verified_students", userId));
-    } catch { /* ignore */ }
-  }
+  await storageSetItem(LOGGED_OUT_KEY, "1").catch(() => {});
+  // Chỉ xoá phiên cục bộ (storage + cache). KHÔNG reset role/mssv trên Firestore:
+  // vai trò do phòng đào tạo (admin) gán phải được giữ qua mỗi lần đăng xuất.
   await storageRemoveItem("user_doc");
-  // Xóa cache
   try {
     const { cacheClearAll } = await import("@/utils/cache");
     await cacheClearAll();
+  } catch { /* ignore */ }
+  try {
+    // Dọn hàng đợi offline — tránh replay thao tác (vd check-in) của tài khoản cũ
+    const { clearQueue } = await import("@/utils/offlineQueue");
+    await clearQueue();
   } catch { /* ignore */ }
 }
 
@@ -176,7 +178,22 @@ export function initAuthState(
     return () => { cancelled = true; };
   }
 
+  // 0. Check cờ logout bền vững (sống qua đóng/mở app) → bắt buộc đăng nhập
+  //    lại qua màn nhập MSSV thay vì auto khôi phục tài khoản cũ.
+  storageGetItem(LOGGED_OUT_KEY)
+    .then((flag) => {
+      if (cancelled) return;
+      if (flag) {
+        _loggedOut = true;
+        callback(null, true);
+        return;
+      }
+      restoreOrSignIn();
+    })
+    .catch(() => { if (!cancelled) restoreOrSignIn(); });
+
   // 1. Restore from Zalo SDK storage (async)
+  function restoreOrSignIn() {
   storageGetItem("user_doc")
     .then((stored) => {
       if (cancelled) return;
@@ -184,6 +201,11 @@ export function initAuthState(
         try {
           const parsed = JSON.parse(stored) as UserDoc;
           callback(parsed, true);
+          // Refresh nền từ Firestore: admin có thể vừa đổi role (vd duyệt GV)
+          // → cập nhật atom mà không cần đăng nhập lại.
+          getUserDoc(parsed.id)
+            .then((fresh) => { if (!cancelled && fresh) callback(fresh, true); })
+            .catch(() => { /* giữ bản cache */ });
           return;
         } catch {
           // corrupted, continue to sign-in
@@ -202,11 +224,20 @@ export function initAuthState(
         .then((userDoc) => { if (!cancelled) callback(userDoc, true); })
         .catch(() => { if (!cancelled) callback(null, true); });
     });
+  }
 
   return () => { cancelled = true; };
 }
 
 // --- Firestore user doc ---
+
+/** Toàn bộ user theo role — dùng cho trang tìm kiếm (SV/GV). */
+export async function getUsersByRole(role: UserRole): Promise<UserDoc[]> {
+  if (isMockMode()) return mockDb.getAllUsers().filter((u) => u.role === role);
+  const q = query(collection(db, "users"), where("role", "==", role));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserDoc);
+}
 
 export async function getUserDoc(userId: string): Promise<UserDoc | null> {
   try {
@@ -308,6 +339,58 @@ export async function requestTeacherRole(userId: string): Promise<void> {
       parsed.updatedAt = Date.now();
       await storageSetItem("user_doc", JSON.stringify(parsed));
     }
+  }
+}
+
+/**
+ * Gửi yêu cầu trở thành giảng viên — chờ phòng đào tạo (admin) duyệt.
+ * KHÔNG đổi role (vẫn do admin gán) — chỉ đặt cờ pendingTeacher + tên.
+ */
+export async function requestTeacherApproval(
+  userId: string,
+  name: string,
+  department?: string
+): Promise<void> {
+  const updates: Record<string, any> = {
+    name,
+    pendingTeacher: true,
+    teacherRejected: false,
+    teacherRequestedAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  if (department) updates.department = department;
+
+  await withTimeout(
+    setDoc(doc(db, "users", userId), updates, { merge: true }),
+    5000
+  );
+
+  const stored = await storageGetItem("user_doc");
+  if (stored) {
+    const parsed = JSON.parse(stored) as UserDoc;
+    if (parsed.id === userId) {
+      Object.assign(parsed, updates);
+      await storageSetItem("user_doc", JSON.stringify(parsed));
+    }
+  }
+}
+
+/**
+ * Theo dõi realtime một user doc (dùng cho màn "chờ duyệt" GV).
+ * Trả về hàm hủy đăng ký.
+ */
+export function subscribeUserDoc(
+  userId: string,
+  callback: (user: UserDoc | null) => void
+): () => void {
+  try {
+    return onSnapshot(
+      doc(db, "users", userId),
+      (snap) => callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as UserDoc) : null),
+      () => callback(null)
+    );
+  } catch {
+    return () => {};
   }
 }
 

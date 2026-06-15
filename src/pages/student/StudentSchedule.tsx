@@ -1,29 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
+import { useAtomValue } from "jotai";
+import { currentUserAtom, userRoleAtom } from "@/store/auth";
+import { getStudentClasses, getTeacherClasses } from "@/services/class.service";
+import type { ClassDoc } from "@/types";
 
-/* ── Mock schedule data (keyed by day-of-week: 0=Sun..6=Sat) ── */
-const MOCK_SCHEDULE: Record<string, ScheduleItem[]> = {
-  "1": [{ code: "162317", name: "IoT và ứng dụng", courseId: "IT4735", time: "09:20", end: "11:45", room: "D9-106", period: "tiết 4-6", day: "Sáng thứ 2", week: 17 }],
-  "2": [{ code: "162317", name: "IoT và ứng dụng", courseId: "IT4735", time: "07:00", end: "09:25", room: "D9-201", period: "tiết 1-3", day: "Sáng thứ 3", week: 17 }],
-  "3": [{ code: "140234", name: "Lập trình Web", courseId: "IT3080", time: "13:30", end: "15:55", room: "D3-302", period: "tiết 7-9", day: "Chiều thứ 4", week: 17 }],
-  "4": [{ code: "162317", name: "IoT và ứng dụng", courseId: "IT4735", time: "09:20", end: "11:45", room: "D9-106", period: "tiết 4-6", day: "Sáng thứ 5", week: 17 }],
-  "5": [
-    { code: "140234", name: "Lập trình Web", courseId: "IT3080", time: "07:00", end: "09:25", room: "D3-302", period: "tiết 1-3", day: "Sáng thứ 6", week: 17 },
-    { code: "150456", name: "Cơ sở dữ liệu", courseId: "IT3090", time: "13:30", end: "15:55", room: "D5-201", period: "tiết 7-9", day: "Chiều thứ 6", week: 17 },
-  ],
-};
-
-interface ScheduleItem {
-  code: string;
-  name: string;
-  courseId: string;
-  time: string;
-  end: string;
-  room: string;
-  period: string;
-  day: string;
-  week: number;
+// Nhãn thứ từ ISO dayOfWeek (1=Thứ Hai..7=CN)
+function dayOfWeekLabel(iso: number): string {
+  return iso === 7 ? "Chủ nhật" : `thứ ${iso + 1}`;
 }
 
 const WEEK_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -51,8 +36,37 @@ function getMonthData(year: number, month: number) {
 
 export default function StudentSchedule() {
   const navigate = useNavigate();
+  const user = useAtomValue(currentUserAtom);
+  const role = useAtomValue(userRoleAtom);
   const [activeTab, setActiveTab] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
+  const [classes, setClasses] = useState<ClassDoc[]>([]);
+
+  // Load lớp thật của user — lịch học lấy từ field schedule của mỗi lớp
+  useEffect(() => {
+    if (!user?.id || !role) return;
+    const load = role === "teacher"
+      ? getTeacherClasses(user.id)
+      : getStudentClasses(user.mssv || "");
+    load.then(setClasses).catch(() => {});
+  }, [user?.id, user?.mssv, role]);
+
+  // Map JS getDay (0=CN..6=T7) → các lớp có lịch vào thứ đó
+  // (schedule.dayOfWeek dùng ISO: 1=Thứ Hai..7=CN → js = iso % 7)
+  const scheduleByJsDow = useMemo(() => {
+    const map = new Map<number, ClassDoc[]>();
+    for (const c of classes) {
+      if (!c.schedule) continue;
+      const js = c.schedule.dayOfWeek % 7;
+      const arr = map.get(js) ?? [];
+      arr.push(c);
+      map.set(js, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => a.schedule!.startTime.localeCompare(b.schedule!.startTime));
+    }
+    return map;
+  }, [classes]);
 
   const today = new Date();
   const viewDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -64,22 +78,22 @@ export default function StudentSchedule() {
 
   const weeks = useMemo(() => getMonthData(viewYear, viewMonth), [viewYear, viewMonth]);
 
-  // Days that have classes (weekdays with schedule entries)
+  // Ngày trong tháng có lịch học (chấm xanh) — dựa trên lịch THẬT của các lớp
   const classDays = useMemo(() => {
     const days = new Set<number>();
     for (let d = 1; d <= daysInMonth; d++) {
       const dow = new Date(viewYear, viewMonth, d).getDay();
-      if (MOCK_SCHEDULE[String(dow)]) days.add(d);
+      if (scheduleByJsDow.has(dow)) days.add(d);
     }
     return days;
-  }, [viewYear, viewMonth, daysInMonth]);
+  }, [viewYear, viewMonth, daysInMonth, scheduleByJsDow]);
 
   const isCurrentMonth = monthOffset === 0;
   const todayDate = today.getDate();
 
   // Schedule for selected day
   const selectedDate = new Date(viewYear, viewMonth, selectedDay);
-  const daySchedule = MOCK_SCHEDULE[String(selectedDate.getDay())] || [];
+  const daySchedule = scheduleByJsDow.get(selectedDate.getDay()) ?? [];
 
   return (
     <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0 }}>
@@ -221,42 +235,46 @@ export default function StudentSchedule() {
             <p style={{ fontSize: 13, color: "#9ca3af" }}>Không có lịch học</p>
           </div>
         ) : (
-          daySchedule.map((item, i) => (
-            <div key={i} style={{
-              background: "#fef2f2", borderRadius: 20, padding: 16,
-              display: "flex", alignItems: "center", gap: 16,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            }}>
-              {/* Time column */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "#be1d2c" }}>{item.time}</span>
-                <div style={{ width: 2, height: 16, borderRadius: 1, background: "#be1d2c40" }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#6b7280" }}>{item.end}</span>
-              </div>
+          daySchedule.map((c) => {
+            const sch = c.schedule!;
+            const buoi = sch.startTime < "12:00" ? "Sáng" : "Chiều";
+            return (
+              <div key={c.id} style={{
+                background: "#fef2f2", borderRadius: 20, padding: 16,
+                display: "flex", alignItems: "center", gap: 16,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              }}>
+                {/* Time column */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: "#be1d2c" }}>{sch.startTime}</span>
+                  <div style={{ width: 2, height: 16, borderRadius: 1, background: "#be1d2c40" }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#6b7280" }}>{sch.endTime}</span>
+                </div>
 
-              {/* Info column */}
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-                <span className="truncate" style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
-                  {item.code} - {item.name} - {item.courseId}
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: 3, background: "#be1d2c", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}>
-                    {item.day}, {item.period}, {item.room}
+                {/* Info column */}
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span className="truncate" style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
+                    {c.code.toUpperCase()} - {c.name}
                   </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: 3, background: "#be1d2c", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}>
+                      {buoi} {dayOfWeekLabel(sch.dayOfWeek)}{c.location ? ` · phòng ${c.location.toUpperCase()}` : ""}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: 3, background: "#3b82f6", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6" }}>GV: {c.teacherName}</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: 3, background: "#3b82f6", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#3b82f6" }}>Tuần {item.week}</span>
-                </div>
-              </div>
 
-              {/* Chevron */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </div>
-          ))
+                {/* Chevron */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </div>
+            );
+          })
         )}
       </div>
     </Page>
