@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Page } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
-import { getClassById, getClassStudents, updateClassConfig } from "@/services/class.service";
+import { getClassById, updateClassConfig } from "@/services/class.service";
 import { getClassSessions } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
 import type { ClassDoc, SessionDoc } from "@/types";
@@ -173,6 +173,14 @@ export default function TeacherClassDetail() {
     );
   }
 
+  // Danh sách SV của lớp = roster (danh sách chính thức GV import). Fallback
+  // studentIds cho lớp cũ chưa có roster. "Số sinh viên" và danh sách dưới đây
+  // đều dựa vào roster, không phải studentIds (chỉ chứa tài khoản đã liên kết).
+  const rosterList: { mssv: string; name: string }[] =
+    classDoc.roster && classDoc.roster.length > 0
+      ? classDoc.roster
+      : classDoc.studentIds.map((id) => ({ mssv: id, name: id }));
+
   return (
     <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
       {/* Header */}
@@ -235,7 +243,7 @@ export default function TeacherClassDetail() {
           }}>
             <div style={{ width: 3, background: "#be1d2c", borderRadius: "12px 0 0 12px" }} />
             <div style={{ padding: "16px 16px 16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 22, fontWeight: 800, color: "#be1d2c" }}>{classDoc.studentIds.length}</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: "#be1d2c" }}>{rosterList.length}</span>
               <span style={{ fontSize: 12, color: "#6b7280" }}>Sinh viên</span>
             </div>
           </div>
@@ -362,6 +370,45 @@ export default function TeacherClassDetail() {
           </div>
         </div>
 
+        {/* Danh sách sinh viên (roster chính thức) */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>
+            DANH SÁCH SINH VIÊN ({rosterList.length})
+          </span>
+        </div>
+
+        {rosterList.length === 0 ? (
+          <div style={{
+            background: "#fff", borderRadius: 12, padding: "24px 16px", textAlign: "center",
+            border: "1px solid rgba(0,0,0,0.04)",
+          }}>
+            <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 4 }}>Chưa có sinh viên trong lớp</p>
+            <p style={{ color: "#9ca3af", fontSize: 12 }}>GV import danh sách (MSSV + họ tên) qua trang quản trị</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {rosterList.map((s, i) => (
+              <div key={s.mssv} style={{
+                background: "#fff", borderRadius: 12, padding: 12,
+                border: "1px solid rgba(0,0,0,0.04)",
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 12, background: "#be1d2c",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>{s.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p className="truncate" style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{s.name}</p>
+                  <p style={{ fontSize: 12, color: "#9ca3af" }}>{s.mssv}</p>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af" }}>#{i + 1}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Recent sessions */}
         <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 1 }}>PHIÊN GẦN ĐÂY</span>
 
@@ -400,7 +447,7 @@ export default function TeacherClassDetail() {
                     {s.status === "active" ? "Đang điểm danh" : "Hoàn thành"}
                   </span>
                   <span style={{ color: "#6b7280", fontSize: 12 }}>
-                    {s.checkedInCount ?? 0}/{classDoc.studentIds.length} SV
+                    {s.checkedInCount ?? 0}/{rosterList.length} SV
                   </span>
                 </div>
               </button>
