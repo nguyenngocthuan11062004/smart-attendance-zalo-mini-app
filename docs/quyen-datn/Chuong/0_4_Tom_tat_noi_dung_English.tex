@@ -1,0 +1,18 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+\begin{center}
+    {\Large \textbf{ABSTRACT}}
+\end{center}
+\vspace{0.5cm}
+
+Attendance checking is a frequent activity in higher education, yet traditional methods (paper-based roll calls, name calling) are time-consuming and prone to fraud (proxy attendance). This thesis presents the development of \textbf{Zimo Checkin} -- a smart attendance application built on the Zalo Mini App platform, aiming to digitize the attendance process and prevent fraud.
+
+The system applies a four-step attendance flow: (1) scanning the lecturer's dynamic QR code, (2) face verification, (3) peer verification among students, and (4) computing a trust score. To prevent fraud, the system uses rotating QR codes signed with HMAC-SHA256 at a 30-second interval, combined with face recognition and GPS-based geofencing.
+
+Technically, the application is developed with React and TypeScript on the Zalo Mini App platform, using Firebase (Firestore, Cloud Functions, Storage) as the backend infrastructure. The system also includes an admin dashboard for class management, statistics, and fraud detection.
+
+As a result, the project has delivered a complete attendance system featuring multi-layer fraud prevention, offline support, and an integrated projector portal for lecturers.
+
+\vspace{0.5cm}
+\textbf{Keywords:} \textit{smart attendance, Zalo Mini App, HMAC, face recognition, fraud prevention, Firebase.}
+\end{document}

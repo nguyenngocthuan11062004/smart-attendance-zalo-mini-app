@@ -1,0 +1,123 @@
+\documentclass{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+
+\title{Báo cáo tiến độ tuần\\[0.3em] \large Từ ngày 25/05/2026 đến ngày 30/05/2026}
+\author{Nguyễn Ngọc Thuận -- MSSV: 20225413\\[0.2em] \normalsize Lớp: Kỹ thuật Máy tính 03 -- K67\\[0.1em] \normalsize Trường Công nghệ Thông tin và Truyền thông -- ĐHBK Hà Nội}
+\date{30 tháng 5 năm 2026}
+
+\begin{document}
+\maketitle
+
+\definecolor{hustred}{HTML}{BE1D2C}
+\definecolor{sectionblue}{HTML}{1E3A5F}
+\definecolor{statusgreen}{HTML}{16A34A}
+\definecolor{statusamber}{HTML}{D97706}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{hustred}{\textbf{ĐATN -- Điểm danh thông minh}}}
+\fancyhead[R]{\small Nguyễn Ngọc Thuận -- 20225413}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{\thesection.}{0.5em}{}[\vspace{-0.3em}\textcolor{hustred}{\rule{\textwidth}{0.8pt}}]
+
+\section{Thông tin chung}
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Đề tài:} & Hệ thống điểm danh thông minh trên Zalo Mini App \\
+\textbf{GVHD:} & Lê Bá Vui \\
+\textbf{Tuần:} & 25/05 -- 30/05/2026 \\
+\textbf{Trạng thái:} & \textcolor{statusamber}{\textbf{Rebrand toàn diện sau khi Zalo từ chối lần 2}} \\
+\end{tabularx}
+
+\section{Bối cảnh}
+
+Zalo từ chối hồ sơ Mini App lần 2 với lý do: \textit{``Tên Mini App, thông tin xác thực và nội dung Mini App chưa đồng nhất.''} Nguyên nhân: tên đăng ký trên portal đã đổi thành ``Zimo Checkin'' (để tránh nhánh danh mục Giáo dục yêu cầu giấy tờ trường), nhưng nội dung bên trong app (splash, header, privacy policy, logo) vẫn hiển thị ``inHUST''.
+
+\textbf{Quyết định:} rebrand toàn diện sang ``Zimo Checkin'' thay vì đợi giấy tờ trường, vì rủi ro hành chính trong 10 ngày cuối ĐATN không kiểm soát được. Tách bạch \textbf{thương hiệu sản phẩm} (Zimo Checkin -- để xuất bản Zalo) khỏi \textbf{phạm vi nghiên cứu} (HUST -- trong quyển ĐATN).
+
+\section{Công việc đã làm}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X c@{}}
+\toprule
+\textbf{STT} & \textbf{Công việc} & \textbf{Mô tả} & \textbf{Trạng thái} \\
+\midrule
+1 & Tách branch riêng & \texttt{feat/rebrand-zimo-checkin} -- 4 commit nguyên tử & \textcolor{statusgreen}{\textbf{OK}} \\
+2 & Đổi tên hiển thị & \texttt{app-config.json}, splash, welcome, home, search, profile, login, AI chat & \textcolor{statusgreen}{\textbf{OK}} \\
+3 & Thay logo & \texttt{icon\_zimo.png} (Z xanh) thay \texttt{icon\_inhust.png} ở Mini App + admin & \textcolor{statusgreen}{\textbf{OK}} \\
+4 & Ẩn logo BK & Gỡ \texttt{<img bk\_logo>} ở header 3 trang dashboard & \textcolor{statusgreen}{\textbf{OK}} \\
+5 & Rebrand admin & AdminLayout, LoginPage, UsersPage (cột HUST→Xác minh), PresentPage & \textcolor{statusgreen}{\textbf{OK}} \\
+6 & Sửa Privacy Policy & Gỡ 8 chỗ HUST/Bách Khoa, dùng cụm trung tính ``đơn vị tổ chức'' & \textcolor{statusgreen}{\textbf{OK}} \\
+7 & Sửa AI System Prompt & Cloud Function \texttt{aiChat} không còn nhắc ``trợ lý inHUST'' & \textcolor{statusgreen}{\textbf{OK}} \\
+8 & Deploy legal site & \texttt{firebase deploy --only hosting:legal} & \textcolor{statusgreen}{\textbf{OK}} \\
+9 & Push branch GitHub & \texttt{origin/feat/rebrand-zimo-checkin} & \textcolor{statusgreen}{\textbf{OK}} \\
+10 & Cập nhật portal Zalo & Đổi tên + icon + mô tả trên \texttt{mini.zalo.me} & \textcolor{statusamber}{\textbf{Chưa làm}} \\
+11 & \texttt{zmp deploy} bản rebrand & Nộp lại Zalo duyệt & \textcolor{statusamber}{\textbf{Chờ}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Nguyên tắc rebrand}
+
+Phân loại 3 nhóm để tránh diff không cần thiết:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{UI text hiển thị} -- phải đổi (text, alt, title, system prompt AI, privacy/terms).
+  \item \textbf{Code identifier} -- giữ (hằng \texttt{HUST\_RED}, hàm \texttt{isValidHUSTEmail}, field \texttt{hustVerified}).
+  \item \textbf{Logic xác thực domain} \texttt{@sis.hust.edu.vn} -- giữ vì là nghiệp vụ thật, chỉ đổi mô tả phía UI sang ``email do trường cấp''.
+\end{itemize}
+
+Tổng: \textbf{19 tệp sửa}, 2 tệp asset mới (logo + favicon). Type-check sạch cả Mini App và admin.
+
+\section{Khó khăn}
+
+\begin{tabularx}{\textwidth}{@{}X X@{}}
+\toprule
+\textbf{Khó khăn} & \textbf{Giải pháp} \\
+\midrule
+Lý do từ chối Zalo mơ hồ, không chỉ field. & Đối chiếu 3 lớp metadata (portal/eKYC/nội dung) để xác định mâu thuẫn. \\
+\addlinespace
+Sửa local xong Privacy vẫn hiện bản cũ trong Zalo. & Phải \texttt{firebase deploy --only hosting:legal} riêng, verify URL trả 200. \\
+\addlinespace
+Logo nhận được dưới dạng \texttt{.jpeg} đổi đuôi \texttt{.png}. & Tạm chạy được trong browser; cần convert thật trước khi upload portal Zalo. \\
+\bottomrule
+\end{tabularx}
+
+\section{Kế hoạch tuần tới (31/05 -- 06/06)}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Convert logo PNG thật, cập nhật portal Zalo (tên + icon + mô tả + banner).
+  \item \texttt{zmp deploy} bản rebrand, nộp lại Zalo, theo dõi 2--5 ngày.
+  \item Merge \texttt{feat/rebrand-zimo-checkin} $\to$ \texttt{main} sau khi duyệt OK.
+  \item \textbf{Tốc lực viết quyển ĐATN} (deadline 08/06): chương Thiết kế, chương Tuân thủ \& Triển khai (gộp 2 tuần compliance + rebrand), chương Kết quả.
+  \item Chuẩn bị slide bảo vệ 12--15 trang.
+\end{enumerate}
+
+\section{Thống kê}
+
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\textbf{Commit:} & 4 (\texttt{00bcf19}, \texttt{d2e9d90}, \texttt{2e54663}, \texttt{93b2bc5}) \\
+\textbf{Files:} & 19 sửa ($+59/-76$), 2 mới (logo + favicon) \\
+\textbf{Deploy:} & Firebase Hosting \texttt{inhust-legal} \\
+\textbf{Chờ:} & Portal Zalo + \texttt{zmp deploy} + duyệt lại \\
+\end{tabularx}
+
+\section{Kết luận}
+
+Tuần quyết định chiến lược -- rebrand vĩnh viễn sang ``Zimo Checkin'' để không phụ thuộc giấy tờ pháp lý của trường, đảm bảo bảo vệ ĐATN đúng hạn 08/06. Rebrand được kiểm soát qua 4 commit nguyên tử trên branch riêng, type-check sạch, sẵn sàng \texttt{zmp deploy} sau khi cập nhật portal Zalo. Tuần tới song song hai luồng: hoàn tất rebrand + nộp Zalo, và viết quyển ĐATN tốc lực.
+
+\end{document}

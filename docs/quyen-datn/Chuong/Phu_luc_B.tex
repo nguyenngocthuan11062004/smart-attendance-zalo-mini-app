@@ -1,0 +1,24 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+% Phụ lục B -- Đặc tả chi tiết các ca sử dụng (use case).
+
+Phụ lục này trình bày đặc tả chi tiết các ca sử dụng chính của hệ thống. Dưới đây là một mẫu đặc tả; cần bổ sung đầy đủ các use case còn lại.
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case "Thực hiện điểm danh"}
+\label{tab:uc_diemdanh}
+\begin{tabularx}{\linewidth}{|l|X|}
+\hline
+\textbf{Mã use case} & UC-01 \\ \hline
+\textbf{Tên} & Thực hiện điểm danh \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập, đã đăng ký khuôn mặt, có buổi điểm danh đang mở \\ \hline
+\textbf{Luồng chính} & 1. Quét mã QR của giảng viên. 2. Xác thực khuôn mặt. 3. Xác minh chéo với bạn cùng lớp. 4. Hệ thống tính điểm tin cậy và ghi nhận. \\ \hline
+\textbf{Luồng thay thế} & Mã QR hết hạn / khuôn mặt không khớp / thiếu số lượng peer $\rightarrow$ hiển thị lỗi và cho thử lại. \\ \hline
+\textbf{Hậu điều kiện} & Bản ghi điểm danh được lưu kèm điểm tin cậy. \\ \hline
+\end{tabularx}
+\end{table}
+
+\textit{[TODO: bổ sung đặc tả cho các use case khác: tạo buổi điểm danh, quản lý lớp, duyệt đơn, xem báo cáo gian lận...]}
+\end{document}

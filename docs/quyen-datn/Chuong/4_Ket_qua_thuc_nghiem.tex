@@ -1,0 +1,31 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Kiến trúc tổng thể hệ thống}
+Hệ thống được thiết kế theo kiến trúc nhiều tầng gồm: tầng ứng dụng khách (Zalo Mini App), tầng quản trị (Admin Dashboard), tầng xử lý nghiệp vụ (Firebase Cloud Functions) và tầng dữ liệu (Firestore, Storage).
+
+\textit{[TODO: chèn sơ đồ kiến trúc tổng thể -- hình \texttt{figures/kien\_truc\_tong\_the.png}; mô tả luồng dữ liệu giữa các tầng.]}
+
+\section{Thiết kế cơ sở dữ liệu}
+Cơ sở dữ liệu Firestore tổ chức theo các collection chính: \texttt{users}, \texttt{classes}, \texttt{sessions}, \texttt{attendance}, \texttt{face\_registrations}, \texttt{pairing\_tokens}, \texttt{absence\_requests}, \texttt{fraud\_reports}.
+
+\textit{[TODO: chèn biểu đồ quan hệ thực thể (ERD) -- hình \texttt{figures/erd.png}; lập bảng đặc tả từng collection và các trường quan trọng.]}
+
+\section{Thiết kế chi tiết luồng điểm danh bốn bước}
+\textit{[TODO: chèn biểu đồ tuần tự (sequence diagram) cho quy trình điểm danh 4 bước -- hình \texttt{figures/sequence\_diemdanh.png}.]}
+\begin{itemize}
+    \item \textbf{Bước 1 -- Quét QR:} sinh viên quét mã QR động của giảng viên, hệ thống xác thực chữ ký HMAC.
+    \item \textbf{Bước 2 -- Xác thực khuôn mặt:} chụp ảnh và đối sánh với ảnh đã đăng ký.
+    \item \textbf{Bước 3 -- Xác minh chéo:} trao đổi mã QR với tối thiểu 3 sinh viên lân cận.
+    \item \textbf{Bước 4 -- Hoàn tất:} hệ thống tính điểm tin cậy và ghi nhận kết quả.
+\end{itemize}
+
+\section{Thiết kế giao diện người dùng}
+\textit{[TODO: chèn ảnh chụp màn hình các giao diện chính (trang chủ, điểm danh, lịch sử, quản lý lớp...).]}
+
+\section{Triển khai hệ thống}
+\textit{[TODO: mô tả công cụ triển khai (zmp deploy, Firebase deploy), cấu trúc mã nguồn, các Cloud Functions đã hiện thực.]}
+
+\section{Kiểm thử và đánh giá}
+\textit{[TODO: phương pháp kiểm thử (mock mode, kiểm thử thủ công, E2E); kịch bản kiểm thử; đánh giá độ chính xác chống gian lận, hiệu năng, trải nghiệm người dùng.]}
+\end{document}

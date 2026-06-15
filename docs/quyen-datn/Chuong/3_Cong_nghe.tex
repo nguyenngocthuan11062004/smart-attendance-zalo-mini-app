@@ -1,0 +1,31 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Nền tảng Zalo Mini App}
+Zalo Mini App là nền tảng cho phép xây dựng các ứng dụng nhẹ chạy trực tiếp bên trong siêu ứng dụng Zalo mà không cần cài đặt riêng~\cite{zalominiapp}. Nền tảng cung cấp SDK với các API truy cập thông tin người dùng, camera, định vị, lưu trữ cục bộ và quét mã QR.
+
+\textit{[TODO: trình bày kiến trúc ZMP, vòng đời ứng dụng, các API sử dụng trong đồ án (authorize, getUserInfo, getLocation, scanQRCode, camera).]}
+
+\section{Thư viện giao diện React và quản lý trạng thái Jotai}
+Giao diện ứng dụng được xây dựng bằng React kết hợp TypeScript~\cite{reactjs}, sử dụng Jotai để quản lý trạng thái theo mô hình atomic.
+
+\textit{[TODO: giải thích component-based, hooks, lý do chọn Jotai thay vì Redux.]}
+
+\section{Nền tảng Firebase}
+Hệ thống sử dụng Firebase làm hạ tầng phía máy chủ~\cite{firebase}, bao gồm: Firestore (cơ sở dữ liệu NoSQL thời gian thực), Cloud Functions (xử lý logic nghiệp vụ phía máy chủ) và Storage (lưu trữ ảnh khuôn mặt).
+
+\textit{[TODO: mô tả Firestore document model, Cloud Functions, Security Rules.]}
+
+\section{Mã xác thực HMAC-SHA256}
+HMAC là cơ chế xác thực thông điệp dựa trên hàm băm có khóa~\cite{hmacrfc}. Trong đồ án, HMAC-SHA256 được dùng để ký mã QR động, đảm bảo mã không thể bị giả mạo hoặc tái sử dụng.
+
+\textit{[TODO: trình bày công thức HMAC, cơ chế khóa bí mật theo từng session, lý do chọn chu kỳ xoay 30 giây.]}
+
+\section{Nhận diện khuôn mặt}
+Hệ thống sử dụng thư viện face-api~\cite{faceapi} để phát hiện và đối sánh khuôn mặt phục vụ xác thực danh tính sinh viên.
+
+\textit{[TODO: mô tả mô hình phát hiện khuôn mặt, ngưỡng tin cậy, kiểm tra liveness, đối sánh với ảnh đăng ký.]}
+
+\section{Sinh và quét mã QR}
+\textit{[TODO: trình bày thư viện qrcode (sinh) và jsqr (quét), cấu trúc payload QR, cơ chế nonce chống tái sử dụng.]}
+\end{document}

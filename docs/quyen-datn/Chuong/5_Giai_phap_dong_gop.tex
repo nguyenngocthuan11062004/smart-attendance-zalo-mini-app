@@ -1,0 +1,21 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Cơ chế mã QR xoay vòng dựa trên HMAC}
+Đây là đóng góp cốt lõi giúp chống điểm danh hộ. Mỗi buổi điểm danh có một khóa bí mật riêng; mã QR được sinh lại mỗi 30 giây và ký bằng HMAC-SHA256, kèm theo nonce và thời gian. Mã chỉ hợp lệ trong khoảng thời gian ngắn nên không thể chụp lại gửi cho người khác.
+
+\textit{[TODO: trình bày chi tiết thuật toán sinh/kiểm tra mã, khả năng chống tấn công phát lại (replay attack).]}
+
+\section{Xác thực đa lớp: khuôn mặt và xác minh chéo}
+Hệ thống kết hợp ba lớp xác thực độc lập: vị trí (GPS), khuôn mặt và xác minh chéo giữa các sinh viên, nâng cao đáng kể khả năng chống gian lận so với điểm danh QR thông thường.
+
+\textit{[TODO: phân tích vì sao kết hợp nhiều lớp khó gian lận hơn; cơ chế phát hiện "luôn cùng nhóm peer".]}
+
+\section{Điểm tin cậy (Trust Score)}
+Hệ thống tổng hợp kết quả các lớp xác thực thành điểm tin cậy với ba mức: \textit{present} (có mặt), \textit{review} (cần kiểm tra), \textit{absent} (vắng), kèm theo lý do minh bạch cho giảng viên.
+
+\textit{[TODO: trình bày công thức/logic tính trust score.]}
+
+\section{Hỗ trợ ngoại tuyến và cổng máy chiếu}
+\textit{[TODO: mô tả hàng đợi ngoại tuyến (offline queue) đồng bộ khi có mạng; cổng máy chiếu (projector pairing) hiển thị mã QR và danh sách điểm danh thời gian thực qua màn lớn.]}
+\end{document}

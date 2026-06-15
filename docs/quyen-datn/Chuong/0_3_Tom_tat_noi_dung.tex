@@ -1,0 +1,18 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+\begin{center}
+    {\Large \textbf{TÓM TẮT NỘI DUNG ĐỒ ÁN}}
+\end{center}
+\vspace{0.5cm}
+
+Điểm danh là hoạt động diễn ra thường xuyên trong môi trường giáo dục đại học, tuy nhiên các phương pháp truyền thống (điểm danh bằng giấy, gọi tên) tốn nhiều thời gian và dễ bị gian lận (điểm danh hộ). Đồ án này trình bày quá trình xây dựng \textbf{Zimo Checkin} -- một ứng dụng điểm danh thông minh trên nền tảng Zalo Mini App, nhằm số hóa và chống gian lận trong quá trình điểm danh.
+
+Hệ thống áp dụng quy trình điểm danh bốn bước: (1) quét mã QR động của giảng viên, (2) xác thực khuôn mặt, (3) xác minh chéo giữa các sinh viên (peer verification), và (4) tổng hợp điểm tin cậy (trust score). Để chống gian lận, hệ thống sử dụng mã QR xoay vòng được ký bằng HMAC-SHA256 với chu kỳ 30 giây, kết hợp nhận diện khuôn mặt và định vị GPS.
+
+Về mặt kỹ thuật, ứng dụng được phát triển bằng React và TypeScript trên nền tảng Zalo Mini App, sử dụng Firebase (Firestore, Cloud Functions, Storage) làm hạ tầng phía máy chủ. Hệ thống còn bao gồm một trang quản trị (admin dashboard) phục vụ quản lý lớp học, thống kê và phát hiện gian lận.
+
+Kết quả, đồ án đã xây dựng được một hệ thống điểm danh hoàn chỉnh, có khả năng chống gian lận đa lớp, hỗ trợ ngoại tuyến và tích hợp cổng máy chiếu cho giảng viên.
+
+\vspace{0.5cm}
+\textbf{Từ khóa:} \textit{điểm danh thông minh, Zalo Mini App, HMAC, nhận diện khuôn mặt, chống gian lận, Firebase.}
+\end{document}

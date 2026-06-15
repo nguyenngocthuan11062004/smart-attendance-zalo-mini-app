@@ -1,0 +1,39 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Khảo sát hiện trạng}
+\textit{[TODO: mô tả hiện trạng điểm danh tại trường -- điểm danh giấy, gọi tên, QR tĩnh; phân tích ưu nhược điểm.]}
+
+\section{Khảo sát các giải pháp tương tự}
+\textit{[TODO: so sánh một số giải pháp điểm danh hiện có (app điểm danh QR, điểm danh vân tay, thẻ NFC...) và chỉ ra điểm khác biệt của Zimo Checkin -- chống gian lận đa lớp, chạy trên Zalo không cần cài app.]}
+
+\section{Tổng quan chức năng}
+Hệ thống cung cấp các nhóm chức năng theo ba vai trò người dùng: sinh viên, giảng viên và quản trị viên.
+
+\section{Đặc tả yêu cầu chức năng}
+\subsection{Chức năng cho sinh viên}
+\begin{itemize}
+    \item Đăng nhập bằng tài khoản Zalo, đăng ký khuôn mặt (CCCD).
+    \item Thực hiện điểm danh theo quy trình 4 bước: quét QR giảng viên $\rightarrow$ xác thực khuôn mặt $\rightarrow$ xác minh chéo $\rightarrow$ hoàn tất.
+    \item Xem lịch học, lịch sử điểm danh, gửi đơn xin phép.
+\end{itemize}
+
+\subsection{Chức năng cho giảng viên}
+\begin{itemize}
+    \item Quản lý lớp học và danh sách sinh viên.
+    \item Tạo và quản lý buổi điểm danh (session), hiển thị mã QR động.
+    \item Theo dõi điểm danh trực tiếp, điểm danh thủ công, duyệt đơn, xem báo cáo gian lận.
+\end{itemize}
+
+\subsection{Chức năng cho quản trị viên}
+\begin{itemize}
+    \item Quản lý người dùng, lớp học toàn hệ thống.
+    \item Nhập/xuất dữ liệu (Excel), thống kê, duyệt đơn xin phép.
+\end{itemize}
+
+\section{Yêu cầu phi chức năng}
+\textit{[TODO: hiệu năng, bảo mật (chống gian lận, bảo vệ dữ liệu khuôn mặt), khả năng hoạt động ngoại tuyến, khả năng mở rộng, tính khả dụng trên thiết bị di động.]}
+
+\section{Biểu đồ use case tổng quát}
+\textit{[TODO: chèn biểu đồ use case tổng quát -- hình \texttt{figures/usecase\_tongquat.png}; mô tả các tác nhân và ca sử dụng chính. Chi tiết đặc tả use case xem Phụ lục B.]}
+\end{document}

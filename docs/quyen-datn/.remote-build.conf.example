@@ -1,0 +1,11 @@
+# Copy file này thành  .remote-build.conf  rồi điền thông tin PC Linux của bạn.
+# (.remote-build.conf đã được .gitignore — không bị đẩy lên git)
+
+# Địa chỉ SSH tới PC Linux: user@host, hoặc tên host trong ~/.ssh/config
+REMOTE="thuan@192.168.1.50"
+
+# Thư mục build trên Linux (sẽ tự tạo nếu chưa có)
+REMOTE_DIR="~/datn-build/quyen-datn"
+
+# Tên file LaTeX chính (không có .tex)
+MAIN="main"
