@@ -597,3 +597,20 @@
 .zaui-bottom-navigation-item-active {
   color: #be1d2c !important;
 }
+
+// ── Popup (zmp-ui Sheet) — ép nền TRẮNG tới sát đáy ─────────
+// Mặc định Sheet chừa vùng home-indicator ở đáy → lớp mask tối lộ ra thành
+// "dải đen". Ép toàn bộ khung Sheet trắng + chữ tiêu đề đen cho đồng bộ.
+.zaui-sheet-content,
+.zaui-sheet-content-main,
+.zaui-sheet-content-header {
+  background: #ffffff !important;
+}
+.zaui-sheet-content-title {
+  color: #1a1a1a !important;
+}
+// Đẩy nền trắng phủ xuống tận vùng home-indicator (an toàn cả khi máy không
+// có safe-area: env() = 0px). Đây là chỗ DUY NHẤT thêm safe-area cho popup.
+.zaui-sheet-content {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}

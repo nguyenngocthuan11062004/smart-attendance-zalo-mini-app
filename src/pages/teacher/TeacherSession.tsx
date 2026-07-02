@@ -15,7 +15,7 @@ import { startSession, endSession } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import { computeTrustScore } from "@/types";
+import { effectiveTrustScore } from "@/types";
 import { updateSessionLocation } from "@/services/session.service";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { ClassDoc, SessionDoc, AttendanceDoc } from "@/types";
@@ -90,7 +90,9 @@ export default function TeacherSession() {
 
   const presentCount = attendance.filter((a) => a.trustScore === "present").length;
   const reviewCount = attendance.filter((a) => a.trustScore === "review").length;
-  const totalStudents = classDoc?.studentIds.length ?? 0;
+  // Sĩ số lớp = danh sách chính thức (roster), KHÔNG phải studentIds (chỉ chứa
+  // tài khoản Zalo đã đăng nhập). Nếu dùng studentIds → "vắng" tính sai.
+  const totalStudents = classDoc?.rosterMssv?.length ?? classDoc?.studentIds.length ?? 0;
   const absentCount = totalStudents - presentCount - reviewCount;
 
   // Auto-end timer: đếm ngược và tự kết thúc khi hết giờ
@@ -206,7 +208,7 @@ export default function TeacherSession() {
       // Tính trust score client-side cho tất cả attendance records
       const records = await getSessionAttendance(session.id);
       for (const r of records) {
-        const score = computeTrustScore(r.peerCount, r.faceVerification, {
+        const score = effectiveTrustScore(r, {
           faceRequired: session.faceRequired,
           peerRequired: session.peerRequired,
         });

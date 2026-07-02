@@ -19,6 +19,7 @@ import InlineQRScanner from "@/components/qr/InlineQRScanner";
 import TrustBadge from "@/components/attendance/TrustBadge";
 import FaceVerification from "@/components/face/FaceVerification";
 import { parseScannedQR } from "@/services/qr.service";
+import { classifyTeacherQR } from "@/utils/validation";
 import { checkGeoFence } from "@/utils/geo";
 import { haptic } from "@/utils/haptic";
 import type { FaceVerificationResult } from "@/types";
@@ -202,10 +203,26 @@ export default function StudentAttendance() {
         teacherScannedRef.current = false;
         return;
       }
+
+      // Xác thực QR giảng viên: chữ ký sai / sai phiên → CHẶN; QR cũ (>90s,
+      // vd ảnh chụp được chia sẻ) → cho qua nhưng ĐÁNH DẤU review.
+      let qrStale = false;
+      if (session.hmacSecret) {
+        const { authentic, stale } = classifyTeacherQR(payload, session.hmacSecret);
+        if (!authentic) {
+          haptic("error");
+          setTeacherScanError("QR không hợp lệ hoặc không thuộc phiên này");
+          teacherScannedRef.current = false;
+          return;
+        }
+        qrStale = stale;
+      }
+
       // GPS đã pre-warm ở mount — call này thường trả từ cache (60s maxAge)
       const location = await requestLocation() ?? undefined;
 
-      // Kiểm tra geofence nếu GV đã set vị trí
+      // Geofence: CÓ GPS & ngoài vùng → chặn. Phiên bật vị trí mà THIẾU GPS
+      // (tắt định vị / từ chối) → không chặn nhưng đánh dấu review.
       if (location && session.location) {
         const geoCheck = checkGeoFence(
           location,
@@ -221,13 +238,22 @@ export default function StudentAttendance() {
           return;
         }
       }
+      const locationMissing = !!session.location && !location;
+
+      // Tổng hợp cờ "cần xem xét"
+      const reviewReasons: string[] = [];
+      if (qrStale) reviewReasons.push("QR đã cũ (>90s)");
+      if (locationMissing) reviewReasons.push("Thiếu vị trí GPS");
+      const review = reviewReasons.length > 0
+        ? { needsReview: true, reason: reviewReasons.join(" · ") }
+        : undefined;
 
       // Optimistic: show success feedback NGAY, không đợi checkIn resolve
       // (trên 3G chậm, checkIn có thể mất 2-5s)
       haptic("success");
       setOptimisticScan("success");
 
-      await checkIn(session.classId, user?.name || "", user?.mssv || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location);
+      await checkIn(session.classId, user?.name || "", user?.mssv || "", payload, { faceRequired: faceReq, peerRequired: peerReq }, location, review);
       // Load peer secret from session subcollection (open rules)
       if (!peerSecret && sessionId) {
         const secret = session.hmacSecret || await getSessionSecret(sessionId);
@@ -291,7 +317,9 @@ export default function StudentAttendance() {
       } else if (code === "invalid-argument") {
         setPeerScanError("QR bạn bè không hợp lệ hoặc hết hạn");
       } else {
-        setError("Lỗi khi quét QR bạn bè. Vui lòng thử lại.");
+        // Dùng error inline (ngay dưới camera) thay vì toast toàn cục để SV
+        // biết cần quét lại đúng chỗ.
+        setPeerScanError("Lỗi khi quét QR bạn bè. Vui lòng thử lại.");
       }
       peerScannedRef.current = false;
     }

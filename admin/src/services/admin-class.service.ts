@@ -35,6 +35,33 @@ export async function getClassById(classId: string): Promise<ClassDoc | null> {
  * Đặt danh sách chính thức (roster) cho lớp từ file Excel.
  * Lưu roster (tên) + rosterMssv (để SV lọc lớp theo MSSV).
  */
+/**
+ * Thêm SV vào roster — MERGE, dedup theo MSSV. KHÔNG tạo user account, KHÔNG
+ * đụng studentIds. SV thật chỉ cần MSSV nằm trong rosterMssv là thấy lớp;
+ * account Zalo tự liên kết khi đăng nhập (đối chiếu theo MSSV).
+ */
+export async function addStudentsToRoster(
+  classId: string,
+  students: { mssv: string; name: string }[]
+): Promise<number> {
+  const ref = doc(db, CLASSES_COL, classId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return 0;
+  const data = snap.data() as ClassDoc;
+  const map = new Map<string, string>();
+  for (const e of data.roster ?? []) {
+    const m = (e.mssv || "").trim();
+    if (m) map.set(m, (e.name || "").trim());
+  }
+  for (const s of students) {
+    const m = (s.mssv || "").trim();
+    if (m) map.set(m, (s.name || "").trim() || map.get(m) || m);
+  }
+  const roster = Array.from(map, ([mssv, name]) => ({ mssv, name }));
+  await updateDoc(ref, { roster, rosterMssv: roster.map((r) => r.mssv) });
+  return roster.length;
+}
+
 export async function setClassRoster(
   classId: string,
   students: { mssv: string; name: string }[]

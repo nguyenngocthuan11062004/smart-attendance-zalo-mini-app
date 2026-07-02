@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Layout, Menu, Avatar, Dropdown, Button, Tooltip, theme } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Button, Tooltip, Badge, theme } from "antd";
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -14,21 +14,13 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   DesktopOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { getPendingTeachers } from "@/services/admin-user.service";
+import { getPendingCount } from "@/services/admin-absence.service";
 
 const { Header, Sider, Content } = Layout;
-
-const menuItems = [
-  { key: "/", icon: <DashboardOutlined />, label: "Tổng quan" },
-  { key: "/users", icon: <TeamOutlined />, label: "Người dùng" },
-  { key: "/teacher-requests", icon: <UserAddOutlined />, label: "Duyệt giảng viên" },
-  { key: "/classes", icon: <BookOutlined />, label: "Lớp học" },
-  { key: "/attendance", icon: <CheckCircleOutlined />, label: "Điểm danh" },
-  { key: "/absence-requests", icon: <FileTextOutlined />, label: "Đơn xin phép" },
-  { key: "/fraud-reports", icon: <WarningOutlined />, label: "Gian lận" },
-  { key: "/present", icon: <DesktopOutlined />, label: "Cổng máy chiếu" },
-];
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -36,6 +28,60 @@ export default function AdminLayout() {
   const location = useLocation();
   const { userDoc, logout } = useAdminAuth();
   const { token } = theme.useToken();
+
+  // Đếm số việc cần xử lý → hiển thị thông báo (chuông + badge menu)
+  const [teacherPending, setTeacherPending] = useState(0);
+  const [absencePending, setAbsencePending] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const [teachers, absence] = await Promise.all([
+          getPendingTeachers().then((r) => r.length).catch(() => 0),
+          getPendingCount().catch(() => 0),
+        ]);
+        if (!cancelled) {
+          setTeacherPending(teachers);
+          setAbsencePending(absence);
+        }
+      } catch { /* ignore */ }
+    };
+    refresh();
+    // Cập nhật mỗi 60s + mỗi khi đổi trang (admin vừa duyệt xong → số giảm)
+    const id = window.setInterval(refresh, 60000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [location.pathname]);
+
+  const totalNotif = teacherPending + absencePending;
+
+  const menuItems = [
+    { key: "/", icon: <DashboardOutlined />, label: "Tổng quan" },
+    { key: "/users", icon: <TeamOutlined />, label: "Người dùng" },
+    {
+      key: "/teacher-requests",
+      icon: <UserAddOutlined />,
+      label: (
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          Duyệt giảng viên
+          {teacherPending > 0 && <Badge count={teacherPending} size="small" />}
+        </span>
+      ),
+    },
+    { key: "/classes", icon: <BookOutlined />, label: "Lớp học" },
+    { key: "/attendance", icon: <CheckCircleOutlined />, label: "Điểm danh" },
+    {
+      key: "/absence-requests",
+      icon: <FileTextOutlined />,
+      label: (
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          Đơn xin phép
+          {absencePending > 0 && <Badge count={absencePending} size="small" />}
+        </span>
+      ),
+    },
+    { key: "/fraud-reports", icon: <WarningOutlined />, label: "Gian lận" },
+  ];
 
   const selectedKey = menuItems.find((item) =>
     item.key === "/" ? location.pathname === "/" : location.pathname.startsWith(item.key)
@@ -60,6 +106,31 @@ export default function AdminLayout() {
         onClick: logout,
       },
     ],
+  };
+
+  // Trung tâm thông báo — gom các việc cần admin xử lý
+  const notifMenu = {
+    items:
+      totalNotif === 0
+        ? [{ key: "empty", label: "Không có thông báo mới", disabled: true }]
+        : [
+            ...(teacherPending > 0
+              ? [{
+                  key: "teacher",
+                  icon: <UserAddOutlined style={{ color: "#be1d2c" }} />,
+                  label: `${teacherPending} yêu cầu giảng viên chờ duyệt`,
+                  onClick: () => navigate("/teacher-requests"),
+                }]
+              : []),
+            ...(absencePending > 0
+              ? [{
+                  key: "absence",
+                  icon: <FileTextOutlined style={{ color: "#f59e0b" }} />,
+                  label: `${absencePending} đơn xin phép chờ duyệt`,
+                  onClick: () => navigate("/absence-requests"),
+                }]
+              : []),
+          ],
   };
 
   return (
@@ -138,6 +209,12 @@ export default function AdminLayout() {
                 Mở cổng máy chiếu
               </Button>
             </Tooltip>
+
+            <Dropdown menu={notifMenu} placement="bottomRight" trigger={["click"]}>
+              <Badge count={totalNotif} size="small" offset={[-2, 4]}>
+                <Button type="text" icon={<BellOutlined style={{ fontSize: 18 }} />} style={{ display: "flex", alignItems: "center", justifyContent: "center" }} />
+              </Badge>
+            </Dropdown>
 
             <Dropdown menu={userMenu} placement="bottomRight">
               <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>

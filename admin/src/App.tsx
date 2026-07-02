@@ -19,8 +19,15 @@ import PresentPage from "@/pages/PresentPage";
 const themeConfig = {
   token: {
     colorPrimary: "#be1d2c",
-    borderRadius: 8,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    borderRadius: 12,
+    colorBgLayout: "#f5f6f8",
+    fontFamily: "'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  components: {
+    Card: { borderRadiusLG: 14, headerFontSize: 16, headerHeight: 52 },
+    Table: { headerBg: "#fafbfc", headerColor: "#475467", rowHoverBg: "rgba(190,29,44,0.04)" },
+    Button: { fontWeight: 600 },
+    Statistic: { titleFontSize: 13 },
   },
 };
 

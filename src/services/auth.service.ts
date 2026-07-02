@@ -239,6 +239,21 @@ export async function getUsersByRole(role: UserRole): Promise<UserDoc[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserDoc);
 }
 
+/** Realtime: user theo role — GV/SV mới tạo hiện ngay trên trang tra cứu. */
+export function subscribeUsersByRole(
+  role: UserRole,
+  cb: (users: UserDoc[]) => void
+): () => void {
+  if (isMockMode()) {
+    cb(mockDb.getAllUsers().filter((u) => u.role === role));
+    return () => {};
+  }
+  const q = query(collection(db, "users"), where("role", "==", role));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserDoc));
+  }, (err) => { console.error("subscribeUsersByRole error:", err); cb([]); });
+}
+
 export async function getUserDoc(userId: string): Promise<UserDoc | null> {
   try {
     const snap = await withTimeout(getDoc(doc(db, "users", userId)), 5000);

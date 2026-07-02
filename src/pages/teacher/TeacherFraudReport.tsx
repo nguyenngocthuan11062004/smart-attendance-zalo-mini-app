@@ -28,7 +28,7 @@ export default function TeacherFraudReport() {
         getClassById(cid),
         getFraudReports(cid),
       ]);
-      if (cls) setClassDoc({ name: cls.name, code: cls.code, studentCount: cls.studentIds.length });
+      if (cls) setClassDoc({ name: cls.name, code: cls.code, studentCount: cls.rosterMssv?.length ?? cls.studentIds.length });
       setReports(existingReports);
     } finally {
       setLoading(false);

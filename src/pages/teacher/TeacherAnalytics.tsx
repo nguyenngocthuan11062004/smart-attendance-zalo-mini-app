@@ -47,7 +47,7 @@ export default function TeacherAnalytics() {
       const sessionStats: SessionStat[] = await Promise.all(
         endedSessions.slice(-10).map(async (session) => {
           const records = await getSessionAttendance(session.id);
-          const total = cls ? cls.studentIds.length : records.length;
+          const total = cls ? (cls.rosterMssv?.length ?? cls.studentIds.length) : records.length;
           const present = records.filter(
             (r) => (r.teacherOverride || r.trustScore) === "present"
           ).length;
@@ -137,7 +137,7 @@ export default function TeacherAnalytics() {
                 </p>
                 <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700, marginTop: 2 }}>{classDoc.name}</p>
                 <p style={{ color: "#9ca3af", fontSize: 12, marginTop: 4 }}>
-                  {classDoc.studentIds.length} sinh viên · {totalSessions} phiên
+                  {(classDoc.rosterMssv?.length ?? classDoc.studentIds.length)} sinh viên · {totalSessions} phiên
                 </p>
               </div>
               <ScoreRing percentage={avgRate} size={72} color="#a78bfa" strokeWidth={6} glow animated>
@@ -155,7 +155,7 @@ export default function TeacherAnalytics() {
               <DarkStatCard value={totalSessions} label="Số phiên" color="#be1d2c" enhanced />
             </div>
             <div className="animate-bounce-in animate-stagger-3">
-              <DarkStatCard value={classDoc.studentIds.length} label="Sinh viên" color="#a78bfa" enhanced />
+              <DarkStatCard value={(classDoc.rosterMssv?.length ?? classDoc.studentIds.length)} label="Sinh viên" color="#a78bfa" enhanced />
             </div>
           </div>
 

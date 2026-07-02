@@ -32,7 +32,8 @@ export async function checkInStudent(
   studentMssv?: string,
   _qrPayload?: QRPayload,
   location?: GeoLocation,
-  config?: { faceRequired?: boolean; peerRequired?: boolean }
+  config?: { faceRequired?: boolean; peerRequired?: boolean },
+  review?: { needsReview?: boolean; reason?: string }
 ): Promise<AttendanceDoc> {
   // Điểm danh xong nghĩa là đã hoàn tất các bước BẮT BUỘC của phiên: với phiên
   // không yêu cầu face/peer thì SV "present" ngay. Tính trustScore theo config
@@ -40,7 +41,13 @@ export async function checkInStudent(
   // === "present") và máy chiếu (đếm !== "absent") sẽ KHÔNG thấy SV cho tới khi
   // phiên kết thúc (lúc đó backfill mới tính lại). TeacherMonitor tính lại
   // client-side nên không bị, nhưng 2 màn kia đọc thẳng field này.
-  const initialScore = computeTrustScore(0, undefined, config);
+  const baseScore = computeTrustScore(0, undefined, config);
+  // GPS thiếu / QR cũ → hạ "present" xuống "review" để GV xem xét
+  const needsReview = !!review?.needsReview;
+  const initialScore = needsReview && baseScore === "present" ? ("review" as const) : baseScore;
+  const reviewFields = needsReview
+    ? { needsReview: true, ...(review?.reason ? { reviewReason: review.reason } : {}) }
+    : {};
 
   if (isMockMode()) {
     const existing = mockDb.getMyAttendance(sessionId, studentId);
@@ -49,6 +56,7 @@ export async function checkInStudent(
       sessionId, classId, studentId, studentName,
       ...(studentMssv ? { studentMssv } : {}),
       checkedInAt: Date.now(), peerVerifications: [], peerCount: 0, trustScore: initialScore,
+      ...reviewFields,
     });
     mockDb.notifyAttendanceChange(sessionId, studentId);
     return created;
@@ -77,6 +85,7 @@ export async function checkInStudent(
     peerVerifications: [],
     peerCount: 0,
     trustScore: initialScore,
+    ...reviewFields,
     ...(location ? { location } : {}),
   };
 
@@ -307,7 +316,8 @@ export async function manualCheckIn(
   studentId: string,
   studentName: string,
   reason: string,
-  decision: "present" | "absent" = "present"
+  decision: "present" | "absent" = "present",
+  manualBy?: string
 ): Promise<{ id: string; created?: boolean; updated?: boolean }> {
   // Resolve classId from session — without it, new manual records would be
   // invisible to per-class queries (analytics, fraud reports, history).
@@ -324,6 +334,7 @@ export async function manualCheckIn(
       existing.trustScore = decision;
       (existing as any).manualReason = reason;
       (existing as any).manualAt = Date.now();
+      if (manualBy) (existing as any).manualBy = manualBy;
       mockDb.notifyAttendanceChange(sessionId, studentId);
       return { id: existing.id, updated: true };
     }
@@ -332,6 +343,7 @@ export async function manualCheckIn(
       sessionId, classId, studentId, studentName,
       checkedInAt: Date.now(), peerVerifications: [], peerCount: 0,
       trustScore: decision, teacherOverride: decision,
+      ...(manualBy ? { manualBy } : {}),
     });
     mockDb.notifyAttendanceChange(sessionId, studentId);
     return { id: record.id, created: true };
@@ -352,6 +364,7 @@ export async function manualCheckIn(
       trustScore: decision,
       manualReason: reason,
       manualAt: Date.now(),
+      ...(manualBy ? { manualBy } : {}),
     });
     return { id: d.id, updated: true };
   }
@@ -369,6 +382,7 @@ export async function manualCheckIn(
     teacherOverride: decision,
     manualReason: reason,
     manualAt: Date.now(),
+    ...(manualBy ? { manualBy } : {}),
   };
   const ref = await addDoc(collection(db, ATTENDANCE), record);
   return { id: ref.id, created: true };

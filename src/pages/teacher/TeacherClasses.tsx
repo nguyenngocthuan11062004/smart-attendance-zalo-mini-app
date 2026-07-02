@@ -3,7 +3,7 @@ import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
-import { getTeacherClasses } from "@/services/class.service";
+import { subscribeTeacherClasses } from "@/services/class.service";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import type { ClassDoc } from "@/types";
 
@@ -13,19 +13,18 @@ export default function TeacherClasses() {
   const [classes, setClasses] = useState<ClassDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadClasses = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const classList = await getTeacherClasses(user.id);
+  // Realtime: lớp GV đang dạy — tạo lớp mới (kể cả từ admin) hiện ngay
+  useEffect(() => {
+    if (!user?.id) { setLoading(false); return; }
+    const unsub = subscribeTeacherClasses(user.id, (classList) => {
       setClasses(classList);
-    } finally {
       setLoading(false);
-    }
+    });
+    return () => unsub();
   }, [user?.id]);
 
-  useEffect(() => {
-    loadClasses();
-  }, [loadClasses]);
+  // Giữ cho PullToRefresh — dữ liệu đã realtime nên chỉ là no-op
+  const loadClasses = useCallback(async () => {}, []);
 
   return (
     <Page style={{ background: "#f2f2f7", minHeight: "100vh", padding: 0 }}>
@@ -118,7 +117,7 @@ export default function TeacherClasses() {
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
                       </svg>
-                      <span style={{ color: "#9ca3af", fontSize: 12 }}>{c.studentIds.length} sinh viên</span>
+                      <span style={{ color: "#9ca3af", fontSize: 12 }}>{c.rosterMssv?.length ?? c.studentIds.length} sinh viên</span>
                     </div>
                   </div>
                 </button>

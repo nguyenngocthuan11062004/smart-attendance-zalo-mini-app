@@ -3,8 +3,8 @@ import { Page, Avatar } from "zmp-ui";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
-import { getAllClasses, getClassByCode } from "@/services/class.service";
-import { getUsersByRole } from "@/services/auth.service";
+import { getAllClasses, getClassByCode, subscribeAllClasses } from "@/services/class.service";
+import { getUsersByRole, subscribeUsersByRole } from "@/services/auth.service";
 import type { ClassDoc, UserDoc } from "@/types";
 
 type SearchType = "gv" | "sv" | "hocphan" | "lop";
@@ -30,19 +30,24 @@ export default function SearchPage() {
   const user = useAtomValue(currentUserAtom);
   const role = useAtomValue(userRoleAtom);
   const [query, setQuery] = useState("");
-  const [searchType, setSearchType] = useState<SearchType>("lop");
+  // null = chưa chọn lọc nào → hiển thị/tìm tất cả. Chọn 1 loại → chỉ loại đó.
+  const [searchType, setSearchType] = useState<SearchType | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [allClasses, setAllClasses] = useState<ClassDoc[]>([]);
-
   const [allTeachers, setAllTeachers] = useState<UserDoc[]>([]);
+  const [allStudents, setAllStudents] = useState<UserDoc[]>([]);
 
-  // Load toàn bộ lớp + GV trong hệ thống — vừa để tìm kiếm trên cả database,
-  // vừa hiển thị sẵn khi chưa gõ từ khóa (trang không bị trống)
+  // Realtime: lớp + GV + SV trong hệ thống. Lớp/giảng viên/SV mới tạo (kể cả
+  // từ admin web) hiện ngay, không cần refresh.
   useEffect(() => {
-    getAllClasses().then(setAllClasses).catch(() => {});
-    getUsersByRole("teacher").then(setAllTeachers).catch(() => {});
+    const unsubs = [
+      subscribeAllClasses(setAllClasses),
+      subscribeUsersByRole("teacher", setAllTeachers),
+      subscribeUsersByRole("student", setAllStudents),
+    ];
+    return () => unsubs.forEach((u) => u());
   }, []);
 
   const handleSearch = useCallback(async () => {
@@ -52,10 +57,15 @@ export default function SearchPage() {
     setLoading(true);
     setSearched(true);
 
+    // null = chưa lọc → tìm tất cả; chọn loại nào → chỉ loại đó
+    const wantClass = searchType === null || searchType === "lop" || searchType === "hocphan";
+    const wantStudent = searchType === null || searchType === "sv";
+    const wantTeacher = searchType === null || searchType === "gv";
+
     try {
       const found: SearchResult[] = [];
 
-      if (searchType === "lop" || searchType === "hocphan") {
+      if (wantClass) {
         // Tìm lớp/học phần trên TOÀN BỘ database theo tên hoặc mã
         const classes = allClasses.length > 0 ? allClasses : await getAllClasses();
         for (const c of classes) {
@@ -63,7 +73,7 @@ export default function SearchPage() {
             found.push({
               id: c.id,
               title: c.name,
-              subtitle: `Mã: ${c.code} · GV: ${c.teacherName} · ${c.studentIds.length} SV`,
+              subtitle: `Mã: ${c.code} · GV: ${c.teacherName} · ${c.rosterMssv?.length ?? c.studentIds.length} SV`,
               type: "class",
               // Chỉ điều hướng vào chi tiết khi là lớp của chính GV này
               path: role === "teacher" && c.teacherId === user.id ? `/teacher/class/${c.id}` : undefined,
@@ -77,15 +87,17 @@ export default function SearchPage() {
             found.push({
               id: byCode.id,
               title: byCode.name,
-              subtitle: `Mã: ${byCode.code} · GV: ${byCode.teacherName} · ${byCode.studentIds.length} SV`,
+              subtitle: `Mã: ${byCode.code} · GV: ${byCode.teacherName} · ${byCode.rosterMssv?.length ?? byCode.studentIds.length} SV`,
               type: "class",
               path: role === "teacher" && byCode.teacherId === user.id ? `/teacher/class/${byCode.id}` : undefined,
             });
           }
         }
-      } else if (searchType === "sv") {
+      }
+
+      if (wantStudent) {
         // Tìm sinh viên trên toàn bộ database theo tên hoặc MSSV
-        const students = await getUsersByRole("student");
+        const students = allStudents.length > 0 ? allStudents : await getUsersByRole("student");
         for (const s of students) {
           const nameMatch = s.name.toLowerCase().includes(q);
           const mssvMatch = !!s.mssv && s.mssv.toLowerCase().includes(q);
@@ -103,9 +115,11 @@ export default function SearchPage() {
             });
           }
         }
-      } else if (searchType === "gv") {
+      }
+
+      if (wantTeacher) {
         // Tìm giảng viên trên toàn bộ database theo tên
-        const teachers = await getUsersByRole("teacher");
+        const teachers = allTeachers.length > 0 ? allTeachers : await getUsersByRole("teacher");
         for (const t of teachers) {
           if (t.name.toLowerCase().includes(q)) {
             const classCount = allClasses.filter(c => c.teacherId === t.id).length;
@@ -124,33 +138,52 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, searchType, allClasses, user, role]);
+  }, [query, searchType, allClasses, allTeachers, allStudents, user, role]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
   };
 
-  // Khi CHƯA tìm kiếm → hiển thị sẵn toàn bộ lớp học + giảng viên trong hệ
-  // thống để trang không bị trống (sinh động ngay khi mở tab)
-  const defaultRows: SearchResult[] = [
-    ...allClasses.map((c) => ({
-      id: c.id,
-      title: c.name,
-      subtitle: `Mã: ${c.code} · GV: ${c.teacherName} · ${c.studentIds.length} SV`,
-      type: "class" as const,
-      path: role === "teacher" && c.teacherId === user?.id ? `/teacher/class/${c.id}` : undefined,
-    })),
-    ...allTeachers.map((t) => {
-      const classCount = allClasses.filter((c) => c.teacherId === t.id).length;
-      return {
-        id: t.id,
-        title: t.name,
-        subtitle: classCount > 0 ? `Giảng viên · ${classCount} lớp` : "Giảng viên",
-        avatar: t.avatar || undefined,
-        type: "teacher" as const,
-      };
-    }),
-  ];
+  // Danh sách hiển thị khi CHƯA tìm kiếm — lọc theo loại đang chọn:
+  //  - null  → tất cả (lớp + GV + SV)
+  //  - lop/hocphan → chỉ lớp;  gv → chỉ GV;  sv → chỉ SV
+  const classRows: SearchResult[] = allClasses.map((c) => ({
+    id: c.id,
+    title: c.name,
+    subtitle: `Mã: ${c.code} · GV: ${c.teacherName} · ${c.rosterMssv?.length ?? c.studentIds.length} SV`,
+    type: "class" as const,
+    path: role === "teacher" && c.teacherId === user?.id ? `/teacher/class/${c.id}` : undefined,
+  }));
+  const teacherRows: SearchResult[] = allTeachers.map((t) => {
+    const classCount = allClasses.filter((c) => c.teacherId === t.id).length;
+    return {
+      id: t.id,
+      title: t.name,
+      subtitle: classCount > 0 ? `Giảng viên · ${classCount} lớp` : "Giảng viên",
+      avatar: t.avatar || undefined,
+      type: "teacher" as const,
+    };
+  });
+  const studentRows: SearchResult[] = allStudents.map((s) => {
+    const inClasses = allClasses
+      .filter((c) => c.studentIds.includes(s.id) || (!!s.mssv && c.rosterMssv?.includes(s.mssv)))
+      .map((c) => c.name);
+    return {
+      id: s.id,
+      title: s.name,
+      subtitle: [s.mssv ? `MSSV: ${s.mssv}` : null, inClasses.length > 0 ? inClasses.join(", ") : "Sinh viên"]
+        .filter(Boolean).join(" · "),
+      avatar: s.avatar || undefined,
+      type: "student" as const,
+    };
+  });
+
+  const defaultRows: SearchResult[] =
+    searchType === "gv" ? teacherRows
+      : searchType === "sv" ? studentRows
+      : searchType === "lop" || searchType === "hocphan" ? classRows
+      : [...classRows, ...teacherRows, ...studentRows];
+
   const displayRows = searched ? results : defaultRows;
 
   return (
@@ -192,9 +225,10 @@ export default function SearchPage() {
             type="text"
             placeholder={
               searchType === "gv" ? "Tên giảng viên..." :
-              searchType === "sv" ? "Tên sinh viên..." :
+              searchType === "sv" ? "Tên hoặc MSSV sinh viên..." :
               searchType === "hocphan" ? "Tên học phần..." :
-              "Tên hoặc mã lớp..."
+              searchType === "lop" ? "Tên hoặc mã lớp..." :
+              "Tìm lớp, sinh viên, giảng viên..."
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -250,7 +284,12 @@ export default function SearchPage() {
               key={opt.key}
               className="flex items-center"
               style={{ cursor: "pointer", gap: 6 }}
-              onClick={() => { setSearchType(opt.key); setResults([]); setSearched(false); }}
+              onClick={() => {
+                // Bấm vào loại đang chọn → bỏ chọn (về "tất cả")
+                setSearchType((prev) => (prev === opt.key ? null : opt.key));
+                setResults([]);
+                setSearched(false);
+              }}
             >
               <div
                 style={{
@@ -316,7 +355,10 @@ export default function SearchPage() {
               fontSize: 11, fontWeight: 600, color: "#9ca3af",
               textTransform: "uppercase", letterSpacing: 1, marginBottom: 8,
             }}>
-              Có trong hệ thống · {allClasses.length} lớp · {allTeachers.length} giảng viên
+              {searchType === "gv" ? `${teacherRows.length} giảng viên`
+                : searchType === "sv" ? `${studentRows.length} sinh viên`
+                : searchType === "lop" || searchType === "hocphan" ? `${classRows.length} lớp học`
+                : `Có trong hệ thống · ${allClasses.length} lớp · ${allTeachers.length} GV · ${allStudents.length} SV`}
             </p>
           )}
 

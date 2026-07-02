@@ -9,7 +9,7 @@ import { getSession, endSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import { computeTrustScore, getTrustScoreReasons } from "@/types";
+import { effectiveTrustScore, getTrustScoreReasons } from "@/types";
 import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc, ClassDoc, SessionDoc } from "@/types";
@@ -76,7 +76,7 @@ export default function TeacherMonitor() {
   // Tính lại trust score client-side dùng session config (fix session cũ thiếu field)
   const recordsWithScore = records.map((r) => ({
     ...r,
-    trustScore: computeTrustScore(r.peerCount, r.faceVerification, sessionConfig),
+    trustScore: effectiveTrustScore(r, sessionConfig),
   }));
 
   const present = recordsWithScore.filter((r) => r.trustScore === "present").length;
@@ -118,7 +118,7 @@ export default function TeacherMonitor() {
       // Tính trust score client-side
       const records = await getSessionAttendance(sessionId);
       for (const r of records) {
-        const score = computeTrustScore(r.peerCount, r.faceVerification, sessionConfig);
+        const score = effectiveTrustScore(r, sessionConfig);
         if (score !== r.trustScore) {
           await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
         }
@@ -140,7 +140,7 @@ export default function TeacherMonitor() {
     try {
       // Lý do là tùy chọn — nếu trống, dùng default ngắn gọn để log vẫn có thông tin
       const reason = manualReason.trim() || "GV xác nhận có mặt";
-      await manualCheckIn(sessionId, manualTarget.id, manualTarget.name, reason, "present");
+      await manualCheckIn(sessionId, manualTarget.id, manualTarget.name, reason, "present", (localSession || session)?.teacherId);
       setManualTarget(null);
       setManualReason("");
       setShowManualModal(false);
@@ -309,7 +309,10 @@ export default function TeacherMonitor() {
               const name = rec.studentName || rec.studentId;
               const initial = name.charAt(0).toUpperCase();
               const reasons = rec.trustScore !== "present"
-                ? getTrustScoreReasons(rec.peerCount, rec.faceVerification, sessionConfig)
+                ? [
+                    ...(rec.reviewReason ? [rec.reviewReason] : []),
+                    ...getTrustScoreReasons(rec.peerCount, rec.faceVerification, sessionConfig),
+                  ]
                 : [];
               // Tính khoảng cách nếu có GPS
               const activeSession = localSession || session;
@@ -557,7 +560,8 @@ export default function TeacherMonitor() {
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%", maxWidth: 420, background: "#ffffff",
-              borderRadius: "20px 20px 0 0", padding: "24px 20px 32px",
+              borderRadius: "20px 20px 0 0",
+              padding: "24px 20px calc(32px + env(safe-area-inset-bottom, 0px))",
               display: "flex", flexDirection: "column", gap: 16,
             }}
           >

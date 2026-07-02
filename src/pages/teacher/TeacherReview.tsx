@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSessionAttendance, teacherOverride, manualCheckIn } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
-import { computeTrustScore, getTrustScoreReasons } from "@/types";
+import { effectiveTrustScore, getTrustScoreReasons } from "@/types";
 import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc, ClassDoc, SessionDoc } from "@/types";
@@ -59,9 +59,7 @@ export default function TeacherReview() {
       };
       const recalculated = attendanceData.map((r) => ({
         ...r,
-        trustScore: r.teacherOverride
-          ? (r.teacherOverride === "present" ? "present" as const : "absent" as const)
-          : computeTrustScore(r.peerCount, r.faceVerification, config),
+        trustScore: effectiveTrustScore(r, config),
       }));
       const sorted = recalculated.sort((a, b) => a.peerCount - b.peerCount);
       setRecords(sorted);
@@ -118,7 +116,7 @@ export default function TeacherReview() {
       // Lý do tùy chọn — nếu trống dùng default chuẩn cho late arrival sau khi
       // phiên đã kết thúc (B5: bổ sung SV đến muộn).
       const reason = manualReason.trim() || "SV đến muộn — GV bổ sung sau phiên";
-      await manualCheckIn(sessionId2, manualTarget.id, manualTarget.name, reason, "present");
+      await manualCheckIn(sessionId2, manualTarget.id, manualTarget.name, reason, "present", session?.teacherId);
       setAbsentStudents((prev) =>
         prev.map((s) => s.id === manualTarget.id ? { ...s, markedPresent: true, manualReason: reason } : s)
       );
@@ -134,7 +132,7 @@ export default function TeacherReview() {
   const handleUndoManual = async (student: AbsentStudent) => {
     if (!sessionId2) return;
     try {
-      await manualCheckIn(sessionId2, student.id, student.name, "Hủy điểm danh thủ công", "absent");
+      await manualCheckIn(sessionId2, student.id, student.name, "Hủy điểm danh thủ công", "absent", session?.teacherId);
       setAbsentStudents((prev) =>
         prev.map((s) => s.id === student.id ? { ...s, markedPresent: false, manualReason: undefined } : s)
       );
@@ -404,6 +402,12 @@ export default function TeacherReview() {
 
                     {/* Lý do xem xét */}
                     <div style={{ background: "#fffbeb", borderRadius: 10, padding: "8px 12px" }}>
+                      {r.reviewReason && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <div style={{ width: 4, height: 4, borderRadius: 2, background: "#ef4444", flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#b91c1c" }}>{r.reviewReason}</span>
+                        </div>
+                      )}
                       {getTrustScoreReasons(r.peerCount, r.faceVerification, {
                         faceRequired: session?.faceRequired,
                         peerRequired: session?.peerRequired,

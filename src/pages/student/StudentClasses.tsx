@@ -3,7 +3,7 @@ import { Page, useSnackbar } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import { currentUserAtom } from "@/store/auth";
-import { getStudentClasses } from "@/services/class.service";
+import { subscribeStudentClasses } from "@/services/class.service";
 import { getActiveSessionForClass } from "@/services/session.service";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import type { ClassDoc, SessionDoc } from "@/types";
@@ -16,16 +16,13 @@ export default function StudentClasses() {
   const [activeSessions, setActiveSessions] = useState<Record<string, SessionDoc>>({});
   const [loading, setLoading] = useState(true);
 
+  // Realtime: lớp SV thuộc về (theo rosterMssv). GV thêm MSSV của SV vào lớp →
+  // lớp hiện ngay, không cần refresh.
   useEffect(() => {
-    if (!user?.id) return;
-    loadClasses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.mssv]);
-
-  async function loadClasses() {
-    try {
-      const classList = await getStudentClasses(user?.mssv || "");
+    if (!user?.mssv) { setLoading(false); return; }
+    const unsub = subscribeStudentClasses(user.mssv, async (classList) => {
       setClasses(classList);
+      setLoading(false);
       const sessionMap: Record<string, SessionDoc> = {};
       await Promise.all(
         classList.map(async (c) => {
@@ -34,9 +31,21 @@ export default function StudentClasses() {
         })
       );
       setActiveSessions(sessionMap);
-    } finally {
-      setLoading(false);
-    }
+    });
+    return () => unsub();
+  }, [user?.mssv]);
+
+  // Pull-to-refresh chỉ cần refetch trạng thái phiên (lớp đã realtime)
+  async function loadClasses() {
+    const sessionMap: Record<string, SessionDoc> = {};
+    await Promise.all(
+      classes.map(async (c) => {
+        const session = await getActiveSessionForClass(c.id);
+        if (session) sessionMap[c.id] = session;
+      })
+    );
+    setActiveSessions(sessionMap);
+    setLoading(false);
   }
 
   const handleClassClick = async (classDoc: ClassDoc) => {

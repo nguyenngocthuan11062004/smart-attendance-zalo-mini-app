@@ -113,6 +113,9 @@ export interface AttendanceDoc {
   manualBy?: string;      // teacherId who marked manually
   manualReason?: string;   // reason for manual attendance
   manualAt?: number;       // timestamp of manual action
+  // Cờ "cần xem xét": GPS thiếu hoặc QR cũ lúc check-in → hạ present xuống review
+  needsReview?: boolean;
+  reviewReason?: string;
 }
 
 export interface PeerVerification {
@@ -208,6 +211,27 @@ export function computeTrustScore(
   if (facePass && peerPass) return "present";
   if (facePass || peerPass) return "review";
   return "absent";
+}
+
+/**
+ * Điểm tin cậy "hiệu lực" dùng ở mọi nơi hiển thị/tính lại:
+ *  - GV override → ưu tiên tuyệt đối
+ *  - needsReview (GPS thiếu / QR cũ) → hạ "present" xuống "review"
+ *  - còn lại → computeTrustScore theo bước face/peer
+ */
+export function effectiveTrustScore(
+  r: {
+    peerCount: number;
+    faceVerification?: FaceVerificationResult;
+    teacherOverride?: "present" | "absent";
+    needsReview?: boolean;
+  },
+  config?: { faceRequired?: boolean; peerRequired?: boolean }
+): TrustScore {
+  if (r.teacherOverride) return r.teacherOverride === "present" ? "present" : "absent";
+  const base = computeTrustScore(r.peerCount, r.faceVerification, config);
+  if (r.needsReview && base === "present") return "review";
+  return base;
 }
 
 /**

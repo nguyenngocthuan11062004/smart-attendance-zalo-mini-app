@@ -24,6 +24,20 @@ export function validateTeacherQR(
   return { valid: true };
 }
 
+/**
+ * Phân loại QR giảng viên cho luồng điểm danh:
+ *  - authentic: chữ ký HMAC đúng & là QR teacher (sai → chặn, QR giả/sai phiên)
+ *  - stale: quá QR_EXPIRY_MS (quét QR cũ, vd ảnh chụp chia sẻ) → đánh dấu review
+ */
+export function classifyTeacherQR(
+  payload: QRPayload,
+  secret: string
+): { authentic: boolean; stale: boolean } {
+  const authentic = payload.type === "teacher" && verifySignature(payload, payload.signature, secret);
+  const stale = Date.now() - payload.timestamp > QR_EXPIRY_MS;
+  return { authentic, stale };
+}
+
 export function validatePeerQR(
   payload: QRPayload,
   currentUserId: string,

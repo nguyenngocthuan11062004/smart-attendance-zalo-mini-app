@@ -51,7 +51,7 @@ export default function ClassCard({ classDoc, onClick, showStudentCount, index }
             </span>
             {showStudentCount && (
               <Text size="xxSmall" style={{ color: "#9ca3af" }}>
-                {classDoc.studentIds.length} sinh viên
+                {classDoc.rosterMssv?.length ?? classDoc.studentIds.length} sinh viên
               </Text>
             )}
           </div>

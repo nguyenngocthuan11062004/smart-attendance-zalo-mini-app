@@ -17,7 +17,8 @@
   "scripts": {
     "login": "zmp login",
     "start": "zmp start",
-    "deploy": "zmp deploy"
+    "deploy": "zmp deploy",
+    "lint": "eslint \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -35,6 +36,9 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "@types/crypto-js": "^4.2.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.1",

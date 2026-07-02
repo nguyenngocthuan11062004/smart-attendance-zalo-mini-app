@@ -6,7 +6,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import {
-  PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, UploadOutlined,
+  PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined,
   DownloadOutlined, CheckCircleFilled, CloseCircleFilled, FileExcelOutlined,
 } from "@ant-design/icons";
 import {
@@ -141,7 +141,7 @@ export default function ClassesPage() {
   const handleDelete = (cls: ClassDoc) => {
     modal.confirm({
       title: `Xóa lớp "${cls.name}"?`,
-      content: `Lớp có ${cls.studentIds.length} sinh viên. Hành động này không thể hoàn tác.`,
+      content: `Lớp có ${cls.rosterMssv?.length ?? cls.studentIds.length} sinh viên. Hành động này không thể hoàn tác.`,
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
@@ -215,8 +215,9 @@ export default function ClassesPage() {
     { title: "Giảng viên", dataIndex: "teacherName", key: "teacherName", width: 180 },
     {
       title: "SV", dataIndex: "studentIds", key: "students", width: 70,
-      render: (ids: string[]) => ids.length,
-      sorter: (a, b) => a.studentIds.length - b.studentIds.length,
+      // Sĩ số = roster (danh sách chính thức), không phải studentIds (chỉ tài khoản đã login)
+      render: (_, r) => r.rosterMssv?.length ?? r.studentIds.length,
+      sorter: (a, b) => (a.rosterMssv?.length ?? a.studentIds.length) - (b.rosterMssv?.length ?? b.studentIds.length),
     },
     {
       title: "Lịch", key: "schedule", width: 140,
@@ -240,10 +241,11 @@ export default function ClassesPage() {
       render: (t: number) => new Date(t).toLocaleDateString("vi-VN"),
     },
     {
-      title: "", key: "actions", width: 140,
+      title: "", key: "actions", width: 100,
+      // Chặn nổi bọt: bấm Sửa/Xóa không kích hoạt mở chi tiết của cả dòng
+      onCell: () => ({ onClick: (e: React.MouseEvent) => e.stopPropagation() }),
       render: (_, r) => (
         <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/classes/${r.id}`)} />
           <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
           <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r)} />
         </Space>
@@ -312,7 +314,15 @@ export default function ClassesPage() {
       </Card>
 
       <Card>
+        {/* Hover dòng → nền đỏ mờ; bấm cả dòng → mở chi tiết */}
+        <style>{`
+          .classes-table .ant-table-tbody > tr.ant-table-row { cursor: pointer; }
+          .classes-table .ant-table-tbody > tr.ant-table-row:hover > td {
+            background: rgba(190,29,44,0.06) !important;
+          }
+        `}</style>
         <Table
+          className="classes-table"
           dataSource={classes}
           columns={columns}
           rowKey="id"
@@ -320,6 +330,7 @@ export default function ClassesPage() {
           pagination={{ pageSize: 20, showTotal: (t) => `${t} lớp` }}
           scroll={{ x: 900 }}
           size="middle"
+          onRow={(r) => ({ onClick: () => navigate(`/classes/${r.id}`) })}
         />
       </Card>
 

@@ -2,7 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { Page } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { openWebview } from "zmp-sdk/apis";
-import { sendChatMessage, resetChat } from "@/services/ai.service";
+import { useAtomValue } from "jotai";
+import { currentUserAtom, userRoleAtom } from "@/store/auth";
+import { getStudentClasses, getTeacherClasses } from "@/services/class.service";
+import { sendChatMessage, resetChat, setChatContext } from "@/services/ai.service";
 import { storageGetItem, storageSetItem } from "@/utils/storage";
 
 const AI_CONSENT_KEY = "ai_chat_consent_v1";
@@ -45,6 +48,8 @@ export default function AIChatPage() {
   const [consentChecked, setConsentChecked] = useState(false);
   const [consentGranted, setConsentGranted] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const user = useAtomValue(currentUserAtom);
+  const role = useAtomValue(userRoleAtom);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -58,6 +63,41 @@ export default function AIChatPage() {
   useEffect(() => {
     return () => { resetChat(); };
   }, []);
+
+  // Nạp dữ liệu THẬT (lịch hôm nay + lớp của user) vào ngữ cảnh AI để các gợi ý
+  // như "Lịch học hôm nay" / "Tra cứu lớp học" được trả lời chính xác, không bịa.
+  useEffect(() => {
+    if (!user || !role) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const classes = role === "teacher"
+          ? await getTeacherClasses(user.id)
+          : await getStudentClasses(user.mssv || "");
+        if (cancelled) return;
+        const today = new Date();
+        const iso = today.getDay() === 0 ? 7 : today.getDay();
+        const dayNames = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+        const todayClasses = classes
+          .filter((c) => c.schedule?.dayOfWeek === iso)
+          .sort((a, b) => a.schedule!.startTime.localeCompare(b.schedule!.startTime));
+        const lines = [
+          `Người dùng: ${user.name}${user.mssv ? `, MSSV ${user.mssv}` : ""}, vai trò ${role === "teacher" ? "giảng viên" : "sinh viên"}.`,
+          `Hôm nay: ${dayNames[today.getDay()]}, ${today.toLocaleDateString("vi-VN")}.`,
+          todayClasses.length
+            ? "Lịch học hôm nay:\n" + todayClasses.map((c) => `• ${c.schedule!.startTime}-${c.schedule!.endTime} ${c.name} (${c.code})${c.location ? `, phòng ${c.location}` : ""}, GV ${c.teacherName}`).join("\n")
+            : "Hôm nay người dùng KHÔNG có lịch học.",
+          `Các lớp của người dùng: ${classes.map((c) => `${c.name} (${c.code})`).join("; ") || "chưa có lớp nào"}.`,
+        ];
+        setChatContext(
+          "DỮ LIỆU THỰC TẾ của người dùng (dùng để trả lời chính xác, KHÔNG bịa thêm):\n" + lines.join("\n")
+        );
+      } catch {
+        /* không có context vẫn chat được bình thường */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.mssv, role]);
 
   // Check consent on mount
   useEffect(() => {

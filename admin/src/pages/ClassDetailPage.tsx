@@ -9,11 +9,11 @@ import {
   UserOutlined, PlusOutlined, CheckCircleFilled, CloseCircleFilled,
 } from "@ant-design/icons";
 import {
-  getClassById, getClassStudents, addStudentsToClass,
+  getClassById, getClassStudents, addStudentsToRoster,
   removeStudentFromClass, removeRosterEntry, getTeachers, setClassRoster,
 } from "@/services/admin-class.service";
 import { getSessionsByClass } from "@/services/admin-attendance.service";
-import { createOrFindStudents, getAllStudents } from "@/services/admin-user.service";
+import { getAllStudents } from "@/services/admin-user.service";
 import { parseStudentFile, exportUsersToExcel, downloadStudentTemplate, type ImportedStudent } from "@/services/import-export.service";
 import type { ClassDoc, UserDoc, SessionDoc } from "@/types";
 import type { ColumnsType } from "antd/es/table";
@@ -158,37 +158,38 @@ export default function ClassDetailPage() {
     setSelectedStudentIds((prev) => prev.filter((sid) => sid !== id));
   };
 
-  // Thêm tất cả SV đã chọn vào lớp
-  const handleAddSelectedStudents = async () => {
-    if (!classId || selectedStudentIds.length === 0) return;
+  // MSSV/họ tên đang gõ tay trong form (để gộp vào nút "Thêm" duy nhất)
+  const watchMssv = (Form.useWatch("mssv", addForm) || "").trim();
+  const watchName = (Form.useWatch("name", addForm) || "").trim();
+  const hasManualEntry = !!(watchMssv && watchName);
+  const totalToAdd = selectedStudentIds.length + (hasManualEntry ? 1 : 0);
+
+  // MỘT nút thêm duy nhất: gộp SV đã chọn từ gợi ý + SV gõ tay (nếu có).
+  const handleAddStudents = async () => {
+    if (!classId || totalToAdd === 0) return;
     setAddLoading(true);
     try {
-      await addStudentsToClass(classId, selectedStudentIds);
-      message.success(`Đã thêm ${selectedStudentIds.length} sinh viên vào lớp`);
+      // Account thật đã chọn → lấy MSSV; SV gõ tay → lấy thẳng. Dedup theo MSSV,
+      // ghi vào DANH SÁCH LỚP (roster), KHÔNG tạo account giả / không đụng studentIds.
+      const map = new Map<string, string>();
+      let skipped = 0;
+      for (const id of selectedStudentIds) {
+        const s = allDbStudents.find((st) => st.id === id);
+        if (s?.mssv) map.set(s.mssv, s.name);
+        else skipped++;
+      }
+      if (hasManualEntry) map.set(watchMssv, watchName);
+
+      if (map.size === 0) {
+        message.error("Không có sinh viên hợp lệ (cần MSSV) để thêm");
+        return;
+      }
+      await addStudentsToRoster(classId, Array.from(map, ([mssv, name]) => ({ mssv, name })));
+      message.success(
+        `Đã thêm ${map.size} sinh viên vào lớp${skipped > 0 ? ` (bỏ qua ${skipped} SV thiếu MSSV)` : ""}`
+      );
       setAddModalOpen(false);
       setSelectedStudentIds([]);
-      load();
-    } catch {
-      message.error("Lỗi thêm sinh viên");
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
-  // Tạo SV mới nếu chưa có trong DB
-  const handleCreateAndAddStudent = async () => {
-    if (!classId) return;
-    const values = await addForm.validateFields();
-    setAddLoading(true);
-    try {
-      const ids = await createOrFindStudents([{
-        mssv: values.mssv,
-        name: values.name,
-        email: values.email,
-        department: values.department,
-      }]);
-      await addStudentsToClass(classId, ids);
-      message.success(`Đã thêm ${values.name} vào lớp`);
       addForm.resetFields();
       setSearchText("");
       load();
@@ -220,12 +221,10 @@ export default function ClassDetailPage() {
 
     setImportLoading(true);
     try {
-      // Ghi danh sách chính thức (roster) — SV chỉ thấy lớp nếu MSSV nằm trong đây
-      await setClassRoster(classId, valid.map((s) => ({ mssv: s.mssv, name: s.name })));
-      // Giữ luôn studentIds để trang chi tiết hiển thị (tên SV)
-      const ids = await createOrFindStudents(valid);
-      await addStudentsToClass(classId, ids);
-      message.success(`Đã cập nhật danh sách lớp: ${valid.length} sinh viên`);
+      // Import = đặt lại danh sách chính thức (roster). KHÔNG tạo tài khoản giả,
+      // KHÔNG đụng studentIds. SV thấy lớp khi MSSV nằm trong rosterMssv.
+      const count = await setClassRoster(classId, valid.map((s) => ({ mssv: s.mssv, name: s.name })));
+      message.success(`Đã cập nhật danh sách lớp: ${count} sinh viên`);
       setImportModalOpen(false);
       setImportPreview([]);
       load();
@@ -451,12 +450,12 @@ export default function ClassDetailPage() {
       <Modal
         title="Thêm sinh viên vào lớp"
         open={addModalOpen}
-        onOk={handleAddSelectedStudents}
+        onOk={handleAddStudents}
         onCancel={() => { setAddModalOpen(false); setSelectedStudentIds([]); addForm.resetFields(); setSearchText(""); }}
-        okText={`Thêm ${selectedStudentIds.length} sinh viên`}
+        okText={totalToAdd > 0 ? `Thêm ${totalToAdd} sinh viên` : "Thêm vào lớp"}
         cancelText="Hủy"
         confirmLoading={addLoading}
-        okButtonProps={{ disabled: selectedStudentIds.length === 0 }}
+        okButtonProps={{ disabled: totalToAdd === 0 }}
         width={600}
       >
         <Space direction="vertical" style={{ width: "100%", marginTop: 16 }} size="middle">
@@ -517,32 +516,20 @@ export default function ClassDetailPage() {
           <div>
             <Divider style={{ margin: "8px 0" }} />
             <Text strong style={{ display: "block", marginBottom: 8 }}>
-              Thông tin sinh viên {selectedStudentIds.length > 0 ? "(đã chọn)" : "— hoặc tạo mới"}
+              Hoặc nhập tay sinh viên mới
             </Text>
             <Form form={addForm} layout="vertical" size="small">
               <Space style={{ width: "100%" }} wrap>
-                <Form.Item name="mssv" label="MSSV" style={{ marginBottom: 4 }} rules={[{ required: true, message: "Bắt buộc" }]}>
+                <Form.Item name="mssv" label="MSSV" style={{ marginBottom: 4 }}>
                   <Input placeholder="20210001" style={{ width: 130 }} />
                 </Form.Item>
-                <Form.Item name="name" label="Họ tên" style={{ marginBottom: 4 }} rules={[{ required: true, message: "Bắt buộc" }]}>
+                <Form.Item name="name" label="Họ tên" style={{ marginBottom: 4 }}>
                   <Input placeholder="Nguyễn Văn A" style={{ width: 180 }} />
                 </Form.Item>
-                <Form.Item name="email" label="Email" style={{ marginBottom: 4 }}>
-                  <Input placeholder="a@sis.hust.edu.vn" style={{ width: 200 }} />
-                </Form.Item>
-                <Form.Item name="department" label="Khoa" style={{ marginBottom: 4 }}>
-                  <Input placeholder="CNTT" style={{ width: 130 }} />
-                </Form.Item>
               </Space>
-              <Button
-                type="dashed"
-                icon={<PlusOutlined />}
-                onClick={handleCreateAndAddStudent}
-                loading={addLoading}
-                style={{ marginTop: 8 }}
-              >
-                Tạo sinh viên mới & thêm vào lớp
-              </Button>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Nhập đủ MSSV + Họ tên rồi bấm <b>“{totalToAdd > 0 ? `Thêm ${totalToAdd} sinh viên` : "Thêm vào lớp"}”</b> bên dưới.
+              </Text>
             </Form>
           </div>
         </Space>

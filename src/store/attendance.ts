@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { computeTrustScore } from "@/types";
+import { effectiveTrustScore } from "@/types";
 import type { AttendanceDoc, TrustScore, FaceVerificationResult } from "@/types";
 
 export const myAttendanceAtom = atom<AttendanceDoc | null>(null);
@@ -12,8 +12,7 @@ export const peerCountAtom = atom<number>((get) => {
 export const trustScoreAtom = atom<TrustScore>((get) => {
   const att = get(myAttendanceAtom);
   if (!att) return "absent";
-  if (att.teacherOverride) return att.teacherOverride === "present" ? "present" : "absent";
-  return computeTrustScore(att.peerCount, att.faceVerification);
+  return effectiveTrustScore(att);
 });
 
 export type AttendanceStep = "idle" | "scan-teacher" | "face-verify" | "show-qr" | "scan-peers" | "done";

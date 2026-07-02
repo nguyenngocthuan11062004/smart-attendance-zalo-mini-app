@@ -13,9 +13,15 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
+  // Guard: getUserMedia() có thể resolve SAU khi component unmount hoặc active=false
+  // (chuyển bước điểm danh rất nhanh). Nếu gán stream lúc đó → camera vẫn sáng,
+  // tốn pin, có thể treo WebView Zalo. Hai ref dưới để callback async tự bỏ qua.
+  const mountedRef = useRef(true);
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanPaused, setScanPaused] = useState(false);
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   const stopCamera = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -37,6 +43,11 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
         video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
       });
+      // Đã unmount / scanner đã tắt trong lúc đợi getUserMedia → dừng track ngay
+      if (!mountedRef.current || !activeRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -91,6 +102,12 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [cameraReady, active, onDetect, scanPaused]);
+
+  // Theo dõi mount để callback async (getUserMedia) bỏ qua kết quả sau unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Start/stop camera based on active prop
   useEffect(() => {

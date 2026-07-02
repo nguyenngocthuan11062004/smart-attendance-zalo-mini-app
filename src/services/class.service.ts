@@ -8,11 +8,44 @@ import {
   where,
   arrayUnion,
   updateDoc,
+  onSnapshot,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { isMockMode, mockDb } from "@/utils/mock-db";
 import { cacheGet, cacheSet, cacheRemove } from "@/utils/cache";
 import type { ClassDoc } from "@/types";
+
+// ── Realtime subscriptions ──────────────────────────────────────────
+// Trả về dữ liệu sống: tạo/sửa/xóa lớp (kể cả từ admin web) phản ánh ngay
+// trên Mini App, không phải chờ cache 2 phút hết hạn hay refresh tay.
+
+/** Toàn bộ lớp — dùng cho trang tra cứu. */
+export function subscribeAllClasses(cb: (classes: ClassDoc[]) => void): Unsubscribe {
+  if (isMockMode()) { cb(mockDb.getAllClasses()); return () => {}; }
+  return onSnapshot(collection(db, CLASSES), (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc));
+  }, (err) => { console.error("subscribeAllClasses error:", err); cb([]); });
+}
+
+/** Lớp GV đang dạy. */
+export function subscribeTeacherClasses(teacherId: string, cb: (classes: ClassDoc[]) => void): Unsubscribe {
+  if (isMockMode()) { cb(mockDb.getTeacherClasses(teacherId)); return () => {}; }
+  const q = query(collection(db, CLASSES), where("teacherId", "==", teacherId));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc));
+  }, (err) => { console.error("subscribeTeacherClasses error:", err); cb([]); });
+}
+
+/** Lớp SV thuộc về (MSSV nằm trong rosterMssv). */
+export function subscribeStudentClasses(mssv: string, cb: (classes: ClassDoc[]) => void): Unsubscribe {
+  if (!mssv) { cb([]); return () => {}; }
+  if (isMockMode()) { cb(mockDb.getStudentClasses(mssv)); return () => {}; }
+  const q = query(collection(db, CLASSES), where("rosterMssv", "array-contains", mssv));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassDoc));
+  }, (err) => { console.error("subscribeStudentClasses error:", err); cb([]); });
+}
 
 const CLASSES = "classes";
 
@@ -122,8 +155,15 @@ export async function updateClassConfig(
     faceRequired: config.faceRequired,
     peerRequired: config.peerRequired,
   });
-  // Clear teacher class cache so updated config is reflected
-  await cacheRemove(`teacher_classes_`);
+  // Xoá cache đúng key. Key cũ `teacher_classes_` THIẾU teacherId nên không bao
+  // giờ khớp entry `teacher_classes_${teacherId}` → cache không bị xoá, GV vẫn
+  // thấy cấu hình cũ tới 2 phút. Đọc teacherId từ doc rồi xoá đúng key + all_classes.
+  try {
+    const snap = await getDoc(doc(db, CLASSES, classId));
+    const teacherId = snap.exists() ? (snap.data().teacherId as string | undefined) : undefined;
+    if (teacherId) await cacheRemove(`teacher_classes_${teacherId}`);
+  } catch { /* ignore — cache best-effort */ }
+  await cacheRemove("all_classes");
 }
 
 export async function getClassStudents(

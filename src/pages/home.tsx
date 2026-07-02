@@ -5,7 +5,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
 import { globalErrorAtom } from "@/store/ui";
 // useAuth removed – logout is now on the Profile page
-import { getStudentClasses, getTeacherClasses } from "@/services/class.service";
+import { subscribeStudentClasses, subscribeTeacherClasses } from "@/services/class.service";
 import { getActiveSessionForClass } from "@/services/session.service";
 import type { ClassDoc, SessionDoc } from "@/types";
 import logo from "@/static/icon_zimo.png";
@@ -116,13 +116,11 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!user?.id || !role) return;
-    const loadData = async () => {
+    // Realtime: lớp của GV/SV. Lớp mới (hoặc vừa được thêm MSSV vào roster)
+    // hiện ngay trên trang chủ + lịch, không cần mở lại app.
+    const onClasses = async (classes: ClassDoc[]) => {
+      setTodayClasses(classes);
       try {
-        const classes = role === "teacher"
-          ? await getTeacherClasses(user.id)
-          : await getStudentClasses(user.mssv || "");
-        setTodayClasses(classes);
-
         const results = await Promise.all(
           classes.map((c) =>
             getActiveSessionForClass(c.id).then((s) =>
@@ -130,22 +128,38 @@ export default function HomePage() {
             )
           )
         );
-        const sessions = results.filter(
-          (r): r is { classDoc: ClassDoc; session: SessionDoc } => r !== null
+        setUpcomingSessions(
+          results.filter((r): r is { classDoc: ClassDoc; session: SessionDoc } => r !== null)
         );
-        setUpcomingSessions(sessions);
       } catch {
         setGlobalError("Không thể tải dữ liệu trang chủ");
       }
     };
-    loadData();
-  }, [user?.id, role]);
+    const unsub = role === "teacher"
+      ? subscribeTeacherClasses(user.id, onClasses)
+      : subscribeStudentClasses(user.mssv || "", onClasses);
+    return () => unsub();
+  }, [user?.id, user?.mssv, role]);
 
   if (!user) return null;
   if (!role) return <Navigate to="/login" replace />;
 
   const today = new Date();
   const weekDates = getWeekDates(today);
+
+  // Ngày đang chọn trên lịch tuần → các lớp có lịch học vào thứ đó
+  // (schedule.dayOfWeek ISO: 1=Thứ Hai..7=CN; JS getDay: 0=CN..6)
+  const selectedDate =
+    selectedDay === null
+      ? today
+      : weekDates.find((d) => d.getDate() === selectedDay) ?? today;
+  const selIso = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
+  const classesForSelectedDay = todayClasses
+    .filter((c) => c.schedule?.dayOfWeek === selIso)
+    .sort((a, b) => (a.schedule!.startTime).localeCompare(b.schedule!.startTime));
+  const activeSessionByClass = new Map(
+    upcomingSessions.map((u) => [u.classDoc.id, u.session])
+  );
 
   interface MenuItem { title: string; icon: React.ReactNode; path: string; highlight?: boolean }
 
@@ -332,39 +346,49 @@ export default function HomePage() {
             {/* Divider */}
             <div style={{ height: 1, background: "#e5e7eb" }} />
 
-            {/* Bottom: schedule cards */}
-            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              {upcomingSessions.length > 0 ? (
-                upcomingSessions.map(({ classDoc, session }) => {
-                  const startTime = new Date(session.startedAt);
-                  const endTime = new Date(startTime.getTime() + 90 * 60 * 1000);
-                  const fmtTime = (d: Date) => d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+            {/* Bottom: các lớp học theo lịch của ngày đang chọn */}
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+              {classesForSelectedDay.length > 0 ? (
+                classesForSelectedDay.map((c) => {
+                  const sch = c.schedule!;
+                  const active = activeSessionByClass.get(c.id);
                   return (
                     <button
-                      key={session.id}
-                      onClick={() => navigate(
-                        role === "teacher"
-                          ? `/teacher/monitor/${session.id}`
-                          : `/student/attendance/${session.id}`
-                      )}
+                      key={c.id}
+                      onClick={() => {
+                        if (role === "teacher") {
+                          // GV: luôn vào màn Phiên điểm danh (TeacherSession tự load phiên
+                          // đang chạy + có nút "Theo dõi" để sang monitor). Trước đây bấm
+                          // vào phiên đang hoạt động lại vào thẳng monitor.
+                          navigate(`/teacher/session/${c.id}`);
+                        } else if (active) {
+                          navigate(`/student/attendance/${active.id}`);
+                        } else {
+                          navigate("/student/classes");
+                        }
+                      }}
                       style={{
-                        background: "#fef2f2", borderRadius: 16, padding: "18px 16px",
+                        background: "#fef2f2", borderRadius: 16, padding: "16px",
                         display: "flex", alignItems: "center", gap: 16,
                         border: "none", textAlign: "left", width: "100%",
                       }}
                     >
                       {/* Time column */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{fmtTime(startTime)}</span>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{sch.startTime}</span>
                         <div style={{ width: 2, height: 20, borderRadius: 1, background: "#d1d5db" }} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#9ca3af" }}>{fmtTime(endTime)}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "#9ca3af" }}>{sch.endTime}</span>
                       </div>
                       {/* Info */}
                       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                        <span className="truncate" style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{classDoc.name}</span>
+                        <span className="truncate" style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{c.name}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <div style={{ width: 6, height: 6, borderRadius: 3, background: "#be1d2c", flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, fontWeight: 500, color: "#6b7280" }}>Phiên đang hoạt động</span>
+                          <div style={{ width: 6, height: 6, borderRadius: 3, background: active ? "#22c55e" : "#be1d2c", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 500, color: active ? "#16a34a" : "#6b7280" }}>
+                            {active
+                              ? "Phiên đang hoạt động"
+                              : `${c.code.toUpperCase()}${c.location ? ` · Phòng ${c.location.toUpperCase()}` : ""}`}
+                          </span>
                         </div>
                       </div>
                       {/* Chevron */}
@@ -374,12 +398,8 @@ export default function HomePage() {
                     </button>
                   );
                 })
-              ) : todayClasses.length > 0 ? (
-                <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>
-                  {todayClasses.length} lớp học · Chưa có phiên điểm danh
-                </p>
               ) : (
-                <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Không có lịch hôm nay</p>
+                <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Không có lịch ngày này</p>
               )}
             </div>
           </div>
@@ -419,7 +439,7 @@ export default function HomePage() {
             <div className="grid grid-cols-3 gap-3">
               {[
                 { value: todayClasses.length, label: "Lớp học", color: "#be1d2c" },
-                { value: todayClasses.reduce((sum, c) => sum + c.studentIds.length, 0), label: "Sinh viên", color: "#a78bfa" },
+                { value: todayClasses.reduce((sum, c) => sum + (c.rosterMssv?.length ?? c.studentIds.length), 0), label: "Sinh viên", color: "#a78bfa" },
                 { value: upcomingSessions.length, label: "Phiên hoạt động", color: "#22c55e" },
               ].map((stat) => (
                 <div

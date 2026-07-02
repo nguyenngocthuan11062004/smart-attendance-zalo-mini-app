@@ -381,7 +381,7 @@ export default function ProfilePage() {
 
       {/* -- Edit modal -- */}
       <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
-        <div style={{ padding: "0 4px", paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {editFields.map((f) => (
             <div key={f.label}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, display: "block" }}>{f.label}</label>
@@ -417,7 +417,7 @@ export default function ProfilePage() {
         onClose={() => { if (!deletingFace) setDeleteFaceModal(false); }}
         title="Xóa dữ liệu khuôn mặt"
       >
-        <div style={{ padding: "4px 4px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {deleteFaceResult === "" && (
             <>
               <div style={{
