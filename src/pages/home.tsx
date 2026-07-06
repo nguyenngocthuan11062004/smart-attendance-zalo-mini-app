@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Page } from "zmp-ui";
 import { useNavigate, Navigate } from "react-router-dom";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue } from "jotai";
 import { currentUserAtom, userRoleAtom } from "@/store/auth";
-import { globalErrorAtom } from "@/store/ui";
 // useAuth removed – logout is now on the Profile page
 import { subscribeStudentClasses, subscribeTeacherClasses } from "@/services/class.service";
-import { getActiveSessionForClass } from "@/services/session.service";
+import { subscribeActiveSessionForClass } from "@/services/session.service";
 import type { ClassDoc, SessionDoc } from "@/types";
 import logo from "@/static/icon_zimo.png";
 
@@ -112,34 +111,42 @@ export default function HomePage() {
   const [upcomingSessions, setUpcomingSessions] = useState<{classDoc: ClassDoc; session: SessionDoc}[]>([]);
   const [todayClasses, setTodayClasses] = useState<ClassDoc[]>([]);
 
-  const setGlobalError = useSetAtom(globalErrorAtom);
 
+  // Realtime: lớp của GV/SV. Lớp mới (hoặc vừa được thêm MSSV vào roster)
+  // hiện ngay trên trang chủ + lịch, không cần mở lại app.
   useEffect(() => {
     if (!user?.id || !role) return;
-    // Realtime: lớp của GV/SV. Lớp mới (hoặc vừa được thêm MSSV vào roster)
-    // hiện ngay trên trang chủ + lịch, không cần mở lại app.
-    const onClasses = async (classes: ClassDoc[]) => {
-      setTodayClasses(classes);
-      try {
-        const results = await Promise.all(
-          classes.map((c) =>
-            getActiveSessionForClass(c.id).then((s) =>
-              s ? { classDoc: c, session: s } : null
-            )
-          )
-        );
-        setUpcomingSessions(
-          results.filter((r): r is { classDoc: ClassDoc; session: SessionDoc } => r !== null)
-        );
-      } catch {
-        setGlobalError("Không thể tải dữ liệu trang chủ");
-      }
-    };
+    const onClasses = (classes: ClassDoc[]) => setTodayClasses(classes);
     const unsub = role === "teacher"
       ? subscribeTeacherClasses(user.id, onClasses)
       : subscribeStudentClasses(user.mssv || "", onClasses);
     return () => unsub();
   }, [user?.id, user?.mssv, role]);
+
+  // Realtime phiên đang mở của TỪNG lớp. GV bấm "Bắt đầu phiên" → thẻ lớp đổi
+  // "Đang điểm danh" tức thì, không cần refresh. Subscribe lại khi tập lớp đổi.
+  const classIdsKey = todayClasses.map((c) => c.id).sort().join(",");
+  useEffect(() => {
+    if (todayClasses.length === 0) { setUpcomingSessions([]); return; }
+    const classById = new Map(todayClasses.map((c) => [c.id, c]));
+    const sessionByClass = new Map<string, SessionDoc>();
+    const rebuild = () => {
+      const list: { classDoc: ClassDoc; session: SessionDoc }[] = [];
+      sessionByClass.forEach((session, cid) => {
+        const classDoc = classById.get(cid);
+        if (classDoc) list.push({ classDoc, session });
+      });
+      setUpcomingSessions(list);
+    };
+    const unsubs = todayClasses.map((c) =>
+      subscribeActiveSessionForClass(c.id, (session) => {
+        if (session) sessionByClass.set(c.id, session);
+        else sessionByClass.delete(c.id);
+        rebuild();
+      })
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [classIdsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!user) return null;
   if (!role) return <Navigate to="/login" replace />;

@@ -12,7 +12,6 @@ type SearchType = "gv" | "sv" | "hocphan" | "lop";
 const SEARCH_OPTIONS: { key: SearchType; label: string }[] = [
   { key: "gv", label: "GV" },
   { key: "sv", label: "SV" },
-  { key: "hocphan", label: "Học phần" },
   { key: "lop", label: "Lớp" },
 ];
 

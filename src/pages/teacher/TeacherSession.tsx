@@ -13,7 +13,7 @@ import { getClassById } from "@/services/class.service";
 import { getActiveSessionForClass, getClassSessions, getSessionSecret } from "@/services/session.service";
 import { startSession, endSession } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { effectiveTrustScore } from "@/types";
 import { updateSessionLocation } from "@/services/session.service";
@@ -88,12 +88,33 @@ export default function TeacherSession() {
     return () => clearInterval(interval);
   }, [session?.id, session?.status]);
 
-  const presentCount = attendance.filter((a) => a.trustScore === "present").length;
-  const reviewCount = attendance.filter((a) => a.trustScore === "review").length;
+  // Phân loại GIỐNG màn "Theo dõi realtime": tính lại bằng effectiveTrustScore
+  // theo config phiên, KHÔNG đọc a.trustScore thô (giá trị đó ghi 1 lần lúc
+  // check-in, có thể cũ → 2 màn lệch nhau, vd "Xem xét" trong khi thực tế "Có mặt").
+  const sessionConfig = {
+    faceRequired: session?.faceRequired,
+    peerRequired: session?.peerRequired,
+  };
+  const scored = attendance.map((a) => effectiveTrustScore(a, sessionConfig));
+  const presentCount = scored.filter((s) => s === "present").length;
+  const reviewCount = scored.filter((s) => s === "review").length;
+  const absentRecordCount = scored.filter((s) => s === "absent").length;
+
   // Sĩ số lớp = danh sách chính thức (roster), KHÔNG phải studentIds (chỉ chứa
   // tài khoản Zalo đã đăng nhập). Nếu dùng studentIds → "vắng" tính sai.
   const totalStudents = classDoc?.rosterMssv?.length ?? classDoc?.studentIds.length ?? 0;
-  const absentCount = totalStudents - presentCount - reviewCount;
+  // Vắng = SV trong danh sách chưa điểm danh + record bị chấm absent (khớp Monitor).
+  const roster = classDoc?.roster ?? null;
+  const useRoster = !!(roster && roster.length);
+  const checkedInKeys = new Set<string>();
+  attendance.forEach((a) => {
+    if (a.studentMssv) checkedInKeys.add(a.studentMssv);
+    checkedInKeys.add(a.studentId);
+  });
+  const notCheckedIn = useRoster
+    ? roster!.filter((e) => !checkedInKeys.has(e.mssv)).length
+    : Math.max(0, totalStudents - attendance.length);
+  const absentCount = notCheckedIn + absentRecordCount;
 
   // Auto-end timer: đếm ngược và tự kết thúc khi hết giờ
   useEffect(() => {
@@ -205,17 +226,24 @@ export default function TeacherSession() {
     setEnding(true);
     try {
       await endSession(session.id);
-      // Tính trust score client-side cho tất cả attendance records
+      // Đồng bộ trust score cho TẤT CẢ record trong MỘT batch (1 round-trip)
+      // thay vì await từng updateDoc nối tiếp → kết thúc phiên nhanh hơn hẳn.
       const records = await getSessionAttendance(session.id);
+      const batch = writeBatch(db);
+      let changed = 0;
       for (const r of records) {
         const score = effectiveTrustScore(r, {
           faceRequired: session.faceRequired,
           peerRequired: session.peerRequired,
         });
         if (score !== r.trustScore) {
-          await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
+          batch.update(doc(db, "attendance", r.id), { trustScore: score });
+          changed++;
         }
       }
+      // Best-effort: lỗi đồng bộ (mock mode / mạng) không chặn kết thúc phiên;
+      // màn review vẫn tính lại trust score client-side.
+      if (changed > 0) await batch.commit().catch(() => {});
       const endedSession = { ...session, status: "ended" as const, endedAt: Date.now() };
       setSession(null);
       setActiveSession(null);

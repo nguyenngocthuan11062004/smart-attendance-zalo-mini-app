@@ -192,6 +192,9 @@ export interface AbsenceRequestDoc {
   createdAt: number;
 }
 
+// Số bạn cần quét ở bước ngang hàng để "đủ peer". Đổi 1 chỗ này là đổi toàn app.
+export const REQUIRED_PEERS = 1;
+
 export function computeTrustScore(
   peerCount: number,
   faceVerification?: FaceVerificationResult,
@@ -206,7 +209,7 @@ export function computeTrustScore(
   const faceAttempted = !!faceVerification && !faceSkipped;
 
   const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
-  const peerPass = !peerReq || peerCount >= 3;
+  const peerPass = !peerReq || peerCount >= REQUIRED_PEERS;
 
   if (facePass && peerPass) return "present";
   if (facePass || peerPass) return "review";
@@ -260,12 +263,8 @@ export function getTrustScoreReasons(
   }
 
   // Peer check
-  if (peerReq) {
-    if (peerCount === 0) {
-      reasons.push("Chưa xác minh ngang hàng (0/3)");
-    } else if (peerCount < 3) {
-      reasons.push(`Chưa đủ xác minh ngang hàng (${peerCount}/3)`);
-    }
+  if (peerReq && peerCount < REQUIRED_PEERS) {
+    reasons.push(`Chưa xác minh ngang hàng (${peerCount}/${REQUIRED_PEERS})`);
   }
 
   // Location check (info only)

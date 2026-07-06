@@ -3,6 +3,7 @@ import { db } from "@/config/firebase";
 import { callWithFallback } from "@/utils/cloudFallback";
 import { isMockMode, mockDb } from "@/utils/mock-db";
 import type { AttendanceDoc, FraudReport, SessionDoc, SuspiciousPattern } from "@/types";
+import { REQUIRED_PEERS } from "@/types";
 
 /**
  * Data access abstraction so the analysis logic can run against
@@ -151,7 +152,7 @@ async function localAnalyzeFraud(
       }
       const entry = studentSessionCount.get(r.studentId)!;
       entry.total++;
-      if (r.peerCount < 3) entry.low++;
+      if (r.peerCount < REQUIRED_PEERS) entry.low++;
     }
   }
   for (const [sid, counts] of studentSessionCount) {

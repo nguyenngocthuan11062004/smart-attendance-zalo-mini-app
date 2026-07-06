@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Page } from "zmp-ui";
 import { useParams, useNavigate } from "react-router-dom";
-import { getClassById, updateClassConfig } from "@/services/class.service";
+import { subscribeClass, updateClassConfig } from "@/services/class.service";
 import { getClassSessions } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
 import type { ClassDoc, SessionDoc } from "@/types";
@@ -22,28 +22,20 @@ export default function TeacherClassDetail() {
   const [peerRequired, setPeerRequired] = useState(true);
   const mountedRef = useRef(true);
 
-  // Load class doc + sessions trước (UI khả dụng ngay). Đếm SV check-in chạy
-  // sau ở background — không block render, không fail toàn bộ khi 1 phiên lỗi.
+  // Đã khởi tạo cấu hình face/peer từ doc lớp chưa — chỉ init 1 lần, để các
+  // snapshot realtime sau (vd thêm SV) không ghi đè toggle GV đang thao tác.
+  const configInitedRef = useRef(false);
+
+  // Chỉ load DANH SÁCH PHIÊN (+ đếm check-in nền). Doc lớp do subscribeClass lo
+  // realtime bên dưới. Giữ hàm này cho nút "Thử lại".
   const loadData = useCallback(async (cid: string) => {
     if (!mountedRef.current) return;
-    setLoading(true);
     setLoadError(null);
     try {
-      const [cls, sessionList] = await Promise.all([
-        getClassById(cid),
-        getClassSessions(cid).catch(() => [] as SessionDoc[]),
-      ]);
+      const sessionList = await getClassSessions(cid).catch(() => [] as SessionDoc[]);
       if (!mountedRef.current) return;
-      if (!cls) {
-        setLoading(false);
-        return;
-      }
-      setClassDoc(cls);
-      setFaceRequired(cls.faceRequired !== false);
-      setPeerRequired(cls.peerRequired !== false);
       // Show sessions ngay với checkedInCount = undefined (UI hiện 0)
       setSessions(sessionList);
-      setLoading(false);
 
       // Background: fetch attendance counts với allSettled — một phiên fail
       // không ảnh hưởng phiên khác. Khi mỗi count xong, update state riêng.
@@ -61,15 +53,29 @@ export default function TeacherClassDetail() {
     } catch (err: any) {
       if (!mountedRef.current) return;
       setLoadError(err?.message || "Không tải được dữ liệu lớp. Kiểm tra kết nối mạng.");
-      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     mountedRef.current = true;
-    if (classId) loadData(classId);
+    if (!classId) return;
+    setLoading(true);
+    loadData(classId);
+    // Realtime doc lớp: thêm SV vào roster / đổi cấu hình (kể cả từ admin web)
+    // → sĩ số & thông tin lớp cập nhật ngay, không cần refresh.
+    const unsub = subscribeClass(classId, (cls) => {
+      if (!mountedRef.current) return;
+      setClassDoc(cls);
+      if (cls && !configInitedRef.current) {
+        configInitedRef.current = true;
+        setFaceRequired(cls.faceRequired !== false);
+        setPeerRequired(cls.peerRequired !== false);
+      }
+      setLoading(false);
+    });
     return () => {
       mountedRef.current = false;
+      unsub();
     };
   }, [classId, loadData]);
 

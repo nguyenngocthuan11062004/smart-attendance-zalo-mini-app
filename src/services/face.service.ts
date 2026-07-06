@@ -1,7 +1,6 @@
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import type { FaceVerificationResult } from "@/types";
-import { storageGetItem } from "@/utils/storage";
 
 /**
  * Lazy-load face-ai.service.ts (which imports @vladmandic/face-api ~6.4MB).
@@ -32,7 +31,8 @@ const FACE_COLLECTION = "face_registrations";
  */
 export async function registerFace(
   selfie1Base64: string,
-  selfie2Base64: string
+  selfie2Base64: string,
+  userId: string
 ): Promise<RegisterFaceResponse> {
   const { detectFace, compareFaces, serializeDescriptor } = await getFaceAI();
 
@@ -58,17 +58,18 @@ export async function registerFace(
     };
   }
 
-  // Store descriptor in Firestore (use selfie1 as reference)
-  const userId = await getCurrentUserId();
-  if (userId) {
-    await setDoc(doc(db, FACE_COLLECTION, userId), {
-      studentId: userId,
-      descriptor: serializeDescriptor(face1.descriptor),
-      confidence: face1.confidence,
-      registeredAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+  // Store descriptor in Firestore dưới ĐÚNG userId của tài khoản đang đăng nhập
+  // (truyền từ currentUserAtom) — KHÔNG đọc localStorage để tránh lệch tài khoản.
+  if (!userId) {
+    return { success: false, message: "Thiếu thông tin tài khoản. Vui lòng đăng nhập lại." };
   }
+  await setDoc(doc(db, FACE_COLLECTION, userId), {
+    studentId: userId,
+    descriptor: serializeDescriptor(face1.descriptor),
+    confidence: face1.confidence,
+    registeredAt: Date.now(),
+    updatedAt: Date.now(),
+  });
 
   return {
     success: true,
@@ -82,9 +83,11 @@ export async function registerFace(
 export async function verifyFace(
   imageBase64: string,
   _sessionId: string,
-  _attendanceId: string
+  _attendanceId: string,
+  userId: string
 ): Promise<VerifyFaceResponse> {
-  const userId = await getCurrentUserId();
+  // userId truyền từ currentUserAtom — so mặt với ĐÚNG tài khoản đang đăng nhập,
+  // không đọc localStorage (tránh so nhầm với face của tài khoản trước trên máy).
   if (!userId) {
     return { matched: false, confidence: 0, error: "no_user" };
   }
@@ -152,17 +155,4 @@ export function buildSkippedResult(): FaceVerificationResult {
     verifiedAt: Date.now(),
     skipped: true,
   };
-}
-
-// --- Helper ---
-
-async function getCurrentUserId(): Promise<string | null> {
-  try {
-    const stored = await storageGetItem("user_doc");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.id || null;
-    }
-  } catch { /* ignore */ }
-  return null;
 }

@@ -20,6 +20,14 @@ import type { ColumnsType } from "antd/es/table";
 
 const { Title, Text } = Typography;
 
+// Bỏ dấu + hạ chữ thường để tìm kiếm tiếng Việt "gần đúng" (vd "son" khớp "Sơn").
+const normalizeVi = (s: string): string =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "") // gỡ dấu thanh + dấu mũ/móc
+    .replace(/đ/g, "d"); // đ → d
+
 /** 1 dòng trong bảng SV: entry roster + tài khoản liên kết (nếu có) */
 interface StudentRow {
   key: string;
@@ -118,38 +126,39 @@ export default function ClassDetailPage() {
       const all = await getAllStudents();
       const available = all.filter((s) => !cls?.studentIds.includes(s.id));
       setAllDbStudents(available);
+    } catch (err: any) {
+      // Đừng để rỗng âm thầm — báo lỗi để user biết ô tìm không tải được DB.
+      // Vẫn có thể nhập tay MSSV + Họ tên bên dưới.
+      setAllDbStudents([]);
+      message.error("Không tải được danh sách sinh viên: " + (err?.message || "thử lại"));
     } finally {
       setSearchLoading(false);
     }
   };
 
-  // Realtime search khi gõ MSSV hoặc tên
+  // Realtime search khi gõ MSSV hoặc tên. So khớp không phân biệt hoa/thường
+  // và không phân biệt dấu tiếng Việt; loại SV đã chọn khỏi gợi ý.
   const handleSearch = (value: string) => {
     setSearchText(value);
     if (!value.trim()) { setSearchResults([]); return; }
-    const q = value.toLowerCase();
+    const q = normalizeVi(value);
     const filtered = allDbStudents.filter(
-      (s) => (s.mssv || "").toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+      (s) =>
+        !selectedStudentIds.includes(s.id) &&
+        (normalizeVi(s.mssv || "").includes(q) || normalizeVi(s.name || "").includes(q))
     );
     setSearchResults(filtered.slice(0, 10)); // max 10 gợi ý
   };
 
-  // Click vào gợi ý → auto-fill form + thêm vào selected
+  // Click vào gợi ý → CHỈ thêm vào danh sách đã chọn. KHÔNG autofill form nhập
+  // tay (form đó chỉ dành cho SV mới chưa có trong hệ thống — autofill sẽ đếm
+  // nhầm 1 SV thành 2).
   const handleSelectStudent = (studentId: string) => {
-    const student = allDbStudents.find((s) => s.id === studentId);
-    if (!student) return;
-    // Auto-fill form
-    addForm.setFieldsValue({
-      mssv: student.mssv || "",
-      name: student.name,
-      email: student.email || "",
-      department: student.department || "",
-    });
-    // Thêm vào danh sách đã chọn
+    if (!allDbStudents.some((s) => s.id === studentId)) return;
     if (!selectedStudentIds.includes(studentId)) {
       setSelectedStudentIds((prev) => [...prev, studentId]);
     }
-    setSearchText(student.mssv || student.name);
+    setSearchText(""); // xóa ô tìm để chọn tiếp SV khác
     setSearchResults([]);
   };
 
@@ -470,6 +479,9 @@ export default function ClassDetailPage() {
               onSelect={handleSelectStudent}
               placeholder="Nhập MSSV hoặc tên sinh viên..."
               allowClear
+              // Ta đã tự lọc trong handleSearch; tắt lọc mặc định của AntD
+              // (nó so khớp input với option.value = user id → gõ tên rớt hết).
+              filterOption={false}
               onClear={() => { setSearchText(""); setSearchResults([]); }}
               notFoundContent={searchLoading ? "Đang tải..." : searchText ? "Không tìm thấy" : null}
               options={searchResults.map((s) => ({

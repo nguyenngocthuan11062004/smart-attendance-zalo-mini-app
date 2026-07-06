@@ -95,6 +95,34 @@ export async function getActiveSessionForClass(classId: string): Promise<Session
   return { id: d.id, ...d.data() } as SessionDoc;
 }
 
+/**
+ * Realtime: phiên đang mở của 1 lớp. Callback fire ngay khi GV bắt đầu/kết thúc
+ * phiên → trang chủ SV cập nhật tức thì, không cần refresh.
+ */
+export function subscribeActiveSessionForClass(
+  classId: string,
+  callback: (session: SessionDoc | null) => void
+): Unsubscribe {
+  if (isMockMode()) {
+    callback(mockDb.getActiveSessionForClass(classId));
+    return () => {};
+  }
+  const q = query(
+    collection(db, SESSIONS),
+    where("classId", "==", classId),
+    where("status", "==", "active")
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      if (snap.empty) { callback(null); return; }
+      const d = snap.docs[0];
+      callback({ id: d.id, ...d.data() } as SessionDoc);
+    },
+    () => callback(null)
+  );
+}
+
 export function subscribeToSession(
   sessionId: string,
   callback: (session: SessionDoc | null) => void

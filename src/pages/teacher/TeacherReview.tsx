@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSessionAttendance, teacherOverride, manualCheckIn } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
-import { effectiveTrustScore, getTrustScoreReasons } from "@/types";
+import { effectiveTrustScore, getTrustScoreReasons, REQUIRED_PEERS } from "@/types";
 import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc, ClassDoc, SessionDoc } from "@/types";
@@ -533,11 +533,11 @@ export default function TeacherReview() {
                         {peerReq && (
                           <div style={{
                             display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 8, padding: "4px 10px",
-                            background: r.peerCount >= 3 ? "rgba(34,197,94,0.08)" : "rgba(245,158,11,0.1)",
+                            background: r.peerCount >= REQUIRED_PEERS ? "rgba(34,197,94,0.08)" : "rgba(245,158,11,0.1)",
                           }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={r.peerCount >= 3 ? "#16a34a" : "#f59e0b"} strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: r.peerCount >= 3 ? "#16a34a" : "#b45309" }}>
-                              {r.peerCount}/3 peers
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={r.peerCount >= REQUIRED_PEERS ? "#16a34a" : "#f59e0b"} strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: r.peerCount >= REQUIRED_PEERS ? "#16a34a" : "#b45309" }}>
+                              {r.peerCount}/{REQUIRED_PEERS} peers
                             </span>
                           </div>
                         )}

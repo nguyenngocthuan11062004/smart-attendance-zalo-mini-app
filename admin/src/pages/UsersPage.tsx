@@ -57,6 +57,7 @@ export default function UsersPage() {
     {
       title: "Người dùng",
       key: "user",
+      sorter: (a, b) => (a.name || "").localeCompare(b.name || "", "vi"),
       render: (_, r) => (
         <Space>
           <Avatar src={r.avatar} icon={<UserOutlined />} />
@@ -72,6 +73,7 @@ export default function UsersPage() {
       dataIndex: "role",
       key: "role",
       width: 120,
+      sorter: (a, b) => (a.role || "").localeCompare(b.role || ""),
       render: (role: string) => <Tag color={roleColor[role]}>{roleLabel[role] || role}</Tag>,
     },
     {
@@ -79,6 +81,7 @@ export default function UsersPage() {
       dataIndex: "department",
       key: "department",
       width: 200,
+      sorter: (a, b) => (a.department || "").localeCompare(b.department || "", "vi"),
       render: (v: string) => v || "—",
     },
     {
@@ -86,6 +89,7 @@ export default function UsersPage() {
       dataIndex: "phone",
       key: "phone",
       width: 130,
+      sorter: (a, b) => (a.phone || "").localeCompare(b.phone || ""),
       render: (v: string) => v || "—",
     },
     {

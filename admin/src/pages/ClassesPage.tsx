@@ -146,9 +146,14 @@ export default function ClassesPage() {
       okType: "danger",
       cancelText: "Hủy",
       onOk: async () => {
-        await deleteClass(cls.id);
-        message.success("Đã xóa lớp");
-        load();
+        try {
+          await deleteClass(cls.id);
+          message.success("Đã xóa lớp");
+          load();
+        } catch (err: any) {
+          message.error("Xóa thất bại: " + (err?.message || "Vui lòng thử lại"));
+          throw err; // giữ modal mở khi lỗi
+        }
       },
     });
   };

@@ -7,6 +7,7 @@ import type { FaceVerificationResult } from "@/types";
 interface FaceVerificationProps {
   sessionId: string;
   attendanceId: string;
+  userId: string;
   teacherId?: string;
   onComplete: (result: FaceVerificationResult) => void;
   onSkip: () => void;
@@ -17,16 +18,15 @@ type VerifyState = "scanning" | "verifying" | "success" | "failed" | "error";
 export default function FaceVerification({
   sessionId,
   attendanceId,
+  userId,
   teacherId,
   onComplete,
   onSkip,
 }: FaceVerificationProps) {
   const [state, setState] = useState<VerifyState>("scanning");
-  const [confidence, setConfidence] = useState(0);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("Dang khoi dong camera...");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,13 +34,7 @@ export default function FaceVerification({
   const captureTimerRef = useRef<number>();
   const isVerifyingRef = useRef(false);
   const mountedRef = useRef(true);
-  // Source-of-truth for retry attempts inside autoVerify closures.
-  // useState is for UI; the ref avoids stale-closure bugs where pending
-  // setTimeout callbacks read an out-of-date retryCount.
-  const retryCountRef = useRef(0);
-  const MAX_RETRIES = 3;
 
-  const pct = Math.round(confidence * 100);
 
   // Start camera
   const startCamera = useCallback(async () => {
@@ -58,7 +52,7 @@ export default function FaceVerification({
         videoRef.current.srcObject = stream;
         videoRef.current.play().catch(() => {});
       }
-      setStatusText("Đang nhận diện...");
+      setStatusText("Căn khuôn mặt vào khung rồi bấm Chụp");
       setProgress(15);
     } catch {
       setStatusText("Không thể truy cập camera");
@@ -99,26 +93,28 @@ export default function FaceVerification({
     return canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
   }, []);
 
-  // Auto-verify loop
-  const autoVerify = useCallback(async () => {
+  // Chụp-để-xác-minh: chạy MỘT lần khi người dùng bấm nút. KHÔNG auto-loop
+  // (vòng lặp cũ detectFace mỗi 2s rất nặng → giật/chậm). Không khớp thì quay
+  // lại trạng thái chờ để bấm chụp lại, camera vẫn chạy.
+  const runVerify = useCallback(async () => {
     if (isVerifyingRef.current || !mountedRef.current) return;
 
     const imageBase64 = captureFrame();
     if (!imageBase64) {
-      // Camera not ready yet, retry
-      captureTimerRef.current = window.setTimeout(autoVerify, 1000);
+      setStatusText("Camera chưa sẵn sàng, thử lại sau giây lát");
       return;
     }
 
     isVerifyingRef.current = true;
     setState("verifying");
-    setStatusText("Đang nhận diện...");
+    setStatusText("Đang xác minh...");
     setProgress(50);
 
     try {
-      const result = await verifyFace(imageBase64, sessionId, attendanceId);
+      const result = await verifyFace(imageBase64, sessionId, attendanceId, userId);
 
       if (!mountedRef.current) return;
+      isVerifyingRef.current = false;
 
       if (result.error) {
         if (result.error === "no_registration") {
@@ -127,18 +123,21 @@ export default function FaceVerification({
           stopCamera();
           return;
         }
-        // Transient error — retry
-        isVerifyingRef.current = false;
+        // Lỗi tạm (chưa thấy mặt / lỗi nhận diện) — cho bấm chụp lại.
         setState("scanning");
-        setStatusText("Đang nhận diện...");
-        setProgress(25);
-        captureTimerRef.current = window.setTimeout(autoVerify, 2500);
+        setProgress(0);
+        setStatusText(
+          result.error === "no_face_detected"
+            ? "Không thấy khuôn mặt — căn vào khung rồi bấm Chụp"
+            : "Lỗi nhận diện, hãy bấm Chụp lại"
+        );
         return;
       }
 
-      setConfidence(result.confidence);
-
-      if (result.matched && result.confidence >= 0.7) {
+      // Đậu khi khoảng cách Euclid < 0.6 (chuẩn face-api cho "cùng người").
+      // KHÔNG siết thêm confidence>=0.7 (=distance<=0.3) như trước — ngưỡng đó
+      // từ chối cả khuôn mặt đúng ở distance 0.3–0.6 (rất phổ biến do sáng/góc).
+      if (result.matched) {
         setProgress(100);
         setStatusText("Xác minh thành công!");
         setState("success");
@@ -154,54 +153,38 @@ export default function FaceVerification({
               livenessChecked: false,
             });
           }
-        }, 1500);
+        }, 1200);
       } else {
-        // Low confidence — retry automatically
-        setProgress(Math.round(result.confidence * 100));
-        retryCountRef.current += 1;
-        setRetryCount(retryCountRef.current);
-        isVerifyingRef.current = false;
-
-        if (retryCountRef.current >= MAX_RETRIES) {
-          setState("failed");
-          setStatusText("Không khớp khuôn mặt");
-          stopCamera();
-        } else {
-          setState("scanning");
-          setStatusText("Đang nhận diện...");
-          captureTimerRef.current = window.setTimeout(autoVerify, 2000);
-        }
+        // Không khớp — báo rõ "sai mặt": overlay đỏ + badge + haptic.
+        // Camera vẫn chạy để bấm "Chụp lại" ngay (không tự lặp).
+        setProgress(0);
+        setState("failed");
+        setStatusText("Khuôn mặt không khớp — hãy chụp lại");
+        haptic("error");
       }
     } catch (err: any) {
       if (!mountedRef.current) return;
       isVerifyingRef.current = false;
-      // Retry on transient errors
-      if (retryCountRef.current >= MAX_RETRIES) {
-        setErrorMsg(err.message || "Lỗi xác minh khuôn mặt");
-        setState("error");
-        stopCamera();
-      } else {
-        retryCountRef.current += 1;
-        setRetryCount(retryCountRef.current);
-        setState("scanning");
-        captureTimerRef.current = window.setTimeout(autoVerify, 2500);
-      }
+      setState("scanning");
+      setProgress(0);
+      setStatusText("Lỗi xác minh, hãy bấm Chụp lại");
     }
-  }, [captureFrame, sessionId, attendanceId, onComplete, stopCamera]);
+  }, [captureFrame, sessionId, attendanceId, userId, onComplete, stopCamera]);
 
-  // Start camera + auto-capture on mount
+  // Chỉ MỞ camera khi mount — KHÔNG tự verify. Chờ người dùng bấm Chụp.
   useEffect(() => {
     mountedRef.current = true;
-    startCamera().then(() => {
-      // Wait for camera to warm up, then start auto-verify
-      captureTimerRef.current = window.setTimeout(autoVerify, 2000);
-    });
+    startCamera();
 
     return () => {
       mountedRef.current = false;
       stopCamera();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCaptureNow = () => {
+    runVerify();
+  };
 
   const handleSkip = () => {
     stopCamera();
@@ -213,17 +196,12 @@ export default function FaceVerification({
   };
 
   const handleRetry = () => {
-    retryCountRef.current = 0;
-    setRetryCount(0);
-    setConfidence(0);
     setProgress(0);
     setErrorMsg(null);
     isVerifyingRef.current = false;
     setState("scanning");
     setStatusText("Đang khởi động camera...");
-    startCamera().then(() => {
-      captureTimerRef.current = window.setTimeout(autoVerify, 2000);
-    });
+    startCamera();
   };
 
   const handleContactTeacher = () => {
@@ -339,8 +317,8 @@ export default function FaceVerification({
               transition: "width 0.5s ease, background 0.3s ease",
             }} />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: barColor, minWidth: 32, textAlign: "right" }}>
-            {state === "success" ? `${pct}%` : state === "verifying" ? "..." : `${barWidth}%`}
+          <span style={{ fontSize: 13, fontWeight: 700, color: barColor, minWidth: 24, textAlign: "right" }}>
+            {state === "success" ? "✓" : state === "verifying" ? "..." : ""}
           </span>
         </div>
 
@@ -368,7 +346,7 @@ export default function FaceVerification({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" />
             </svg>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#22c55e" }}>{pct}% khop</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#22c55e" }}>Đã khớp</span>
           </div>
         )}
 
@@ -381,7 +359,7 @@ export default function FaceVerification({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#f59e0b" }}>{pct}% khop</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#f59e0b" }}>Không khớp</span>
           </div>
         )}
 
@@ -419,15 +397,24 @@ export default function FaceVerification({
       {(state === "failed" || state === "error") && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <button
-            onClick={handleRetry}
+            // Sai mặt (failed) → chụp lại ngay, camera còn chạy.
+            // Lỗi camera/chưa đăng ký (error) → mở lại camera.
+            onClick={state === "failed" ? handleCaptureNow : handleRetry}
             style={{
               width: "100%", height: 52, borderRadius: 14,
               background: "#be1d2c", border: "none",
               boxShadow: "0 4px 16px rgba(190,29,44,0.25)",
               color: "#fff", fontSize: 15, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}
           >
-            Thử lại
+            {state === "failed" && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            )}
+            {state === "failed" ? "Chụp lại" : "Thử lại"}
           </button>
           {teacherId && (
             <button
@@ -457,17 +444,36 @@ export default function FaceVerification({
         </div>
       )}
 
-      {/* Skip button during scanning */}
+      {/* Capture + Skip buttons during scanning */}
       {(state === "scanning" || state === "verifying") && (
-        <button
-          onClick={handleSkip}
-          style={{
-            width: "100%", height: 48, borderRadius: 14, background: "#f0f0f5",
-            border: "none", fontSize: 15, fontWeight: 600, color: "#6b7280",
-          }}
-        >
-          Bỏ qua bước này
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <button
+            onClick={handleCaptureNow}
+            disabled={state === "verifying"}
+            style={{
+              width: "100%", height: 52, borderRadius: 14,
+              background: state === "verifying" ? "#e5e7eb" : "#be1d2c", border: "none",
+              boxShadow: state === "verifying" ? "none" : "0 4px 16px rgba(190,29,44,0.25)",
+              color: state === "verifying" ? "#9ca3af" : "#fff", fontSize: 15, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            {state === "verifying" ? "Đang xác minh..." : "Chụp & xác minh ngay"}
+          </button>
+          <button
+            onClick={handleSkip}
+            style={{
+              width: "100%", height: 48, borderRadius: 14, background: "#f0f0f5",
+              border: "none", fontSize: 15, fontWeight: 600, color: "#6b7280",
+            }}
+          >
+            Bỏ qua bước này
+          </button>
+        </div>
       )}
     </div>
   );

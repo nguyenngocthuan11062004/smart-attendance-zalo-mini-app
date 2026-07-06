@@ -37,7 +37,9 @@ service cloud.firestore {
     match /classes/{classId} {
       allow read: if true;
       allow create, update: if true;
-      allow delete: if false;
+      // Admin (phòng đào tạo) cần xóa lớp từ dashboard. Không có request.auth
+      // để giới hạn riêng admin, nhưng nhất quán với create/update (đều `if true`).
+      allow delete: if true;
     }
 
     // ── Sessions ──────────────────────────────────────────────────────
@@ -110,6 +112,14 @@ service cloud.firestore {
                  && request.resource.data.status == 'paired'
                  && request.resource.data.sessionId is string;
       allow delete: if false;
+    }
+
+    // ── App config (key AI, cấu hình runtime) ─────────────────────────
+    // Client CHỈ đọc để lấy key Groq override. Ghi bị CHẶN — chỉ sửa bằng tay
+    // trong Firebase Console (rotate key mà không cần deploy lại Mini App).
+    match /app_config/{docId} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

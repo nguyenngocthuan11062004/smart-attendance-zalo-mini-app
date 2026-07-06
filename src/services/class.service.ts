@@ -47,6 +47,15 @@ export function subscribeStudentClasses(mssv: string, cb: (classes: ClassDoc[]) 
   }, (err) => { console.error("subscribeStudentClasses error:", err); cb([]); });
 }
 
+/** Một lớp cụ thể — realtime. Thêm SV vào roster / đổi cấu hình (kể cả từ
+ *  admin web) phản ánh ngay trên màn Chi tiết lớp của GV, không cần refresh. */
+export function subscribeClass(classId: string, cb: (cls: ClassDoc | null) => void): Unsubscribe {
+  if (isMockMode()) { cb(mockDb.getClass(classId)); return () => {}; }
+  return onSnapshot(doc(db, CLASSES, classId), (snap) => {
+    cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as ClassDoc) : null);
+  }, (err) => { console.error("subscribeClass error:", err); });
+}
+
 const CLASSES = "classes";
 
 function generateClassCode(): string {

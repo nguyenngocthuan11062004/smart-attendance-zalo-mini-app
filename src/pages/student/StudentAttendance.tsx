@@ -6,6 +6,7 @@ import { currentUserAtom } from "@/store/auth";
 import { activeSessionAtom } from "@/store/session";
 import { globalErrorAtom } from "@/store/ui";
 import { useAttendance } from "@/hooks/useAttendance";
+import { useSessionSubscription } from "@/hooks/useSession";
 import { useQRScanner } from "@/hooks/useQRScanner";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -16,13 +17,13 @@ import { getUserDoc } from "@/services/auth.service";
 import QRDisplay from "@/components/qr/QRDisplay";
 import QRScanner from "@/components/qr/QRScanner";
 import InlineQRScanner from "@/components/qr/InlineQRScanner";
-import TrustBadge from "@/components/attendance/TrustBadge";
 import FaceVerification from "@/components/face/FaceVerification";
 import { parseScannedQR } from "@/services/qr.service";
 import { classifyTeacherQR } from "@/utils/validation";
 import { checkGeoFence } from "@/utils/geo";
 import { haptic } from "@/utils/haptic";
 import type { FaceVerificationResult } from "@/types";
+import { REQUIRED_PEERS } from "@/types";
 
 /* ── Step Indicator ─────────────────────────────── */
 type StepKey = "idle" | "scan-teacher" | "face-verify" | "show-qr" | "scan-peers" | "done";
@@ -130,6 +131,11 @@ export default function StudentAttendance() {
   const { myAttendance, step, setStep, checkIn, completeFaceVerification, loaded: attendanceLoaded } =
     useAttendance(sessionId, user?.id);
 
+  // Lắng nghe trạng thái phiên realtime: khi GV bấm "Kết thúc phiên",
+  // status → "ended" đẩy về đây ngay, SV bị đưa ra khỏi luồng điểm danh
+  // lập tức (màn "Phiên đã kết thúc" bên dưới), camera/scan dừng.
+  useSessionSubscription(sessionId);
+
   const setError = useSetAtom(globalErrorAtom);
   const { scan, scanning, error: scanError } = useQRScanner();
   const { requestLocation } = useGeolocation();
@@ -169,7 +175,7 @@ export default function StudentAttendance() {
   useEffect(() => {
     if (!attendanceLoaded) return;
     if (myAttendance) {
-      const peerDone = !peerReq || myAttendance.peerCount >= 3;
+      const peerDone = !peerReq || myAttendance.peerCount >= REQUIRED_PEERS;
       const faceDone = !faceReq || !!myAttendance.faceVerification;
       if (peerDone && faceDone) setStep("done");
       else if (myAttendance.checkedInAt && faceDone && peerReq) setStep("show-qr");
@@ -357,12 +363,23 @@ export default function StudentAttendance() {
     return (
       <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0 }}>
         <AttendanceHeader onBack={() => navigate(-1)} />
-        <div style={{ padding: "60px 20px", textAlign: "center" }}>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(107,114,128,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+        <div style={{ padding: "60px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(107,114,128,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
           </div>
-          <p style={{ color: "#6b7280", fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Phiên đã kết thúc</p>
-          {myAttendance && <TrustBadge score={myAttendance.trustScore} />}
+          <p style={{ color: "#6b7280", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Phiên đã kết thúc</p>
+          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 16 }}>
+            Giảng viên đã kết thúc phiên điểm danh này.
+          </p>
+          <button
+            onClick={() => navigate("/home", { replace: true })}
+            style={{
+              marginTop: 24, padding: "12px 28px", borderRadius: 12, border: "none",
+              background: "#be1d2c", color: "#fff", fontSize: 15, fontWeight: 600,
+            }}
+          >
+            Về trang chủ
+          </button>
         </div>
       </Page>
     );
@@ -439,6 +456,7 @@ export default function StudentAttendance() {
           <FaceVerification
             sessionId={sessionId || ""}
             attendanceId={myAttendance.id}
+            userId={user?.id || ""}
             teacherId={session.teacherId}
             onComplete={handleFaceComplete}
             onSkip={() => setStep("show-qr")}
@@ -463,11 +481,11 @@ export default function StudentAttendance() {
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: "#be1d2c" }}>{pc}/3</span>
+                <span style={{ fontSize: 22, fontWeight: 800, color: "#be1d2c" }}>{pc}/{REQUIRED_PEERS}</span>
                 <span style={{ fontSize: 13, color: "#6b7280" }}>peers đã xác minh</span>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                {[0, 1, 2].map((i) => (
+                {Array.from({ length: REQUIRED_PEERS }, (_, i) => i).map((i) => (
                   <div key={i} style={{
                     width: 28, height: 28, borderRadius: 14,
                     background: i < pc ? "#dcfce7" : "#f0f0f5",
@@ -518,7 +536,7 @@ export default function StudentAttendance() {
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
               }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 0.5 }}>QUÉT BẠN BÈ</span>
-                {pc < 3 ? (
+                {pc < REQUIRED_PEERS ? (
                   <InlineQRScanner
                     onDetect={handlePeerQRDetected}
                     active={step === "show-qr" || step === "scan-peers"}
@@ -531,7 +549,7 @@ export default function StudentAttendance() {
                   </div>
                 )}
                 <span style={{ fontSize: 11, color: "#6b7280", textAlign: "center" }}>
-                  {pc < 3 ? "Tự động nhận diện" : "Hoàn tất!"}
+                  {pc < REQUIRED_PEERS ? "Tự động nhận diện" : "Hoàn tất!"}
                 </span>
               </div>
             </div>
@@ -549,7 +567,7 @@ export default function StudentAttendance() {
             )}
 
             {/* Done button when all peers verified */}
-            {pc >= 3 && (
+            {pc >= REQUIRED_PEERS && (
               <button
                 onClick={() => { haptic("success"); setStep("done"); }}
                 style={{
@@ -668,7 +686,7 @@ export default function StudentAttendance() {
                   },
                   {
                     icon: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>,
-                    label: "Ngang hàng", value: `${myAttendance.peerCount}/3 peers`, ok: myAttendance.peerCount >= 3,
+                    label: "Ngang hàng", value: `${myAttendance.peerCount}/${REQUIRED_PEERS} peers`, ok: myAttendance.peerCount >= REQUIRED_PEERS,
                     show: peerReq,
                   },
                 ].filter(row => row.show).map((row, i) => (

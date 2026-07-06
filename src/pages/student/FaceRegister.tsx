@@ -22,8 +22,13 @@ export default function FaceRegister() {
   const processImages = async (img1: string, img2: string) => {
     setView("processing");
     setErrorMsg(null);
+    if (!user?.id) {
+      setErrorMsg("Chưa đăng nhập. Vui lòng đăng nhập lại.");
+      setView("error");
+      return;
+    }
     try {
-      const result = await registerFace(img1, img2);
+      const result = await registerFace(img1, img2, user.id);
       if (result.success) {
         setConfidence(result.confidence ?? 0);
         setView("result");

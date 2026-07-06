@@ -197,7 +197,7 @@ export async function getAllStudents(): Promise<UserDoc[]> {
   const q = query(collection(db, USERS_COL), where("role", "==", "student"));
   const snap = await getDocs(q);
   const students = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserDoc);
-  return students.sort((a, b) => a.name.localeCompare(b.name));
+  return students.sort((a, b) => (a.name || "").localeCompare(b.name || "", "vi"));
 }
 
 /**

@@ -7,7 +7,7 @@ import { globalErrorAtom } from "@/store/ui";
 import { subscribeToSessionAttendance, getSessionAttendance, manualCheckIn } from "@/services/attendance.service";
 import { getSession, endSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { effectiveTrustScore, getTrustScoreReasons } from "@/types";
 import { checkGeoFence } from "@/utils/geo";
@@ -115,14 +115,21 @@ export default function TeacherMonitor() {
     setEnding(true);
     try {
       await endSession(sessionId);
-      // Tính trust score client-side
+      // Đồng bộ trust score cho TẤT CẢ record trong MỘT batch (1 round-trip)
+      // thay vì await từng updateDoc nối tiếp → kết thúc phiên nhanh hơn hẳn.
       const records = await getSessionAttendance(sessionId);
+      const batch = writeBatch(db);
+      let changed = 0;
       for (const r of records) {
         const score = effectiveTrustScore(r, sessionConfig);
         if (score !== r.trustScore) {
-          await updateDoc(doc(db, "attendance", r.id), { trustScore: score }).catch(() => {});
+          batch.update(doc(db, "attendance", r.id), { trustScore: score });
+          changed++;
         }
       }
+      // Best-effort: lỗi đồng bộ (mock mode / mạng) không chặn kết thúc phiên;
+      // màn review vẫn tính lại trust score client-side.
+      if (changed > 0) await batch.commit().catch(() => {});
       setActiveSession(null);
       navigate(`/teacher/review/${sessionId}`);
     } catch {
