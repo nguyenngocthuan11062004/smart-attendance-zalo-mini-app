@@ -32,33 +32,53 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
   }, []);
 
   const startCamera = useCallback(async () => {
+    setError(null);
     try {
-      setError(null);
-      try {
-        const { requestCameraPermission } = await import("zmp-sdk/apis");
-        await requestCameraPermission({});
-      } catch { /* SDK not available */ }
+      const { requestCameraPermission } = await import("zmp-sdk/apis");
+      // Không AWAIT thẳng — đã thấy hàm xin quyền có thể TREO khi mở camera lần 2
+      // (ngay sau bước quét mặt), làm getUserMedia không bao giờ được gọi → camera
+      // "không lên" mà không báo lỗi. Bọc timeout để luôn đi tiếp.
+      await Promise.race([
+        requestCameraPermission({}),
+        new Promise((r) => setTimeout(r, 1500)),
+      ]);
+    } catch { /* SDK not available */ }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false,
-      });
-      // Đã unmount / scanner đã tắt trong lúc đợi getUserMedia → dừng track ngay
-      if (!mountedRef.current || !activeRef.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
+    // Mở camera có RETRY: sau bước quét mặt, camera trước vừa nhả có thể còn "busy"
+    // khiến getUserMedia lỗi/treo tạm thời (NotReadableError/AbortError) — thử lại
+    // vài lần trước khi báo lỗi thay vì để màn camera đen.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (!mountedRef.current || !activeRef.current) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        });
+        // Đã unmount / scanner đã tắt trong lúc đợi getUserMedia → dừng track ngay
+        if (!mountedRef.current || !activeRef.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => setCameraReady(true);
+        }
+        setError(null);
+        return; // thành công
+      } catch (err: any) {
+        // Bị từ chối quyền → báo ngay, retry vô ích
+        if (err?.name === "NotAllowedError") {
+          setError("Vui lòng cho phép truy cập camera");
+          return;
+        }
+        // Camera bận/chưa nhả → chờ rồi thử lại; hết lượt mới báo lỗi
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        setError("Không thể mở camera");
       }
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => setCameraReady(true);
-      }
-    } catch (err: any) {
-      setError(
-        err.name === "NotAllowedError"
-          ? "Vui lòng cho phép truy cập camera"
-          : "Không thể mở camera"
-      );
     }
   }, []);
 

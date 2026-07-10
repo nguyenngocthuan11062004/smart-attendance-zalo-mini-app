@@ -165,23 +165,42 @@ export default function TeacherReview() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const date = new Date().toISOString().slice(0, 10);
     const filename = `diem-danh-${sessionId}-${date}.csv`;
+    // Desktop trình duyệt: <a download> lưu file tốt.
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (!isMobile) {
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        openSnackbar({ type: "success", text: "Đã tải báo cáo" });
+        return;
+      } catch { /* rơi xuống đường mobile bên dưới */ }
+    }
+
+    // Mobile/Zalo: <a download> KHÔNG lưu được file trong WebView (và không văng
+    // lỗi → trước đây báo "thành công" giả mà không có file). Ưu tiên upload Storage
+    // rồi MỞ link tải thật (đặt contentDisposition=attachment để trình duyệt tải
+    // xuống thay vì hiển thị). Storage lỗi → phương án cuối: copy CSV để dán Excel.
     try {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      openSnackbar({ type: "success", text: "Đã xuất báo cáo" });
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+      const { storage } = await import("@/config/firebase");
+      const storageRef = ref(storage, `exports/${sessionId}/${filename}`);
+      await uploadBytes(storageRef, blob, {
+        contentType: "text/csv;charset=utf-8",
+        contentDisposition: `attachment; filename="${filename}"`,
+      });
+      const downloadUrl = await getDownloadURL(storageRef);
+      openWebview({ url: downloadUrl });
+      openSnackbar({ type: "success", text: "Đã mở link tải báo cáo" });
     } catch {
       try {
-        const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
-        const { storage } = await import("@/config/firebase");
-        const storageRef = ref(storage, `exports/${sessionId}/${filename}`);
-        await uploadBytes(storageRef, blob);
-        const downloadUrl = await getDownloadURL(storageRef);
-        if (navigator.clipboard) { await navigator.clipboard.writeText(downloadUrl); openSnackbar({ type: "success", text: "Link tải đã được sao chép!" }); }
-        else { openWebview({ url: downloadUrl }); }
-      } catch { openSnackbar({ type: "default", text: "Không thể xuất file. Vui lòng thử lại." }); }
+        await navigator.clipboard.writeText(csv);
+        openSnackbar({ type: "success", text: "Đã sao chép báo cáo — dán vào Excel/Google Sheets" });
+      } catch {
+        openSnackbar({ type: "default", text: "Không thể xuất file trên thiết bị này." });
+      }
     }
   };
 
