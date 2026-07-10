@@ -20,6 +20,8 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanPaused, setScanPaused] = useState(false);
+  // Trạng thái mở camera hiện lên pill (chẩn đoán khi mở lần 2 sau bước mặt)
+  const [camStatus, setCamStatus] = useState("Đang mở camera…");
   const activeRef = useRef(active);
   activeRef.current = active;
 
@@ -33,28 +35,39 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
 
   const startCamera = useCallback(async () => {
     setError(null);
+    setCamStatus("Đang xin quyền camera…");
     try {
       const { requestCameraPermission } = await import("zmp-sdk/apis");
-      // Không AWAIT thẳng — đã thấy hàm xin quyền có thể TREO khi mở camera lần 2
-      // (ngay sau bước quét mặt), làm getUserMedia không bao giờ được gọi → camera
-      // "không lên" mà không báo lỗi. Bọc timeout để luôn đi tiếp.
+      // Không AWAIT thẳng — hàm xin quyền có thể TREO khi mở camera lần 2 (ngay
+      // sau bước quét mặt), làm getUserMedia không bao giờ được gọi. Bọc timeout.
       await Promise.race([
         requestCameraPermission({}),
         new Promise((r) => setTimeout(r, 1500)),
       ]);
     } catch { /* SDK not available */ }
 
-    // Mở camera có RETRY: sau bước quét mặt, camera trước vừa nhả có thể còn "busy"
-    // khiến getUserMedia lỗi/treo tạm thời (NotReadableError/AbortError) — thử lại
-    // vài lần trước khi báo lỗi thay vì để màn camera đen.
-    for (let attempt = 0; attempt < 3; attempt++) {
+    const MAX = 3;
+    for (let attempt = 0; attempt < MAX; attempt++) {
       if (!mountedRef.current || !activeRef.current) return;
+      setCamStatus(attempt === 0 ? "Đang mở camera…" : `Camera bận, thử lại (${attempt + 1}/${MAX})…`);
+
+      const gum = navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+      let timedOut = false;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: false,
-        });
-        // Đã unmount / scanner đã tắt trong lúc đợi getUserMedia → dừng track ngay
+        // Bắt ca getUserMedia TREO (không resolve/reject) trên WebView Zalo bằng
+        // timeout — nguyên nhân camera "không lên" mà chẳng có lỗi ở lần mở thứ 2.
+        const stream = await Promise.race([
+          gum,
+          new Promise<never>((_, rej) =>
+            setTimeout(() => {
+              timedOut = true;
+              rej(Object.assign(new Error("camera timeout"), { name: "TimeoutError" }));
+            }, 3000)
+          ),
+        ]);
         if (!mountedRef.current || !activeRef.current) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -62,22 +75,25 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.play?.().catch(() => {});
           videoRef.current.onloadedmetadata = () => setCameraReady(true);
         }
         setError(null);
         return; // thành công
       } catch (err: any) {
+        // getUserMedia resolve MUỘN sau timeout → dọn stream mồ côi (khỏi kẹt cam)
+        if (timedOut) gum.then((s) => s.getTracks().forEach((t) => t.stop())).catch(() => {});
         // Bị từ chối quyền → báo ngay, retry vô ích
         if (err?.name === "NotAllowedError") {
           setError("Vui lòng cho phép truy cập camera");
           return;
         }
-        // Camera bận/chưa nhả → chờ rồi thử lại; hết lượt mới báo lỗi
-        if (attempt < 2) {
-          await new Promise((r) => setTimeout(r, 500));
+        // Bận/treo tạm thời → chờ rồi thử lại; hết lượt mới báo lỗi
+        if (attempt < MAX - 1) {
+          await new Promise((r) => setTimeout(r, 600));
           continue;
         }
-        setError("Không thể mở camera");
+        setError("Không mở được camera sau vài lần thử — bấm Thu lại.");
       }
     }
   }, []);
@@ -219,7 +235,7 @@ export default function InlineQRScanner({ onDetect, active, height = 300, aspect
         ) : (
           <>
             <div style={{ width: 8, height: 8, borderRadius: 4, background: "#f59e0b" }} />
-            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>Đang mở camera...</span>
+            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>{camStatus}</span>
           </>
         )}
       </div>
