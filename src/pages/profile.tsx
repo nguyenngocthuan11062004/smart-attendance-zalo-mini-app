@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { openWebview } from "zmp-sdk/apis";
 import { isValidPhone, isValidEmail } from "@/utils/sanitize";
 import { storageSetItem } from "@/utils/storage";
-import { requestUserInfo } from "@/services/auth.service";
+import { requestUserInfo, markFaceUnregistered } from "@/services/auth.service";
 import { deleteFaceData, hasFaceData } from "@/services/face.service";
 // Microsoft OAuth hidden — requires Cloud Functions & redirects outside Zalo (causes rejection)
 // import MicrosoftLinkCard from "@/components/profile/MicrosoftLinkCard";
@@ -45,16 +45,28 @@ export default function ProfilePage() {
   const [deleteFaceResult, setDeleteFaceResult] = useState<"" | "success" | "no-data" | "error">("");
   if (!user) return null;
 
+  // Hạ cờ faceRegistered ở CẢ 3 nơi (atom → home cập nhật ngay; Firestore users
+  // doc + cache qua markFaceUnregistered). Không có bước này thì xoá dữ liệu mặt
+  // xong home vẫn hiện tích xanh vì đọc cờ cache.
+  const clearFaceRegisteredFlag = async () => {
+    setUser({ ...user, faceRegistered: false, updatedAt: Date.now() });
+    await markFaceUnregistered(user.id);
+  };
+
   const handleDeleteFaceData = async () => {
     setDeletingFace(true);
     setDeleteFaceResult("");
     try {
       const exists = await hasFaceData(user.id);
       if (!exists) {
+        // Không còn dữ liệu mặt nhưng cờ có thể còn "true" (đã lệch từ lần xoá
+        // trước khi chưa có fix) → tự chữa để home khớp.
+        if (user.faceRegistered) await clearFaceRegisteredFlag();
         setDeleteFaceResult("no-data");
         return;
       }
       const ok = await deleteFaceData(user.id);
+      if (ok) await clearFaceRegisteredFlag();
       setDeleteFaceResult(ok ? "success" : "error");
     } finally {
       setDeletingFace(false);
@@ -381,9 +393,8 @@ export default function ProfilePage() {
 
       {/* -- Edit modal -- */}
       <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
-        {/* paddingBottom chừa chỗ cho thanh điều hướng nổi (pill ~60px, cách đáy
-            10px + safe-area) — đẩy nút "Lưu" lên trên nav thay vì bị che. */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingBottom: 84 }}>
+        {/* Khoảng đáy vượt thanh nav nổi giờ do DarkModal lo chung (paddingBottom 84). */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {editFields.map((f) => (
             <div key={f.label}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, display: "block" }}>{f.label}</label>

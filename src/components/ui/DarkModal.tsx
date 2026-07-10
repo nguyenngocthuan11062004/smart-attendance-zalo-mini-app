@@ -19,16 +19,18 @@ export default function DarkModal({ visible, onClose, title, children }: DarkMod
       handler
       swipeToClose
     >
-      {/* Nền trắng + chữ đen mặc định cho mọi popup; chừa 1 đoạn đáy + safe area
-          để nút dưới cùng không bị thanh Home (iOS) / nav bar (Android) che. */}
+      {/* Nền trắng + chữ đen mặc định cho mọi popup. Đáy chừa 84px để nút/nội dung
+          dưới cùng KHÔNG bị thanh điều hướng nổi (AppBottomNav — pill cao ~56px,
+          cách đáy 10px, zIndex 1000) che. Vì nav nổi TRÊN sheet nên phải đẩy nội
+          dung lên bằng padding (không dùng z-index — theo yêu cầu). */}
       <div
         style={{
           background: "#ffffff",
           color: "#1a1a1a",
-          // Padding NGANG 16px để nội dung không dính sát mép trái/phải; đáy 24px
-          // cho khoảng thở. Phần safe-area (home indicator) do .zaui-sheet-content
+          // Padding NGANG 16px để nội dung không dính mép trái/phải; đáy 84px để
+          // vượt thanh nav nổi. Safe-area (home indicator) do .zaui-sheet-content
           // xử lý ở app.scss để nền trắng phủ xuống tận đáy, không bị dải đen.
-          padding: "4px 16px 24px",
+          padding: "4px 16px 84px",
         }}
       >
         {/* Header: nút X đóng ở góc trái + tiêu đề căn giữa. Tự render thay cho

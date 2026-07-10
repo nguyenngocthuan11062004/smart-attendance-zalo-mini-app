@@ -473,6 +473,31 @@ export async function markFaceRegistered(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Đối xứng với markFaceRegistered — hạ cờ khi SV xoá dữ liệu khuôn mặt, để home
+ * (đọc user.faceRegistered) không còn hiển thị tích xanh. Cập nhật cả Firestore
+ * users doc lẫn cache user_doc; atom do trang gọi tự cập nhật (setUser).
+ */
+export async function markFaceUnregistered(userId: string): Promise<void> {
+  try {
+    await withTimeout(
+      setDoc(doc(db, "users", userId), { faceRegistered: false, updatedAt: Date.now() }, { merge: true }),
+      5000
+    );
+  } catch {
+    // Firestore unavailable
+  }
+  const stored = await storageGetItem("user_doc");
+  if (stored) {
+    const parsed = JSON.parse(stored) as UserDoc;
+    if (parsed.id === userId) {
+      parsed.faceRegistered = false;
+      parsed.updatedAt = Date.now();
+      await storageSetItem("user_doc", JSON.stringify(parsed));
+    }
+  }
+}
+
 // --- Storage helpers ---
 
 async function _getLocalUserDoc(userId: string): Promise<UserDoc | null> {
