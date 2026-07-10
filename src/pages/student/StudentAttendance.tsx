@@ -11,15 +11,16 @@ import { useQRScanner } from "@/hooks/useQRScanner";
 import { useQRGenerator } from "@/hooks/useQRGenerator";
 import { useGeolocation } from "@/hooks/useGeolocation";
 // Client-side QR validation removed — Cloud Functions handle HMAC verification server-side
-import { addBidirectionalPeerVerification } from "@/services/attendance.service";
+import { addPeerScan } from "@/services/attendance.service";
 import { getSession, getSessionSecret } from "@/services/session.service";
 import { getUserDoc } from "@/services/auth.service";
 import QRDisplay from "@/components/qr/QRDisplay";
 import QRScanner from "@/components/qr/QRScanner";
 import InlineQRScanner from "@/components/qr/InlineQRScanner";
 import FaceVerification from "@/components/face/FaceVerification";
+import { hasFaceData } from "@/services/face.service";
 import { parseScannedQR } from "@/services/qr.service";
-import { classifyTeacherQR } from "@/utils/validation";
+import { classifyTeacherQR, validatePeerQR } from "@/utils/validation";
 import { checkGeoFence } from "@/utils/geo";
 import { haptic } from "@/utils/haptic";
 import type { FaceVerificationResult } from "@/types";
@@ -197,8 +198,31 @@ export default function StudentAttendance() {
   const [optimisticScan, setOptimisticScan] = useState<"idle" | "success">("idle");
   const teacherScannedRef = React.useRef(false);
 
+  // ── Gate khuôn mặt: phiên YÊU CẦU face mà SV CHƯA đăng ký → chặn từ ĐẦU ──
+  // Chặn trước cả bước quét QR GV để không tạo bản ghi điểm danh nào — nếu để
+  // check-in xong mới chặn ở bước mặt, bản ghi thiếu face vẫn tồn tại và có
+  // thể "lọt" thành có mặt. Nguồn sự thật: face_registrations trên Firestore
+  // (cờ user.faceRegistered chỉ là đường tắt).
+  const [faceGate, setFaceGate] = useState<"checking" | "ok" | "missing">("checking");
+  useEffect(() => {
+    let cancelled = false;
+    if (!faceReq) { setFaceGate("ok"); return; }
+    if (!user?.id) return; // chờ auth khởi tạo
+    if (user.faceRegistered) { setFaceGate("ok"); return; }
+    hasFaceData(user.id).then((has) => {
+      if (!cancelled) setFaceGate(has ? "ok" : "missing");
+    });
+    return () => { cancelled = true; };
+  }, [faceReq, user?.id, user?.faceRegistered]);
+
   const handleTeacherQRDetected = useCallback(async (content: string) => {
     if (!session || teacherScannedRef.current) return;
+    // Phòng thủ sâu: lỡ camera bắt được QR trước khi màn chặn kịp hiện
+    if (faceReq && faceGate === "missing" && !myAttendance?.checkedInAt) {
+      haptic("error");
+      setTeacherScanError("Phiên này yêu cầu xác minh khuôn mặt — hãy đăng ký khuôn mặt trước khi điểm danh.");
+      return;
+    }
     teacherScannedRef.current = true;
     setTeacherScanError(null);
     try {
@@ -277,7 +301,7 @@ export default function StudentAttendance() {
       }
       teacherScannedRef.current = false;
     }
-  }, [session, checkIn, user, requestLocation, sessionId, peerSecret, faceReq, peerReq]);
+  }, [session, checkIn, user, requestLocation, sessionId, peerSecret, faceReq, peerReq, faceGate, myAttendance]);
 
   const handleFaceComplete = async (result: FaceVerificationResult) => {
     await completeFaceVerification(result, { peerRequired: peerReq });
@@ -298,7 +322,22 @@ export default function StudentAttendance() {
         peerScannedRef.current = false;
         return;
       }
-      // Basic client-side checks (no HMAC — server validates signature)
+      // Chặn quét NHẦM/GIAN QR giảng viên ở bước ngang hàng (bug cũ: không
+      // kiểm type nên quét QR máy chiếu/GV cũng được tính là peer).
+      if (payload.type !== "peer") {
+        setPeerScanError(
+          payload.type === "teacher"
+            ? "Đây là QR của giảng viên — ở bước này hãy quét QR trên máy của BẠN CÙNG LỚP"
+            : "QR không phải của sinh viên"
+        );
+        peerScannedRef.current = false;
+        return;
+      }
+      if (payload.sessionId !== sessionId) {
+        setPeerScanError("QR không thuộc phiên điểm danh này");
+        peerScannedRef.current = false;
+        return;
+      }
       if (payload.userId === user.id) {
         setPeerScanError("Không thể quét QR của chính mình");
         peerScannedRef.current = false;
@@ -309,16 +348,28 @@ export default function StudentAttendance() {
         peerScannedRef.current = false;
         return;
       }
+      // Kiểm chữ ký HMAC + hạn 90s ngay trên máy (Spark không có server verify)
+      if (peerSecret) {
+        const v = validatePeerQR(payload, user.id, myAttendance.peerVerifications, peerSecret);
+        if (!v.valid) {
+          setPeerScanError(v.error || "QR không hợp lệ");
+          peerScannedRef.current = false;
+          return;
+        }
+      }
       let peerName = payload.userId;
       try { const peerDoc = await getUserDoc(payload.userId); if (peerDoc) peerName = peerDoc.name; } catch {}
-      // Server-side validation via scanPeer Cloud Function
-      await addBidirectionalPeerVerification(sessionId, user.id, user.name, payload.userId, peerName, payload.nonce, payload, myAttendance.id);
+      // MỘT CHIỀU: chỉ cộng peerCount/trust cho MÌNH (người quét). Bạn được quét
+      // phải tự quét 1 người khác mới đủ — ta chỉ ghi scannedBy cho họ.
+      await addPeerScan(sessionId, user.id, user.name, payload.userId, peerName, payload.nonce, payload, myAttendance.id);
       haptic("success");
       setPeerScanActive(false);
       peerScannedRef.current = false;
     } catch (err: any) {
       const code = err?.code?.replace("functions/", "") || "";
-      if (code === "already-exists") {
+      if (code === "peer-not-checked-in") {
+        setPeerScanError("Bạn này chưa check-in vào phiên — hãy để bạn ấy quét QR giảng viên trước, rồi quét lại.");
+      } else if (code === "already-exists") {
         setPeerScanError("Đã xác minh bạn này rồi");
       } else if (code === "invalid-argument") {
         setPeerScanError("QR bạn bè không hợp lệ hoặc hết hạn");
@@ -329,7 +380,7 @@ export default function StudentAttendance() {
       }
       peerScannedRef.current = false;
     }
-  }, [session, myAttendance, user, sessionId, setError]);
+  }, [session, myAttendance, user, sessionId, peerSecret, setError]);
 
   /* Loading — show skeleton until both session config and attendance state resolved */
   if (!session || !attendanceLoaded) {
@@ -385,12 +436,70 @@ export default function StudentAttendance() {
     );
   }
 
+  /* Phiên yêu cầu khuôn mặt nhưng SV CHƯA đăng ký → chặn trước khi check-in.
+     (Đã check-in từ trước thì cho đi tiếp — bước mặt sẽ tự chặn/hướng dẫn.) */
+  if (faceReq && faceGate === "missing" && !myAttendance?.checkedInAt) {
+    return (
+      <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0 }}>
+        <AttendanceHeader onBack={() => navigate(-1)} />
+        <div style={{ padding: "60px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" />
+            </svg>
+          </div>
+          <p style={{ color: "#1a1a1a", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Cần đăng ký khuôn mặt</p>
+          <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 16, maxWidth: 300 }}>
+            Phiên điểm danh này yêu cầu xác minh khuôn mặt, nhưng bạn chưa đăng ký
+            dữ liệu khuôn mặt. Hãy đăng ký trước rồi quay lại điểm danh.
+          </p>
+          <button
+            onClick={() => navigate("/student/face-register")}
+            style={{
+              marginTop: 8, padding: "14px 28px", borderRadius: 12, border: "none",
+              background: "#be1d2c", color: "#fff", fontSize: 15, fontWeight: 700,
+              boxShadow: "0 4px 16px rgba(190,29,44,0.25)",
+            }}
+          >
+            Đăng ký khuôn mặt ngay
+          </button>
+          <button
+            onClick={() => navigate("/home", { replace: true })}
+            style={{
+              marginTop: 12, padding: "12px 28px", borderRadius: 12, border: "none",
+              background: "#f0f0f5", color: "#6b7280", fontSize: 14, fontWeight: 600,
+            }}
+          >
+            Về trang chủ
+          </button>
+        </div>
+      </Page>
+    );
+  }
+
   return (
     <Page style={{ background: "#f8f9fa", minHeight: "100vh", padding: 0 }}>
       <AttendanceHeader onBack={() => navigate(-1)} />
 
       <div style={{ padding: "24px 20px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
         <StepIndicatorBar step={step} faceRequired={faceReq} peerRequired={peerReq} />
+
+        {/* Cảnh báo trùng thiết bị — KHÔNG chặn, chỉ thông báo (GV sẽ xem xét) */}
+        {myAttendance?.deviceConflict && (
+          <div style={{
+            background: "#fef3c7", border: "1px solid rgba(245,158,11,0.35)",
+            borderRadius: 14, padding: "12px 14px",
+            display: "flex", gap: 10, alignItems: "flex-start",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4M12 17h.01" />
+            </svg>
+            <span style={{ fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>
+              Thiết bị này đã điểm danh cho sinh viên khác trong phiên. Kết quả của bạn
+              được đánh dấu <b>"Cần xem xét"</b> — giảng viên sẽ duyệt lại.
+            </span>
+          </div>
+        )}
 
         {/* ── Step 1: Quét QR giảng viên ── */}
         {step === "scan-teacher" && (
@@ -460,18 +569,22 @@ export default function StudentAttendance() {
             teacherId={session.teacherId}
             onComplete={handleFaceComplete}
             onSkip={() => setStep("show-qr")}
+            onNeedRegister={() => navigate("/student/face-register")}
           />
         )}
 
         {/* ── Step 3: Peer QR exchange ── */}
         {(step === "show-qr" || step === "scan-peers") && (() => {
           const pc = myAttendance?.peerCount ?? 0;
+          const iScannedEnough = pc >= REQUIRED_PEERS;         // mình đã tự quét đủ chưa
+          const scannedByCount = myAttendance?.scannedBy?.length ?? 0; // đã có ai quét lại mình chưa
+          const iWasScanned = scannedByCount >= 1;
 
           return (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <p style={{ fontSize: 24, fontWeight: 700, color: "#1a1a1a" }}>Xác minh ngang hàng</p>
-              <p style={{ fontSize: 14, color: "#6b7280" }}>Cho bạn bè quét QR của bạn & quét QR của bạn bè</p>
+              <p style={{ fontSize: 14, color: "#6b7280" }}>Bạn tự quét QR 1 bạn — rồi giữ màn hình cho bạn ấy quét lại QR của bạn</p>
             </div>
 
             {/* Peer progress row */}
@@ -536,20 +649,24 @@ export default function StudentAttendance() {
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
               }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: 0.5 }}>QUÉT BẠN BÈ</span>
-                {pc < REQUIRED_PEERS ? (
+                {!iScannedEnough ? (
                   <InlineQRScanner
                     onDetect={handlePeerQRDetected}
                     active={step === "show-qr" || step === "scan-peers"}
                     height={0}
                     aspectRatio
                   />
-                ) : (
+                ) : iWasScanned ? (
                   <div style={{ width: "100%", aspectRatio: "1", borderRadius: 12, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   </div>
+                ) : (
+                  <div style={{ width: "100%", aspectRatio: "1", borderRadius: 12, background: "#fef3c7", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                  </div>
                 )}
-                <span style={{ fontSize: 11, color: "#6b7280", textAlign: "center" }}>
-                  {pc < REQUIRED_PEERS ? "Tự động nhận diện" : "Hoàn tất!"}
+                <span style={{ fontSize: 11, color: iScannedEnough && !iWasScanned ? "#b45309" : "#6b7280", textAlign: "center", fontWeight: iScannedEnough && !iWasScanned ? 600 : 400 }}>
+                  {!iScannedEnough ? "Tự động nhận diện" : iWasScanned ? "Bạn bè đã quét bạn" : "Chờ bạn bè quét bạn"}
                 </span>
               </div>
             </div>
@@ -566,20 +683,36 @@ export default function StudentAttendance() {
               </div>
             )}
 
-            {/* Done button when all peers verified */}
-            {pc >= REQUIRED_PEERS && (
-              <button
-                onClick={() => { haptic("success"); setStep("done"); }}
-                style={{
-                  width: "100%", height: 56, borderRadius: 16,
-                  background: "#22c55e", border: "none",
-                  boxShadow: "0 4px 16px rgba(34,197,94,0.25)",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Hoàn tất</span>
-              </button>
+            {/* Sau khi tự quét đủ: CHỜ có bạn quét lại QR của mình rồi mới nên hoàn
+                tất (không hiện màn thành công ngay, để bạn kia kịp quét). Không
+                khóa cứng — lớp đông có thể không ai quét lại nên vẫn cho hoàn tất. */}
+            {iScannedEnough && (
+              <>
+                {!iWasScanned && (
+                  <div style={{
+                    background: "rgba(245,158,11,0.1)", borderRadius: 12, padding: "12px 16px",
+                    display: "flex", alignItems: "flex-start", gap: 10,
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <p style={{ color: "#b45309", fontSize: 13, lineHeight: 1.45 }}>
+                      Bạn đã quét đủ. <b>Giữ màn hình</b> để 1 bạn quét lại QR của bạn — nút Hoàn tất sẽ chuyển xanh.
+                    </p>
+                  </div>
+                )}
+                <button
+                  onClick={() => { haptic("success"); setStep("done"); }}
+                  style={{
+                    width: "100%", height: 56, borderRadius: 16,
+                    background: iWasScanned ? "#22c55e" : "#ffffff",
+                    border: iWasScanned ? "none" : "1.5px solid #e5e7eb",
+                    boxShadow: iWasScanned ? "0 4px 16px rgba(34,197,94,0.25)" : "none",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iWasScanned ? "white" : "#9ca3af"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <span style={{ color: iWasScanned ? "#fff" : "#9ca3af", fontSize: 16, fontWeight: 700 }}>Hoàn tất</span>
+                </button>
+              </>
             )}
           </>
           );

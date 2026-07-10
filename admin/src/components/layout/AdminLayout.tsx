@@ -17,7 +17,7 @@ import {
   BellOutlined,
 } from "@ant-design/icons";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { getPendingTeachers } from "@/services/admin-user.service";
+import { subscribePendingTeachers } from "@/services/admin-user.service";
 import { getPendingCount } from "@/services/admin-absence.service";
 
 const { Header, Sider, Content } = Layout;
@@ -33,22 +33,23 @@ export default function AdminLayout() {
   const [teacherPending, setTeacherPending] = useState(0);
   const [absencePending, setAbsencePending] = useState(0);
 
+  // Yêu cầu GV: REALTIME — badge nhảy ngay khi có đăng ký mới từ Mini App
+  // (trước đây poll 60s nên flow duyệt bị "trễ").
+  useEffect(() => {
+    const unsub = subscribePendingTeachers((users) => setTeacherPending(users.length));
+    return unsub;
+  }, []);
+
+  // Đơn xin nghỉ: giữ poll 60s + refresh khi đổi trang
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
       try {
-        const [teachers, absence] = await Promise.all([
-          getPendingTeachers().then((r) => r.length).catch(() => 0),
-          getPendingCount().catch(() => 0),
-        ]);
-        if (!cancelled) {
-          setTeacherPending(teachers);
-          setAbsencePending(absence);
-        }
+        const absence = await getPendingCount().catch(() => 0);
+        if (!cancelled) setAbsencePending(absence);
       } catch { /* ignore */ }
     };
     refresh();
-    // Cập nhật mỗi 60s + mỗi khi đổi trang (admin vừa duyệt xong → số giảm)
     const id = window.setInterval(refresh, 60000);
     return () => { cancelled = true; window.clearInterval(id); };
   }, [location.pathname]);

@@ -15,7 +15,7 @@ import { startSession, endSession } from "@/services/session.service";
 import { getSessionAttendance } from "@/services/attendance.service";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import { effectiveTrustScore } from "@/types";
+import { effectiveTrustPolicy } from "@/types";
 import { updateSessionLocation } from "@/services/session.service";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { ClassDoc, SessionDoc, AttendanceDoc } from "@/types";
@@ -88,14 +88,14 @@ export default function TeacherSession() {
     return () => clearInterval(interval);
   }, [session?.id, session?.status]);
 
-  // Phân loại GIỐNG màn "Theo dõi realtime": tính lại bằng effectiveTrustScore
-  // theo config phiên, KHÔNG đọc a.trustScore thô (giá trị đó ghi 1 lần lúc
+  // Phân loại GIỐNG màn "Theo dõi realtime": tính lại bằng effectiveTrustPolicy
+  // theo config phiên, KHÔNG đọc a.trustPolicy thô (giá trị đó ghi 1 lần lúc
   // check-in, có thể cũ → 2 màn lệch nhau, vd "Xem xét" trong khi thực tế "Có mặt").
   const sessionConfig = {
     faceRequired: session?.faceRequired,
     peerRequired: session?.peerRequired,
   };
-  const scored = attendance.map((a) => effectiveTrustScore(a, sessionConfig));
+  const scored = attendance.map((a) => effectiveTrustPolicy(a, sessionConfig));
   const presentCount = scored.filter((s) => s === "present").length;
   const reviewCount = scored.filter((s) => s === "review").length;
   const absentRecordCount = scored.filter((s) => s === "absent").length;
@@ -232,12 +232,12 @@ export default function TeacherSession() {
       const batch = writeBatch(db);
       let changed = 0;
       for (const r of records) {
-        const score = effectiveTrustScore(r, {
+        const score = effectiveTrustPolicy(r, {
           faceRequired: session.faceRequired,
           peerRequired: session.peerRequired,
         });
-        if (score !== r.trustScore) {
-          batch.update(doc(db, "attendance", r.id), { trustScore: score });
+        if (score !== r.trustPolicy) {
+          batch.update(doc(db, "attendance", r.id), { trustPolicy: score, trustScore: score });
           changed++;
         }
       }

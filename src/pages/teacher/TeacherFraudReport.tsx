@@ -65,6 +65,7 @@ export default function TeacherFraudReport() {
     rapid_verification: "Xác minh quá nhanh",
     low_peer_count: "Ít peer xác minh",
     face_mismatch: "Không khớp khuôn mặt",
+    same_device_multi_account: "Cùng thiết bị nhiều tài khoản",
     ai_detected: "AI phát hiện",
     location_anomaly: "Vị trí bất thường",
     simultaneous_checkin: "Thời gian check-in trùng",

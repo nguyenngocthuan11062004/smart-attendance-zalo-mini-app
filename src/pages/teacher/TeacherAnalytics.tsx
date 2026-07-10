@@ -49,10 +49,10 @@ export default function TeacherAnalytics() {
           const records = await getSessionAttendance(session.id);
           const total = cls ? (cls.rosterMssv?.length ?? cls.studentIds.length) : records.length;
           const present = records.filter(
-            (r) => (r.teacherOverride || r.trustScore) === "present"
+            (r) => (r.teacherOverride || r.trustPolicy) === "present"
           ).length;
           const review = records.filter(
-            (r) => (r.teacherOverride || r.trustScore) === "review"
+            (r) => (r.teacherOverride || r.trustPolicy) === "review"
           ).length;
           return {
             session,

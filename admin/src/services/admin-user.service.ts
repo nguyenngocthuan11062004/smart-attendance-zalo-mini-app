@@ -11,7 +11,9 @@ import {
   setDoc,
   updateDoc,
   getCountFromServer,
+  onSnapshot,
   type DocumentSnapshot,
+  type Unsubscribe,
 } from "firebase/firestore";
 import type { ImportedStudent } from "./import-export.service";
 import { db } from "@/config/firebase";
@@ -91,6 +93,26 @@ export async function getPendingTeachers(): Promise<UserDoc[]> {
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }) as UserDoc)
     .sort((a, b) => (b.teacherRequestedAt || 0) - (a.teacherRequestedAt || 0));
+}
+
+/**
+ * REALTIME danh sách chờ duyệt GV — yêu cầu mới từ Mini App hiện NGAY trên
+ * trang duyệt + badge menu, không cần F5 (trước đây load 1 lần / poll 60s
+ * nên flow duyệt bị "trễ").
+ */
+export function subscribePendingTeachers(cb: (users: UserDoc[]) => void): Unsubscribe {
+  const q = query(collection(db, USERS_COL), where("pendingTeacher", "==", true));
+  return onSnapshot(
+    q,
+    (snap) => {
+      cb(
+        snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }) as UserDoc)
+          .sort((a, b) => (b.teacherRequestedAt || 0) - (a.teacherRequestedAt || 0))
+      );
+    },
+    (err) => console.error("subscribePendingTeachers error:", err)
+  );
 }
 
 /**

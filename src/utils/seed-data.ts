@@ -98,7 +98,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - DAY * 7 + 500000, qrNonce: "s1n2" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: NOW - DAY * 7 + 600000, qrNonce: "s1n3" },
     ],
-    peerCount: 3, trustScore: "present",
+    peerCount: 3, trustPolicy: "present",
     faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: NOW - DAY * 7 + 350000 },
   },
   {
@@ -108,7 +108,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: NOW - DAY * 7 + 400000, qrNonce: "s1n4" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - DAY * 7 + 550000, qrNonce: "s1n5" },
     ],
-    peerCount: 2, trustScore: "review",
+    peerCount: 2, trustPolicy: "review",
   },
   {
     sessionId: "session_001", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D",
@@ -116,14 +116,14 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
     peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: NOW - DAY * 7 + 500000, qrNonce: "s1n6" },
     ],
-    peerCount: 1, trustScore: "review",
+    peerCount: 1, trustPolicy: "review",
     faceVerification: { matched: false, confidence: 0.35, selfieImagePath: "", verifiedAt: NOW - DAY * 7 + 380000 },
   },
   {
     sessionId: "session_001", classId: "class_001", studentId: "student_004", studentName: "Hoang Van E",
     checkedInAt: NOW - DAY * 7 + 360000,
     peerVerifications: [],
-    peerCount: 0, trustScore: "absent",
+    peerCount: 0, trustPolicy: "absent",
   },
   {
     sessionId: "session_001", classId: "class_001", studentId: "student_005", studentName: "Vo Thi F",
@@ -133,7 +133,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - DAY * 7 + 650000, qrNonce: "s1n8" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - DAY * 7 + 700000, qrNonce: "s1n9" },
     ],
-    peerCount: 3, trustScore: "present",
+    peerCount: 3, trustPolicy: "present",
   },
 
   // session_002 (class_001, 3 days ago) — 6/7 checked in, 1 absent (student_004)
@@ -145,7 +145,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: NOW - DAY * 3 + 400000, qrNonce: "s2n2" },
       { peerId: "student_006", peerName: "Tran Van G", verifiedAt: NOW - DAY * 3 + 500000, qrNonce: "s2n3" },
     ],
-    peerCount: 3, trustScore: "present",
+    peerCount: 3, trustPolicy: "present",
     faceVerification: { matched: true, confidence: 0.95, selfieImagePath: "", verifiedAt: NOW - DAY * 3 + 250000 },
   },
   {
@@ -156,7 +156,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - DAY * 3 + 350000, qrNonce: "s2n5" },
       { peerId: "student_007", peerName: "Bui Thi H", verifiedAt: NOW - DAY * 3 + 450000, qrNonce: "s2n6" },
     ],
-    peerCount: 3, trustScore: "present",
+    peerCount: 3, trustPolicy: "present",
   },
   {
     sessionId: "session_002", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D",
@@ -165,7 +165,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - DAY * 3 + 350000, qrNonce: "s2n7" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: NOW - DAY * 3 + 420000, qrNonce: "s2n8" },
     ],
-    peerCount: 2, trustScore: "review",
+    peerCount: 2, trustPolicy: "review",
   },
   {
     sessionId: "session_002", classId: "class_001", studentId: "student_005", studentName: "Vo Thi F",
@@ -175,7 +175,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - DAY * 3 + 420000, qrNonce: "s2n10" },
       { peerId: "student_006", peerName: "Tran Van G", verifiedAt: NOW - DAY * 3 + 480000, qrNonce: "s2n11" },
     ],
-    peerCount: 3, trustScore: "present",
+    peerCount: 3, trustPolicy: "present",
   },
   {
     sessionId: "session_002", classId: "class_001", studentId: "student_006", studentName: "Tran Van G",
@@ -183,7 +183,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
     peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: NOW - DAY * 3 + 500000, qrNonce: "s2n12" },
     ],
-    peerCount: 1, trustScore: "review",
+    peerCount: 1, trustPolicy: "review",
   },
   {
     sessionId: "session_002", classId: "class_001", studentId: "student_007", studentName: "Bui Thi H",
@@ -193,7 +193,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: NOW - DAY * 3 + 500000, qrNonce: "s2n14" },
       { peerId: "student_006", peerName: "Tran Van G", verifiedAt: NOW - DAY * 3 + 550000, qrNonce: "s2n15" },
     ],
-    peerCount: 3, trustScore: "present",
+    peerCount: 3, trustPolicy: "present",
   },
 
   // session_003 (class_002, 5 days ago) — 2/3 checked in, 1 absent (student_003)
@@ -203,7 +203,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
     peerVerifications: [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - DAY * 5 + 450000, qrNonce: "s3n1" },
     ],
-    peerCount: 1, trustScore: "review",
+    peerCount: 1, trustPolicy: "review",
   },
   {
     sessionId: "session_003", classId: "class_002", studentId: "student_002", studentName: "Le Van C",
@@ -211,7 +211,7 @@ const attendance: Omit<AttendanceDoc, "id">[] = [
     peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: NOW - DAY * 5 + 450000, qrNonce: "s3n2" },
     ],
-    peerCount: 1, trustScore: "review",
+    peerCount: 1, trustPolicy: "review",
   },
 ];
 
@@ -248,7 +248,8 @@ export async function seedTestData(
   log("Dang tao attendance records...");
   for (let i = 0; i < attendance.length; i++) {
     const ref = doc(collection(db, "attendance"));
-    await setDoc(ref, attendance[i]);
+    // Ghi kèm key cũ "trustScore" — khớp cách attendance.service ghi wire
+    await setDoc(ref, { ...attendance[i], trustScore: (attendance[i] as any).trustPolicy });
   }
   log(`Da tao ${attendance.length} attendance records`);
 

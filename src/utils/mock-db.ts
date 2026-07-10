@@ -206,20 +206,20 @@ export function seedMockData() {
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: s1Base + 400000, qrNonce: "n1" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: s1Base + 500000, qrNonce: "n2" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: s1Base + 600000, qrNonce: "n3" },
-    ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: s1Base + 350000 } },
+    ], peerCount: 3, trustPolicy: "present", faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: s1Base + 350000 } },
     { id: "att_002", sessionId: "session_001", classId: "class_001", studentId: "student_002", studentName: "Le Van C", checkedInAt: s1Base + 320000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s1Base + 400000, qrNonce: "n4" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: s1Base + 550000, qrNonce: "n5" },
-    ], peerCount: 2, trustScore: "review", faceVerification: { matched: false, confidence: 0, selfieImagePath: "", verifiedAt: 0, skipped: true } },
+    ], peerCount: 2, trustPolicy: "review", faceVerification: { matched: false, confidence: 0, selfieImagePath: "", verifiedAt: 0, skipped: true } },
     { id: "att_003", sessionId: "session_001", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: s1Base + 340000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s1Base + 500000, qrNonce: "n6" },
-    ], peerCount: 1, trustScore: "review", faceVerification: { matched: false, confidence: 0.35, selfieImagePath: "", verifiedAt: s1Base + 380000 } },
-    { id: "att_004", sessionId: "session_001", classId: "class_001", studentId: "student_004", studentName: "Hoang Van E", checkedInAt: s1Base + 360000, peerVerifications: [], peerCount: 0, trustScore: "absent" },
+    ], peerCount: 1, trustPolicy: "review", faceVerification: { matched: false, confidence: 0.35, selfieImagePath: "", verifiedAt: s1Base + 380000 } },
+    { id: "att_004", sessionId: "session_001", classId: "class_001", studentId: "student_004", studentName: "Hoang Van E", checkedInAt: s1Base + 360000, peerVerifications: [], peerCount: 0, trustPolicy: "absent" },
     { id: "att_005", sessionId: "session_001", classId: "class_001", studentId: "student_005", studentName: "Vo Thi F", checkedInAt: s1Base + 380000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s1Base + 600000, qrNonce: "n7" },
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: s1Base + 650000, qrNonce: "n8" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: s1Base + 700000, qrNonce: "n9" },
-    ], peerCount: 3, trustScore: "present" },
+    ], peerCount: 3, trustPolicy: "present" },
   ];
 
   // session_002: 6/7 check-in (student_004 absent)
@@ -229,28 +229,28 @@ export function seedMockData() {
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: s2Base + 300000, qrNonce: "s2n1" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: s2Base + 400000, qrNonce: "s2n2" },
       { peerId: "student_006", peerName: "Tran Van G", verifiedAt: s2Base + 500000, qrNonce: "s2n3" },
-    ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.95, selfieImagePath: "", verifiedAt: s2Base + 250000 } },
+    ], peerCount: 3, trustPolicy: "present", faceVerification: { matched: true, confidence: 0.95, selfieImagePath: "", verifiedAt: s2Base + 250000 } },
     { id: "att_007", sessionId: "session_002", classId: "class_001", studentId: "student_002", studentName: "Le Van C", checkedInAt: s2Base + 220000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s2Base + 300000, qrNonce: "s2n4" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: s2Base + 350000, qrNonce: "s2n5" },
       { peerId: "student_007", peerName: "Bui Thi H", verifiedAt: s2Base + 450000, qrNonce: "s2n6" },
-    ], peerCount: 3, trustScore: "present" },
+    ], peerCount: 3, trustPolicy: "present" },
     { id: "att_008", sessionId: "session_002", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: s2Base + 240000, peerVerifications: [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: s2Base + 350000, qrNonce: "s2n7" },
-    ], peerCount: 1, trustScore: "review" },
+    ], peerCount: 1, trustPolicy: "review" },
     { id: "att_009", sessionId: "session_002", classId: "class_001", studentId: "student_005", studentName: "Vo Thi F", checkedInAt: s2Base + 260000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s2Base + 400000, qrNonce: "s2n9" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: s2Base + 420000, qrNonce: "s2n10" },
       { peerId: "student_006", peerName: "Tran Van G", verifiedAt: s2Base + 480000, qrNonce: "s2n11" },
-    ], peerCount: 3, trustScore: "present" },
+    ], peerCount: 3, trustPolicy: "present" },
     { id: "att_010", sessionId: "session_002", classId: "class_001", studentId: "student_006", studentName: "Tran Van G", checkedInAt: s2Base + 280000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s2Base + 500000, qrNonce: "s2n12" },
-    ], peerCount: 1, trustScore: "review" },
+    ], peerCount: 1, trustPolicy: "review" },
     { id: "att_011", sessionId: "session_002", classId: "class_001", studentId: "student_007", studentName: "Bui Thi H", checkedInAt: s2Base + 300000, peerVerifications: [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: s2Base + 450000, qrNonce: "s2n13" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: s2Base + 500000, qrNonce: "s2n14" },
       { peerId: "student_006", peerName: "Tran Van G", verifiedAt: s2Base + 550000, qrNonce: "s2n15" },
-    ], peerCount: 3, trustScore: "present" },
+    ], peerCount: 3, trustPolicy: "present" },
   );
 
   // session_003 (class_002): 2/3 check-in (student_003 absent)
@@ -258,10 +258,10 @@ export function seedMockData() {
   att.push(
     { id: "att_012", sessionId: "session_003", classId: "class_002", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: s3Base + 300000, peerVerifications: [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: s3Base + 450000, qrNonce: "s3n1" },
-    ], peerCount: 1, trustScore: "review" },
+    ], peerCount: 1, trustPolicy: "review" },
     { id: "att_013", sessionId: "session_003", classId: "class_002", studentId: "student_002", studentName: "Le Van C", checkedInAt: s3Base + 350000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: s3Base + 450000, qrNonce: "s3n2" },
-    ], peerCount: 1, trustScore: "review" },
+    ], peerCount: 1, trustPolicy: "review" },
   );
 
   // ── Active test sessions for dev page step testing ──
@@ -282,30 +282,30 @@ export function seedMockData() {
   testSessions.forEach(s => mockDb.setSession(s));
 
   // Step 2: checked in, no face verification
-  att.push({ id: "att_step2", sessionId: "session_step2", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustScore: "absent" });
+  att.push({ id: "att_step2", sessionId: "session_step2", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustPolicy: "absent" });
 
   // Step 3: checked in + face verified, 1 peer
   att.push({ id: "att_step3", sessionId: "session_step3", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [
     { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 200000, qrNonce: "test_n1" },
-  ], peerCount: 1, trustScore: "review", faceVerification: { matched: true, confidence: 0.88, selfieImagePath: "", verifiedAt: NOW - 280000 } });
+  ], peerCount: 1, trustPolicy: "review", faceVerification: { matched: true, confidence: 0.88, selfieImagePath: "", verifiedAt: NOW - 280000 } });
 
   // Step 4: checked in + face + 3 peers = done
   att.push({ id: "att_step4", sessionId: "session_step4", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [
     { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 200000, qrNonce: "test_n2" },
     { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - 180000, qrNonce: "test_n3" },
     { peerId: "student_004", peerName: "Hoang Van E", verifiedAt: NOW - 160000, qrNonce: "test_n4" },
-  ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: NOW - 280000 } });
+  ], peerCount: 3, trustPolicy: "present", faceVerification: { matched: true, confidence: 0.92, selfieImagePath: "", verifiedAt: NOW - 280000 } });
 
   // ── Optional steps: Face OFF — checked in, skip to peer step
   att.push({ id: "att_noface", sessionId: "session_noface", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [
     { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 200000, qrNonce: "nf_n1" },
-  ], peerCount: 1, trustScore: "review" });
+  ], peerCount: 1, trustPolicy: "review" });
 
   // ── Optional steps: Peer OFF — checked in + face, skip to done
-  att.push({ id: "att_nopeer", sessionId: "session_nopeer", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustScore: "present", faceVerification: { matched: true, confidence: 0.90, selfieImagePath: "", verifiedAt: NOW - 280000 } });
+  att.push({ id: "att_nopeer", sessionId: "session_nopeer", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustPolicy: "present", faceVerification: { matched: true, confidence: 0.90, selfieImagePath: "", verifiedAt: NOW - 280000 } });
 
   // ── Optional steps: QR only — checked in, straight to done
-  att.push({ id: "att_qronly", sessionId: "session_qronly", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustScore: "present" });
+  att.push({ id: "att_qronly", sessionId: "session_qronly", classId: "class_001", studentId: "student_001", studentName: "Nguyen Van A", checkedInAt: NOW - 300000, peerVerifications: [], peerCount: 0, trustPolicy: "present" });
 
   // ── Active session for monitor: 3/7 checked in, 4 absent
   att.push(
@@ -313,11 +313,11 @@ export function seedMockData() {
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: NOW - 800000, qrNonce: "act_n1" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: NOW - 700000, qrNonce: "act_n2" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: NOW - 600000, qrNonce: "act_n3" },
-    ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.91, selfieImagePath: "", verifiedAt: NOW - 850000 } },
+    ], peerCount: 3, trustPolicy: "present", faceVerification: { matched: true, confidence: 0.91, selfieImagePath: "", verifiedAt: NOW - 850000 } },
     { id: "att_active_2", sessionId: "session_active", classId: "class_001", studentId: "student_002", studentName: "Le Van C", checkedInAt: NOW - 880000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: NOW - 800000, qrNonce: "act_n4" },
-    ], peerCount: 1, trustScore: "review" },
-    { id: "att_active_3", sessionId: "session_active", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: NOW - 860000, peerVerifications: [], peerCount: 0, trustScore: "absent" },
+    ], peerCount: 1, trustPolicy: "review" },
+    { id: "att_active_3", sessionId: "session_active", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: NOW - 860000, peerVerifications: [], peerCount: 0, trustPolicy: "absent" },
   );
 
   // ── Manual attendance session: 4/7, 1 manual, 2 absent
@@ -327,13 +327,13 @@ export function seedMockData() {
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: mBase + 400000, qrNonce: "mn1" },
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: mBase + 500000, qrNonce: "mn2" },
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: mBase + 600000, qrNonce: "mn3" },
-    ], peerCount: 3, trustScore: "present", faceVerification: { matched: true, confidence: 0.93, selfieImagePath: "", verifiedAt: mBase + 350000 } },
+    ], peerCount: 3, trustPolicy: "present", faceVerification: { matched: true, confidence: 0.93, selfieImagePath: "", verifiedAt: mBase + 350000 } },
     { id: "att_man_2", sessionId: "session_manual", classId: "class_001", studentId: "student_002", studentName: "Le Van C", checkedInAt: mBase + 320000, peerVerifications: [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: mBase + 400000, qrNonce: "mn4" },
-    ], peerCount: 1, trustScore: "review" },
-    { id: "att_man_3", sessionId: "session_manual", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: mBase + 340000, peerVerifications: [], peerCount: 0, trustScore: "absent" },
+    ], peerCount: 1, trustPolicy: "review" },
+    { id: "att_man_3", sessionId: "session_manual", classId: "class_001", studentId: "student_003", studentName: "Pham Thi D", checkedInAt: mBase + 340000, peerVerifications: [], peerCount: 0, trustPolicy: "absent" },
     // Manual attendance record — student_004 was manually marked present by teacher
-    { id: "att_man_4", sessionId: "session_manual", classId: "class_001", studentId: "student_004", studentName: "Hoang Van E", checkedInAt: mBase + 2000000, peerVerifications: [], peerCount: 0, trustScore: "present", teacherOverride: "present", manualBy: "teacher_001", manualReason: "SV co mat nhung dien thoai het pin, khong the quet QR", manualAt: mBase + 2000000 },
+    { id: "att_man_4", sessionId: "session_manual", classId: "class_001", studentId: "student_004", studentName: "Hoang Van E", checkedInAt: mBase + 2000000, peerVerifications: [], peerCount: 0, trustPolicy: "present", teacherOverride: "present", manualBy: "teacher_001", manualReason: "SV co mat nhung dien thoai het pin, khong the quet QR", manualAt: mBase + 2000000 },
   );
 
   att.forEach(a => mockDb.setAttendance(a));

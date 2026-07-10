@@ -381,7 +381,9 @@ export default function ProfilePage() {
 
       {/* -- Edit modal -- */}
       <DarkModal visible={editModal} onClose={() => setEditModal(false)} title="Chỉnh sửa thông tin">
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* paddingBottom chừa chỗ cho thanh điều hướng nổi (pill ~60px, cách đáy
+            10px + safe-area) — đẩy nút "Lưu" lên trên nav thay vì bị che. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingBottom: 84 }}>
           {editFields.map((f) => (
             <div key={f.label}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, display: "block" }}>{f.label}</label>

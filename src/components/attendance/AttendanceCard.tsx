@@ -40,7 +40,7 @@ export default function AttendanceCard({ record, showName = true, index }: Atten
 
   const score = record.teacherOverride
     ? (record.teacherOverride === "present" ? "present" as const : "absent" as const)
-    : record.trustScore;
+    : record.trustPolicy;
 
   const avatarColor = getAvatarColor(record.studentName);
   const staggerClass = index !== undefined ? `animate-stagger-${Math.min(index + 1, 10)}` : "";

@@ -1,0 +1,1099 @@
+<title>Ôn tập thuật toán điểm danh — Zimo Checkin</title>
+<style>
+  :root {
+    --hust: #be1d2c;
+    --hust-soft: #e8b4b9;
+    --bg: #f6f4f2;
+    --surface: #ffffff;
+    --surface-2: #efeceb;
+    --ink: #201c1c;
+    --ink-2: #6c6360;
+    --ink-3: #9a908c;
+    --line: rgba(30,20,20,0.10);
+    --good: #1f9d55;
+    --good-bg: #e6f5ec;
+    --warn: #c47d13;
+    --warn-bg: #fbf0dc;
+    --bad: #d13c3c;
+    --bad-bg: #fbe6e6;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --radius: 16px;
+    --shadow: 0 1px 3px rgba(30,20,20,0.06), 0 8px 28px rgba(30,20,20,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --hust: #f26d78;
+      --hust-soft: #6a2027;
+      --bg: #17130f;
+      --surface: #221c19;
+      --surface-2: #2c2420;
+      --ink: #f3ece8;
+      --ink-2: #b6a9a2;
+      --ink-3: #86776f;
+      --line: rgba(255,240,235,0.10);
+      --good: #55c98a; --good-bg: #16281d;
+      --warn: #e0a445; --warn-bg: #2c2213;
+      --bad: #f0787f; --bad-bg: #2e1616;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 8px 28px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --hust: #f26d78; --hust-soft: #6a2027;
+    --bg: #17130f; --surface: #221c19; --surface-2: #2c2420;
+    --ink: #f3ece8; --ink-2: #b6a9a2; --ink-3: #86776f;
+    --line: rgba(255,240,235,0.10);
+    --good: #55c98a; --good-bg: #16281d;
+    --warn: #e0a445; --warn-bg: #2c2213;
+    --bad: #f0787f; --bad-bg: #2e1616;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 8px 28px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --hust: #be1d2c; --hust-soft: #e8b4b9;
+    --bg: #f6f4f2; --surface: #ffffff; --surface-2: #efeceb;
+    --ink: #201c1c; --ink-2: #6c6360; --ink-3: #9a908c;
+    --line: rgba(30,20,20,0.10);
+    --good: #1f9d55; --good-bg: #e6f5ec;
+    --warn: #c47d13; --warn-bg: #fbf0dc;
+    --bad: #d13c3c; --bad-bg: #fbe6e6;
+    --shadow: 0 1px 3px rgba(30,20,20,0.06), 0 8px 28px rgba(30,20,20,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 80px; }
+
+  /* Header */
+  header {
+    background: var(--hust); color: #fff;
+    border-radius: 0 0 22px 22px; padding: 22px 20px 20px;
+    margin: 0 -16px 18px;
+  }
+  .eyebrow {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    font-weight: 700; opacity: .82; margin: 0 0 6px;
+  }
+  header h1 {
+    margin: 0; font-size: clamp(21px, 5.2vw, 28px); font-weight: 800;
+    letter-spacing: -.01em; text-wrap: balance;
+  }
+  header p { margin: 8px 0 0; font-size: 14px; opacity: .9; max-width: 46ch; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    justify-content: space-between; margin-bottom: 14px;
+  }
+  .modes { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 2px; }
+  .modes button {
+    border: 0; background: transparent; color: var(--ink-2);
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 7px 14px; border-radius: 999px;
+  }
+  .modes button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .theme-btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+    width: 38px; height: 38px; border-radius: 12px; cursor: pointer; font-size: 16px;
+  }
+
+  /* Category chips */
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; margin-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { height: 0; }
+  .chip {
+    flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600;
+    padding: 7px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  }
+  .chip.on { background: var(--hust); border-color: var(--hust); color: #fff; }
+
+  /* Progress */
+  .status { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 13px; color: var(--ink-2); }
+  .bar { flex: 1; height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--hust); border-radius: 999px; transform: scaleX(0); transform-origin: left; transition: transform .35s ease; }
+  .score b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* Card */
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .qmeta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .qcat {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--hust); background: var(--hust-soft); padding: 3px 9px; border-radius: 999px;
+  }
+  :root[data-theme="dark"] .qcat, .qnum { color: var(--hust); }
+  .qnum { margin-left: auto; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .qtext { font-size: 17px; font-weight: 650; letter-spacing: -.005em; margin: 0 0 16px; text-wrap: pretty; }
+  .qtext code, .explain code, .opt code {
+    font-family: var(--mono); font-size: .88em; background: var(--surface-2);
+    padding: 1px 5px; border-radius: 5px; word-break: break-word;
+  }
+
+  .opts { display: flex; flex-direction: column; gap: 9px; }
+  .opt {
+    display: flex; gap: 11px; align-items: flex-start; text-align: left;
+    border: 1.5px solid var(--line); background: var(--surface);
+    border-radius: 12px; padding: 12px 14px; cursor: pointer;
+    font: inherit; font-size: 15px; color: var(--ink); transition: border-color .15s, background .15s;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--hust); }
+  .opt:disabled { cursor: default; }
+  .opt .key {
+    flex: 0 0 auto; width: 24px; height: 24px; border-radius: 7px;
+    background: var(--surface-2); color: var(--ink-2);
+    display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  }
+  .opt.correct { border-color: var(--good); background: var(--good-bg); }
+  .opt.correct .key { background: var(--good); color: #fff; }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+  .opt.wrong .key { background: var(--bad); color: #fff; }
+  .opt:focus-visible { outline: 3px solid var(--hust); outline-offset: 2px; }
+
+  .explain {
+    margin-top: 14px; border: 1px solid var(--line);
+    background: var(--surface-2); border-radius: 12px;
+    padding: 13px 15px; font-size: 14.5px; color: var(--ink-2);
+    display: none;
+  }
+  .explain.show { display: block; }
+  .explain::before {
+    content: "Giải thích"; display: block;
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 6px;
+  }
+  .explain b { color: var(--ink); }
+  .explain .tag { font-weight: 700; }
+  .explain .tag.ok { color: var(--good); }
+  .explain .tag.no { color: var(--bad); }
+
+  .nav { display: flex; gap: 10px; margin-top: 4px; }
+  .btn {
+    flex: 1; border: 0; border-radius: 12px; padding: 13px; font: inherit;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .btn.primary { background: var(--hust); color: #fff; }
+  .btn.primary:disabled { opacity: .4; cursor: default; }
+  .btn.ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); flex: 0 0 auto; padding: 13px 18px; }
+
+  /* Summary */
+  .summary { text-align: center; }
+  .summary .big { font-size: 54px; font-weight: 800; color: var(--hust); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .summary .sub { color: var(--ink-2); margin: 2px 0 20px; }
+  .bd { display: grid; gap: 8px; text-align: left; margin: 0 0 20px; }
+  .bd .row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .bd .row .nm { flex: 1; color: var(--ink-2); }
+  .bd .row .mini { width: 90px; height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .bd .row .mini > i { display: block; height: 100%; background: var(--good); }
+  .bd .row .val { width: 44px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  footer { text-align: center; color: var(--ink-3); font-size: 12px; padding: 8px 0 0; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Đồ án tốt nghiệp · Ôn tập bảo vệ</p>
+    <h1>Thuật toán điểm danh — Zimo Checkin</h1>
+    <p>Luyện logic 4 bước: QR giảng viên → khuôn mặt → QR ngang hàng. Mỗi câu có giải thích để bạn trả lời hội đồng.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="modes">
+      <button id="mQuiz" class="on" onclick="setMode('quiz')">Kiểm tra</button>
+      <button id="mStudy" onclick="setMode('study')">Ôn tập</button>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện">◐</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="status">
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="score">Câu <b id="pos">1</b>/<b id="total">0</b> · Đúng <b id="right">0</b></div>
+  </div>
+
+  <div id="stage"></div>
+
+  <footer>Nội dung bám sát mã nguồn thật: <code>validation.ts · crypto.ts · types/index.ts · fraud.service.ts</code></footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * Ngân hàng câu hỏi — bám sát thuật toán thật của app.
+ * answer = chỉ số đáp án đúng (0-based).
+ * ------------------------------------------------------------------ */
+const CATS = {
+  flow:  "Luồng 4 bước",
+  qr:    "QR & HMAC",
+  time:  "Xoay mã & hết hạn",
+  face:  "Khuôn mặt",
+  peer:  "Ngang hàng",
+  trust: "Điểm tin cậy",
+  fraud: "Chống gian lận",
+  why:   "Câu hỏi hội đồng",
+};
+
+const Q = [
+  // ---------------- Luồng 4 bước ----------------
+  { c:"flow", q:"Luồng điểm danh của sinh viên gồm mấy bước và theo thứ tự nào?", o:[
+    "3 bước: khuôn mặt → QR giảng viên → xong",
+    "4 bước: quét QR giảng viên → xác minh khuôn mặt → xác minh ngang hàng → hoàn tất",
+    "4 bước: khuôn mặt → GPS → QR → xong",
+    "2 bước: QR giảng viên → khuôn mặt"], a:1,
+    e:"Đúng 4 bước: (1) quét QR xoay của giảng viên, (2) xác minh khuôn mặt, (3) trao đổi QR ngang hàng với bạn cùng lớp, (4) màn hoàn tất kèm điểm tin cậy." },
+
+  { c:"flow", q:"Ở bước 3 (ngang hàng), màn hình bố trí thế nào?", o:[
+    "Chỉ có camera quét",
+    "QR của mình bên trái + camera tự quét bạn bên phải",
+    "Chỉ hiển thị QR của mình",
+    "Nhập mã số của bạn bằng tay"], a:1,
+    e:"Bước peer chia đôi: bên trái là QR của chính mình cho bạn quét, bên phải là camera tự quét QR của bạn khác — trao đổi hai chiều." },
+
+  { c:"flow", q:"Bước xác minh khuôn mặt hiện tại kích hoạt bằng cách nào?", o:[
+    "Tự động quét liên tục",
+    "Người dùng bấm chụp rồi hệ thống so khớp",
+    "Quét vân tay",
+    "Chỉ cần nhìn vào camera 5 giây"], a:1,
+    e:"Đã đổi từ auto-loop sang bấm-chụp: người dùng chủ động chụp, app trích vector khuôn mặt và so khớp — nhẹ máy, rõ ràng hơn." },
+
+  { c:"flow", q:"Mục tiêu tổng thể của cả 4 bước là gì?", o:[
+    "Chỉ để đếm sĩ số nhanh",
+    "Chống gian lận điểm danh: đúng phiên, đúng người, có mặt thật cùng lớp",
+    "Thay thế hoàn toàn giảng viên",
+    "Ghi hình lớp học"], a:1,
+    e:"QR chứng minh đúng phiên/đúng giảng viên; khuôn mặt chứng minh đúng người; ngang hàng chứng minh có mặt vật lý cùng các bạn." },
+
+  { c:"flow", q:"Ba yếu tố chống gian lận tương ứng với ba câu hỏi nào?", o:[
+    "Khi nào / ở đâu / bao lâu",
+    "Đúng phiên? / đúng người? / có mặt thật?",
+    "Ai chấm? / ai duyệt? / ai xem?",
+    "Wifi? / 4G? / offline?"], a:1,
+    e:"QR HMAC = đúng phiên & đúng giảng viên; khuôn mặt = đúng người; ngang hàng = có mặt vật lý (không điểm danh hộ từ xa)." },
+
+  { c:"flow", q:"Sau khi hoàn tất, sinh viên thấy gì ở bước 4?", o:[
+    "Danh sách toàn lớp",
+    "Màn hoàn tất kèm trạng thái/điểm tin cậy của mình",
+    "Hóa đơn",
+    "Bảng xếp hạng"], a:1,
+    e:"Bước 4 là màn hoàn tất, hiển thị kết quả điểm danh (điểm tin cậy: có mặt / cần xem xét / vắng)." },
+
+  { c:"flow", q:"Ai là người khởi tạo 'phiên điểm danh' để sinh viên bắt đầu quét?", o:[
+    "Sinh viên bất kỳ",
+    "Giảng viên mở phiên cho lớp",
+    "Hệ thống tự mở theo lịch",
+    "Phòng đào tạo"], a:1,
+    e:"Giảng viên mở phiên (session) cho lớp; QR xoay của giảng viên gắn với phiên đó, sinh viên quét để check-in." },
+
+  { c:"flow", q:"Các bước khuôn mặt và ngang hàng có thể bật/tắt cho từng lớp không?", o:[
+    "Không, luôn bắt buộc",
+    "Có — qua cờ faceRequired và peerRequired",
+    "Chỉ tắt được khuôn mặt",
+    "Chỉ admin trung ương đổi được"], a:1,
+    e:"Mỗi lớp/phiên có cờ faceRequired và peerRequired; giảng viên có thể cho một bước thành tùy chọn. Trust score tính theo cấu hình này." },
+
+  { c:"flow", q:"Vì sao QR của giảng viên phải quét trước tiên?", o:[
+    "Để đẹp giao diện",
+    "Để lấy đúng phiên (sessionId) và bí mật phiên dùng cho các bước sau",
+    "Để tải ảnh nền",
+    "Không có lý do kỹ thuật"], a:1,
+    e:"QR giảng viên xác định sinh viên đang ở đúng phiên nào; sessionId và bí mật phiên là gốc để ký/kiểm QR ngang hàng sau đó." },
+
+  { c:"flow", q:"Nếu một lớp đặt peerRequired = false thì bước 3 ra sao?", o:[
+    "Vẫn bắt buộc quét 1 bạn",
+    "Không bắt buộc — thiếu peer vẫn có thể 'present' nếu các điều kiện khác đạt",
+    "App báo lỗi",
+    "Chuyển sang quét vân tay"], a:1,
+    e:"peerReq = (peerRequired !== false). Nếu false thì peerPass luôn true, không cần quét bạn nào." },
+
+  { c:"flow", q:"Dữ liệu điểm danh của mỗi sinh viên trong 1 phiên lưu ở đâu?", o:[
+    "Chỉ trên máy",
+    "Bản ghi attendance trên Firestore (peerVerifications, peerCount, faceVerification, trustScore...)",
+    "Trong ảnh QR",
+    "Gửi email"], a:1,
+    e:"Mỗi sinh viên có 1 attendance doc chứa peerVerifications[], peerCount, faceVerification, trustScore, teacherOverride..." },
+
+  { c:"flow", q:"Giảng viên có thể can thiệp kết quả điểm danh của sinh viên không?", o:[
+    "Không bao giờ",
+    "Có — teacherOverride ('present'/'absent') được ưu tiên tuyệt đối",
+    "Chỉ sửa được tên",
+    "Chỉ xóa cả phiên"], a:1,
+    e:"effectiveTrustScore ưu tiên teacherOverride trên hết: giảng viên điểm danh thủ công/ghi đè khi cần." },
+
+  // ---------------- QR & HMAC ----------------
+  { c:"qr", q:"Chữ ký của mỗi mã QR được tạo bằng thuật toán nào?", o:[
+    "MD5", "HMAC-SHA256 với bí mật của phiên", "Base64", "SHA-1 không khóa"], a:1,
+    e:"signPayload dùng CryptoJS.HmacSHA256(message, secret) — có khóa bí mật phiên nên không giả được nếu không biết secret." },
+
+  { c:"qr", q:"Chuỗi thông điệp được ký có định dạng nào?", o:[
+    "Chỉ userId",
+    "`type:sessionId:userId:timestamp:nonce`",
+    "JSON toàn bộ payload",
+    "sessionId + ngày"], a:1,
+    e:"message = `${type}:${sessionId}:${userId}:${timestamp}:${nonce}` rồi mới HMAC. Đổi bất kỳ trường nào → chữ ký đổi." },
+
+  { c:"qr", q:"'nonce' trong payload dùng để làm gì?", o:[
+    "Số thứ tự lớp",
+    "Giá trị ngẫu nhiên 16 byte làm mỗi QR khác nhau, chống trùng/đoán",
+    "Tên giảng viên",
+    "Mã tỉnh thành"], a:1,
+    e:"generateNonce() = WordArray.random(16). Nonce ngẫu nhiên khiến hai QR cùng thời điểm vẫn khác nhau và khó dựng lại." },
+
+  { c:"qr", q:"verifySignature kiểm tra hợp lệ bằng cách nào?", o:[
+    "Giải mã ngược chữ ký",
+    "Tự ký lại message rồi so sánh chuỗi bằng `===` với chữ ký nhận được",
+    "Hỏi server",
+    "So độ dài chuỗi"], a:1,
+    e:"expected = signPayload(data, secret); trả về expected === signature. Không cần server — kiểm ngay trên máy." },
+
+  { c:"qr", q:"Payload QR có mấy trường bắt buộc để parseQRContent chấp nhận?", o:[
+    "3", "6: type, sessionId, userId, timestamp, nonce, signature", "2", "10"], a:1,
+    e:"parseQRContent yêu cầu đủ 6 trường đúng kiểu (type/sessionId/userId string, timestamp number, nonce/signature string), thiếu/sai kiểu → trả null." },
+
+  { c:"qr", q:"Có mấy loại QR trong hệ thống (trường type)?", o:[
+    "1 loại", "2 loại: 'teacher' và 'peer'", "3 loại", "Không phân loại"], a:1,
+    e:"type ∈ {teacher, peer}. QR giảng viên dùng cho bước 1; QR sinh viên dùng cho bước ngang hàng." },
+
+  { c:"qr", q:"validateTeacherQR trả 'QR không phải của giảng viên' khi nào?", o:[
+    "Khi hết hạn",
+    "Khi payload.type !== 'teacher'",
+    "Khi thiếu GPS",
+    "Khi peerCount = 0"], a:1,
+    e:"Điều kiện đầu tiên: type phải là 'teacher', không thì chặn ngay trước cả khi kiểm chữ ký." },
+
+  { c:"qr", q:"Nếu sinh viên tự dựng QR giả nhưng không biết bí mật phiên thì sao?", o:[
+    "Vẫn hợp lệ",
+    "Chữ ký sai → verifySignature false → 'Chữ ký không hợp lệ'",
+    "App tự sửa chữ ký",
+    "Được chấp nhận nếu đúng sessionId"], a:1,
+    e:"Không có secret thì không tạo được HMAC đúng; chữ ký so sánh lệch → bị chặn. Đây là lõi chống giả mạo." },
+
+  { c:"qr", q:"Bí mật (secret) để ký QR ngang hàng lấy từ đâu?", o:[
+    "Cố định trong mã nguồn",
+    "Bí mật của phiên (session secret) — gắn theo từng phiên",
+    "Số điện thoại sinh viên",
+    "Ngày tháng hiện tại"], a:1,
+    e:"Chữ ký gắn với secret của phiên; QR của phiên này không dùng lại cho phiên khác vì secret khác." },
+
+  { c:"qr", q:"Tại sao dùng HMAC thay vì chỉ nhét sessionId trần vào QR?", o:[
+    "HMAC nhẹ hơn",
+    "QR trần dễ bị chép/tự tạo; HMAC gắn khóa bí mật nên không giả được",
+    "HMAC hiển thị đẹp hơn",
+    "Không có khác biệt"], a:1,
+    e:"Nếu QR chỉ chứa sessionId thì ai cũng dựng được; HMAC yêu cầu biết secret → chỉ phía hợp lệ mới tạo QR đúng." },
+
+  { c:"qr", q:"Đổi 1 ký tự trong 'timestamp' của payload nhưng giữ nguyên chữ ký cũ thì kết quả?", o:[
+    "Vẫn hợp lệ",
+    "Chữ ký không còn khớp message mới → bị từ chối",
+    "App làm tròn lại",
+    "Chỉ cảnh báo nhẹ"], a:1,
+    e:"timestamp nằm trong message được ký; đổi nó thì HMAC tính lại khác chữ ký cũ → verifySignature false." },
+
+  { c:"qr", q:"createQRContent trả về gì?", o:[
+    "Một ảnh PNG",
+    "Chuỗi JSON của payload {type, sessionId, userId, timestamp, nonce, signature}",
+    "Chỉ chữ ký",
+    "URL"], a:1,
+    e:"Nó tạo timestamp + nonce, ký, rồi JSON.stringify toàn payload; lớp QR sẽ render chuỗi này thành hình." },
+
+  { c:"qr", q:"Điểm yếu bảo mật đã biết: verifySignature so sánh chuỗi bằng '===', vấn đề tiềm ẩn là gì?", o:[
+    "Không có vấn đề gì",
+    "So sánh không hằng-thời-gian (không constant-time) → về lý thuyết lộ thông tin qua timing",
+    "Sai kết quả ngẫu nhiên",
+    "Chậm gấp đôi"], a:1,
+    e:"So sánh '===' thoát sớm khi lệch, về lý thuyết mở ra timing attack. Trong bối cảnh mini app/đồ án rủi ro thấp, nhưng nên biết để trả lời hội đồng." },
+
+  { c:"qr", q:"QR ngang hàng của một sinh viên chứa userId của ai?", o:[
+    "Của giảng viên",
+    "Của chính sinh viên đó (để bạn khác quét biết mình là ai)",
+    "Của cả lớp",
+    "Ngẫu nhiên"], a:1,
+    e:"type='peer', userId = id của người tạo QR; khi bạn khác quét, họ biết peerId chính là userId trong payload." },
+
+  // ---------------- Xoay mã & hết hạn ----------------
+  { c:"time", q:"Mã QR của giảng viên xoay (đổi) sau mỗi bao lâu (mặc định)?", o:[
+    "10 giây", "30 giây", "90 giây", "5 phút"], a:1,
+    e:"refreshInterval mặc định 30000ms = 30s. Cứ 30s QR đổi timestamp/nonce/chữ ký mới." },
+
+  { c:"time", q:"Một mã QR được coi là còn hạn trong bao lâu kể từ timestamp?", o:[
+    "30 giây", "60 giây", "90 giây (QR_EXPIRY_MS)", "Vô hạn"], a:2,
+    e:"QR_EXPIRY_MS = 90000ms = 90s. Hết hạn khi Date.now() - timestamp > 90000." },
+
+  { c:"time", q:"Vì sao hạn 90s trong khi mã xoay mỗi 30s?", o:[
+    "Lỗi cấu hình",
+    "Dung sai cho lệch đồng hồ + độ trễ quét: chấp nhận tối đa ~3 vòng xoay",
+    "Để tiết kiệm pin",
+    "Vì camera chậm"], a:1,
+    e:"90s ≈ 3×30s: người quét hơi trễ hoặc đồng hồ lệch nhẹ vẫn hợp lệ, tránh trượt oan mà vẫn giới hạn thời gian sống của QR." },
+
+  { c:"time", q:"QR có tuổi đúng 90000ms (đúng 90s) thì còn hợp lệ không?", o:[
+    "Không, đã hết hạn",
+    "Còn hợp lệ — điều kiện hết hạn là `> 90000`, 90000 không lớn hơn 90000",
+    "Tùy máy",
+    "Chỉ hợp lệ nếu online"], a:1,
+    e:"Kiểm tra là strict '>': tuổi = 90000 → không > 90000 → CÒN hạn. 90001ms mới hết hạn. Đây là câu boundary hay bị hỏi." },
+
+  { c:"time", q:"Ảnh chụp màn hình QR của giảng viên gửi cho bạn ở xa dùng được không?", o:[
+    "Dùng thoải mái",
+    "Chỉ trong ~90s; sau đó QR trong ảnh hết hạn → bị chặn/đánh dấu",
+    "Luôn dùng được",
+    "Dùng được nếu cùng lớp"], a:1,
+    e:"Cơ chế xoay + hạn 90s khiến ảnh chụp chia sẻ nhanh chóng hết hạn — chống điểm danh hộ bằng screenshot." },
+
+  { c:"time", q:"classifyTeacherQR phân biệt hai khái niệm nào?", o:[
+    "online / offline",
+    "authentic (chữ ký đúng & type teacher) và stale (quá 90s)",
+    "sáng / tối",
+    "wifi / 4g"], a:1,
+    e:"authentic xét tính thật của chữ ký; stale xét độ cũ. Một QR có thể authentic nhưng stale (thật nhưng cũ) → đánh dấu cần xem xét." },
+
+  { c:"time", q:"Một QR authentic nhưng stale thì luồng xử lý ra sao?", o:[
+    "Chặn hoàn toàn như QR giả",
+    "Cho qua nhưng đánh dấu cần xem xét (needsReview) vì có thể là ảnh cũ",
+    "Tự động thành 'present'",
+    "Xóa tài khoản"], a:1,
+    e:"stale không đồng nghĩa giả mạo. Hệ thống có thể chấp nhận nhưng gắn cờ review để giảng viên kiểm lại (vd ảnh chụp cũ)." },
+
+  { c:"time", q:"Cơ chế tính chu kỳ QR: periodIndex được tính thế nào?", o:[
+    "Ngẫu nhiên",
+    "floor(elapsed / refreshInterval) với elapsed = now - mốc neo",
+    "now nhân 30",
+    "Số câu đã quét"], a:1,
+    e:"periodIndex = Math.floor(elapsed / refreshInterval); periodStart = anchor + periodIndex*interval — để mọi máy sinh cùng QR trong cùng chu kỳ." },
+
+  { c:"time", q:"Vì sao QR nên đồng bộ theo 'mốc neo' (anchor) thay vì thời điểm mở màn?", o:[
+    "Cho đẹp",
+    "Để nhiều máy/giảng viên & sinh viên sinh cùng một QR trong cùng cửa sổ 30s, khớp khi kiểm",
+    "Giảm dung lượng",
+    "Không cần thiết"], a:1,
+    e:"Neo chung giúp các bên đồng pha chu kỳ; nếu neo theo lúc mở app mỗi máy sẽ lệch pha, khó kiểm chéo." },
+
+  { c:"time", q:"Countdown trên màn QR (đếm ngược) tính bằng công thức nào?", o:[
+    "random",
+    "remainingMs = refreshInterval - (now - periodStart)",
+    "90 - tuổi",
+    "Số phiên"], a:1,
+    e:"remainingMs = interval - (now - periodStart): thời gian còn lại của chu kỳ hiện tại trước khi QR xoay." },
+
+  { c:"time", q:"Nếu đồng hồ máy sinh viên lệch 40s so với giảng viên thì sao?", o:[
+    "Chắc chắn hỏng",
+    "Vẫn thường ổn vì dung sai 90s hấp thụ được lệch vừa phải",
+    "QR biến mất",
+    "Phải chỉnh tay từng lần"], a:1,
+    e:"Dung sai 90s cho phép lệch đồng hồ + trễ quét ở mức vừa; lệch quá lớn (>90s) mới gây hết hạn oan." },
+
+  { c:"time", q:"QR quá 90s bị xử lý ở validateTeacherQR như thế nào?", o:[
+    "Bỏ qua",
+    "Trả {valid:false, error:'QR đã hết hạn'}",
+    "Tự gia hạn",
+    "Chuyển sang peer"], a:1,
+    e:"Sau khi qua kiểm type + chữ ký, nếu Date.now()-timestamp > 90000 thì trả lỗi 'QR đã hết hạn'." },
+
+  // ---------------- Khuôn mặt ----------------
+  { c:"face", q:"Khuôn mặt được biểu diễn bằng gì để so khớp?", o:[
+    "Ảnh gốc lưu thẳng",
+    "Vector đặc trưng 128 chiều (face descriptor)",
+    "Chuỗi tên",
+    "Mã QR"], a:1,
+    e:"Dùng face-api.js trích descriptor 128 chiều; so khớp bằng khoảng cách Euclid giữa các vector, không so ảnh thô." },
+
+  { c:"face", q:"Ngưỡng khoảng cách Euclid để coi hai khuôn mặt là khớp?", o:[
+    "0.2", "0.6 (MATCH_THRESHOLD)", "1.0", "2.5"], a:1,
+    e:"Khoảng cách <= 0.6 coi là cùng người (chuẩn phổ biến của face-api.js). Càng nhỏ càng giống." },
+
+  { c:"face", q:"Trong trust score, faceOk yêu cầu điều kiện nào?", o:[
+    "Chỉ cần có ảnh",
+    "matched === true VÀ confidence >= 0.7",
+    "confidence > 0",
+    "livenessChecked = true"], a:1,
+    e:"faceOk = faceVerification.matched === true && (confidence ?? 0) >= 0.7. Khớp nhưng độ tin cậy < 0.7 vẫn chưa đạt faceOk." },
+
+  { c:"face", q:"confidence = đúng 0.7 thì faceOk ra sao?", o:[
+    "Không đạt",
+    "Đạt — điều kiện là '>= 0.7'",
+    "Tùy máy",
+    "Bị coi là skipped"], a:1,
+    e:"'>= 0.7' nên 0.7 vừa đủ đạt; 0.6999 thì trượt. Câu boundary hay được hỏi." },
+
+  { c:"face", q:"Trường 'skipped' trong FaceVerificationResult nghĩa là gì?", o:[
+    "Khuôn mặt khớp",
+    "Bước khuôn mặt đã được bỏ qua (không thực hiện so khớp)",
+    "Ảnh mờ",
+    "Đã hết hạn"], a:1,
+    e:"skipped = true khi người dùng/hệ thống bỏ qua bước mặt. Trong trust score, faceSkipped làm facePass = true (được cho qua)." },
+
+  { c:"face", q:"Nếu faceRequired = true nhưng KHÔNG hề có kết quả khuôn mặt (không quét) thì facePass?", o:[
+    "false — bị chặn",
+    "true — vì faceAttempted = false nên !faceAttempted làm facePass = true",
+    "Luôn absent",
+    "Báo lỗi crash"], a:1,
+    e:"facePass = !faceReq || faceOk || faceSkipped || !faceAttempted. Không có faceVerification → faceAttempted=false → !faceAttempted=true → facePass=true. Đây là một 'quirk' logic hiện tại, nên nắm để giải thích/khắc phục." },
+
+  { c:"face", q:"faceAttempted được định nghĩa thế nào?", o:[
+    "Luôn true",
+    "!!faceVerification && !faceSkipped (có kết quả và không bị skip)",
+    "confidence > 0.5",
+    "matched === false"], a:1,
+    e:"faceAttempted = có object faceVerification VÀ không phải skipped. Tức là thực sự đã thử so khớp." },
+
+  { c:"face", q:"Vì sao lưu vector khuôn mặt thay vì ảnh gốc?", o:[
+    "Cho nhẹ và... không có lý do bảo mật",
+    "Riêng tư hơn (khó dựng lại mặt) + so khớp nhanh bằng khoảng cách vector",
+    "Vì ảnh không hiển thị được",
+    "Vì Firestore cấm ảnh"], a:1,
+    e:"Descriptor là vector số, khó khôi phục thành ảnh mặt → riêng tư hơn; và so khớp chỉ là tính khoảng cách, rất nhanh." },
+
+  { c:"face", q:"Trước đây bước mặt tự quét liên tục; vì sao đổi sang bấm-chụp?", o:[
+    "Cho vui",
+    "Auto-loop nặng máy và 'chậm'; bấm-chụp chủ động, rõ ràng, dễ báo sai mặt",
+    "Vì camera hỏng",
+    "Do yêu cầu của Zalo"], a:1,
+    e:"Chỉ lưu vector nên không cần quét liên tục; bấm-chụp giảm tải, phản hồi 'khớp/không khớp' rõ ràng hơn cho người dùng." },
+
+  { c:"face", q:"Khi khuôn mặt KHÔNG khớp, UI hiện gì (sau khi bỏ % )?", o:[
+    "Hiện số phần trăm",
+    "Badge 'Không khớp' + trạng thái failed, cho chụp lại",
+    "Đóng app",
+    "Chuyển sang peer luôn"], a:1,
+    e:"Đã bỏ hiển thị %, thay bằng nhãn 'Đã khớp'/'Không khớp'; sai mặt vào state failed với nút 'Chụp lại'." },
+
+  { c:"face", q:"Định danh (userId) dùng khi so khớp khuôn mặt lấy từ đâu (sau khi sửa lỗi)?", o:[
+    "Từ localStorage tùy biến",
+    "Từ currentUserAtom (state thật của người đăng nhập)",
+    "Từ QR giảng viên",
+    "Nhập tay"], a:1,
+    e:"Trước đây đọc userId từ localStorage gây lệch tài khoản trên máy nhiều nick; đã sửa để lấy userId nhất quán từ currentUserAtom." },
+
+  { c:"face", q:"Lỗi 'chưa đăng ký mặt nhưng vẫn ra 55%' bản chất là gì?", o:[
+    "Camera lỗi",
+    "So khớp nhầm với vector của tài khoản khác do nguồn userId không nhất quán",
+    "Ngưỡng quá thấp",
+    "Do mạng"], a:1,
+    e:"Máy nhiều tài khoản: verify đọc userId từ nguồn khác với hồ sơ đang hiển thị → so nhầm dữ liệu người khác. Sửa bằng cách truyền userId thống nhất từ atom." },
+
+  { c:"face", q:"confidence trong FaceVerificationResult nằm trong khoảng nào?", o:[
+    "0–100", "0.0–1.0", "-1 đến 1", "Bất kỳ"], a:1,
+    e:"confidence là số thực 0.0–1.0 (thường suy ra từ khoảng cách Euclid). Ngưỡng đạt trong trust là >= 0.7." },
+
+  { c:"face", q:"Khuôn mặt khớp (matched=true) nhưng confidence 0.65 thì trust coi là?", o:[
+    "faceOk đạt",
+    "faceOk KHÔNG đạt (0.65 < 0.7) → không tính là mặt đạt",
+    "absent ngay",
+    "skipped"], a:1,
+    e:"matched đúng nhưng confidence < 0.7 nên faceOk=false; tùy các điều kiện khác mà ra review/present." },
+
+  // ---------------- Ngang hàng (peer) ----------------
+  { c:"peer", q:"Hiện tại cần quét bao nhiêu bạn để 'đủ' bước ngang hàng?", o:[
+    "3 bạn", "1 bạn (REQUIRED_PEERS = 1)", "5 bạn", "Cả lớp"], a:1,
+    e:"REQUIRED_PEERS = 1 (đã đổi từ 3). peerPass khi peerCount >= 1. Đổi 1 hằng số này là đổi toàn app." },
+
+  { c:"peer", q:"validatePeerQR chặn 'Không thể quét QR của chính mình' khi nào?", o:[
+    "Khi hết hạn",
+    "Khi payload.userId === currentUserId",
+    "Khi type teacher",
+    "Khi peerCount = 0"], a:1,
+    e:"Không được tự làm peer cho chính mình: nếu userId trong QR trùng người đang quét → chặn." },
+
+  { c:"peer", q:"Quét lại đúng bạn đã xác minh trước đó thì sao?", o:[
+    "Tăng peerCount thêm",
+    "Bị chặn 'Đã xác minh sinh viên này rồi' (không cộng trùng)",
+    "Ghi đè bản cũ",
+    "Báo present luôn"], a:1,
+    e:"existingVerifications.some(v => v.peerId === payload.userId) → true thì chặn, tránh 'thổi phồng' peerCount bằng cùng một người." },
+
+  { c:"peer", q:"Thứ tự kiểm tra trong validatePeerQR (ưu tiên lỗi) là gì?", o:[
+    "chữ ký → hết hạn → type",
+    "type → tự-quét-mình → trùng peer → chữ ký → hết hạn",
+    "hết hạn → type",
+    "ngẫu nhiên"], a:1,
+    e:"Lần lượt: sai type → tự mình → trùng → chữ ký sai → quá hạn. Nắm thứ tự này giúp giải thích thông báo lỗi nào hiện trước." },
+
+  { c:"peer", q:"Ý nghĩa chống gian lận của bước ngang hàng là gì?", o:[
+    "Đếm bạn bè",
+    "Chứng minh có mặt vật lý cùng lớp (không thể điểm danh hộ từ xa)",
+    "Kết bạn Zalo",
+    "Đo khoảng cách GPS"], a:1,
+    e:"Muốn có peer thì phải ở gần nhau để trao đổi QR trực tiếp; chống check-in hộ từ nhà." },
+
+  { c:"peer", q:"peerCount và peerVerifications quan hệ thế nào?", o:[
+    "Không liên quan",
+    "peerCount = số phần tử hợp lệ trong peerVerifications (mỗi peer 1 lần)",
+    "peerCount luôn = 3",
+    "peerVerifications là ảnh"], a:1,
+    e:"Mỗi lần xác minh 1 bạn hợp lệ thêm 1 phần tử {peerId, verifiedAt}; peerCount phản ánh số bạn đã xác minh." },
+
+  { c:"peer", q:"QR ngang hàng cũng bị kiểm chữ ký HMAC chứ?", o:[
+    "Không, chỉ QR giảng viên",
+    "Có — vẫn verifySignature với bí mật phiên; QR peer giả cũng bị chặn",
+    "Chỉ kiểm type",
+    "Chỉ kiểm thời gian"], a:1,
+    e:"validatePeerQR gọi verifySignature; QR peer phải được ký đúng bằng secret phiên, không thì 'Chữ ký không hợp lệ'." },
+
+  { c:"peer", q:"QR ngang hàng cũng có hạn 90s không?", o:[
+    "Không hạn",
+    "Có — Date.now()-timestamp > 90000 thì 'QR đã hết hạn'",
+    "Hạn 10s",
+    "Hạn 1 giờ"], a:1,
+    e:"Dùng chung QR_EXPIRY_MS = 90s như QR giảng viên; peer QR cũ cũng bị từ chối." },
+
+  { c:"peer", q:"Vì sao chặn tự quét chính mình?", o:[
+    "Cho vui",
+    "Nếu không, sinh viên tự làm 'bạn' của mình để đủ peer mà không cần ai",
+    "Vì camera không quét được",
+    "Do Firestore"], a:1,
+    e:"Cho phép tự-peer sẽ vô hiệu hóa ý nghĩa 'có mặt cùng lớp'; nên userId === currentUserId bị chặn." },
+
+  { c:"peer", q:"Vì sao chặn xác minh trùng cùng một bạn nhiều lần?", o:[
+    "Tiết kiệm bộ nhớ",
+    "Ngăn thổi phồng peerCount bằng cách quét đi quét lại 1 người",
+    "Vì QR chỉ quét 1 lần được",
+    "Không có lý do"], a:1,
+    e:"Nếu đếm trùng, hai người có thể luân phiên quét nhau nhiều lần để đạt ngưỡng giả; chặn trùng buộc peer phải là người khác nhau." },
+
+  { c:"peer", q:"Một lỗ hổng liêm chính đã phát hiện (chưa vá) ở peer là gì?", o:[
+    "QR không mã hóa",
+    "Peer có thể được cộng dù người đó chưa có bản ghi check-in trong phiên",
+    "peerCount âm",
+    "Không có lỗ hổng"], a:1,
+    e:"addBidirectionalPeerVerification có thể ghi nhận peer chưa hề check-in phiên đó → về lý thuyết 'ma' đếm peer. Ứng viên nên nêu như hướng cải tiến." },
+
+  { c:"peer", q:"Nếu peerRequired = false thì peerPass?", o:[
+    "false", "true (không cần peer)", "Tùy peerCount", "Luôn review"], a:1,
+    e:"peerPass = !peerReq || peerCount>=REQUIRED_PEERS. peerReq=false → peerPass=true bất kể peerCount." },
+
+  { c:"peer", q:"peerCount = 0 với peerRequired = true thì peerPass?", o:[
+    "true", "false (0 < 1)", "Tùy face", "present"], a:1,
+    e:"Cần >= 1; 0 < 1 nên peerPass=false. Kết hợp với face để ra review/absent." },
+
+  { c:"peer", q:"Hai bạn A và B trao QR cho nhau, mỗi người quét đối phương 1 lần — peerCount mỗi người?", o:[
+    "0", "1", "2", "3"], a:1,
+    e:"Mỗi người có 1 peerVerification của người kia → peerCount = 1, đủ ngưỡng REQUIRED_PEERS=1." },
+
+  { c:"peer", q:"QR ngang hàng dùng chung định dạng payload với QR giảng viên chứ?", o:[
+    "Khác hoàn toàn",
+    "Cùng cấu trúc {type, sessionId, userId, timestamp, nonce, signature}, chỉ khác type",
+    "Peer không có chữ ký",
+    "Peer là ảnh tĩnh"], a:1,
+    e:"Cùng schema QRPayload; điểm khác then chốt là type ('teacher' vs 'peer') và userId là chủ QR." },
+
+  // ---------------- Điểm tin cậy ----------------
+  { c:"trust", q:"Ba mức của TrustScore là gì?", o:[
+    "pass / fail",
+    "'present' / 'review' / 'absent'",
+    "A / B / C",
+    "1 / 2 / 3"], a:1,
+    e:"TrustScore = 'present' (có mặt), 'review' (cần xem xét), 'absent' (vắng)." },
+
+  { c:"trust", q:"computeTrustScore trả 'present' khi nào?", o:[
+    "Khi có QR",
+    "Khi cả facePass và peerPass đều true",
+    "Khi peerCount > 0",
+    "Luôn luôn"], a:1,
+    e:"facePass && peerPass → 'present'. Chỉ một trong hai → 'review'. Không cái nào → 'absent'." },
+
+  { c:"trust", q:"Chỉ facePass đúng còn peerPass sai thì trust là?", o:[
+    "present", "review", "absent", "error"], a:1,
+    e:"Đúng một trong hai điều kiện → 'review' (cần giảng viên xem lại)." },
+
+  { c:"trust", q:"faceReq (bắt buộc mặt) suy ra từ cấu hình thế nào?", o:[
+    "config.faceRequired === true",
+    "config?.faceRequired !== false (mặc định BẮT BUỘC nếu không cấu hình)",
+    "Luôn false",
+    "Theo GPS"], a:1,
+    e:"faceReq = config?.faceRequired !== false. Không truyền cấu hình → coi như true (bắt buộc). peerReq tương tự." },
+
+  { c:"trust", q:"facePass = true trong các trường hợp nào?", o:[
+    "Chỉ khi faceOk",
+    "!faceReq HOẶC faceOk HOẶC faceSkipped HOẶC !faceAttempted",
+    "Chỉ khi skipped",
+    "Không bao giờ"], a:1,
+    e:"facePass = !faceReq || faceOk || faceSkipped || !faceAttempted — khá 'rộng lượng', gồm cả trường hợp không thử." },
+
+  { c:"trust", q:"peerPass = true khi nào?", o:[
+    "peerCount > 3",
+    "!peerReq HOẶC peerCount >= REQUIRED_PEERS(1)",
+    "Luôn true",
+    "Khi có face"], a:1,
+    e:"peerPass = !peerReq || peerCount >= 1. Nếu bắt buộc peer thì cần ít nhất 1 bạn." },
+
+  { c:"trust", q:"effectiveTrustScore khác computeTrustScore ở điểm nào?", o:[
+    "Giống hệt",
+    "Thêm ưu tiên teacherOverride và hạ 'present'→'review' khi needsReview",
+    "Chỉ tính face",
+    "Bỏ qua peer"], a:1,
+    e:"effectiveTrustScore = lớp bọc: override của giảng viên thắng tuyệt đối; nếu needsReview và base='present' thì hạ xuống 'review'." },
+
+  { c:"trust", q:"teacherOverride = 'absent' thì effectiveTrustScore trả gì dù các bước đều đạt?", o:[
+    "present", "review", "absent", "error"], a:2,
+    e:"Override của giảng viên ưu tiên tuyệt đối: 'absent' → 'absent', bất kể face/peer." },
+
+  { c:"trust", q:"needsReview = true, base = 'present' thì kết quả hiệu lực?", o:[
+    "present", "review", "absent", "Giữ nguyên present"], a:1,
+    e:"needsReview && base==='present' → hạ thành 'review'. Cờ này bật khi QR cũ/stale hoặc thiếu GPS." },
+
+  { c:"trust", q:"needsReview = true nhưng base = 'absent' thì sao?", o:[
+    "Thành review",
+    "Vẫn 'absent' (chỉ hạ present→review, không nâng absent)",
+    "Thành present",
+    "Lỗi"], a:1,
+    e:"Quy tắc chỉ áp cho present→review; absent giữ nguyên absent, không được nâng lên." },
+
+  { c:"trust", q:"Cả face và peer đều KHÔNG đạt (đều bắt buộc) → trust?", o:[
+    "present", "review", "absent", "skipped"], a:2,
+    e:"!facePass && !peerPass → 'absent'." },
+
+  { c:"trust", q:"getTrustScoreReasons dùng để làm gì?", o:[
+    "Tính điểm",
+    "Liệt kê lý do vì sao là review/absent (vd 'Chưa xác minh ngang hàng (0/1)')",
+    "Vẽ biểu đồ",
+    "Gửi thông báo"], a:1,
+    e:"Trả mảng lý do người-đọc-được để hiển thị cho giảng viên/sinh viên biết còn thiếu bước nào." },
+
+  { c:"trust", q:"faceSkipped làm facePass=true — hệ quả thiết kế là gì?", o:[
+    "Bỏ qua mặt thì tự vắng",
+    "Bỏ qua mặt được 'cho qua' phần face; nếu peer đạt vẫn có thể 'present'",
+    "Luôn review",
+    "Crash"], a:1,
+    e:"Skip là hành vi hợp lệ (lớp không bắt buộc / tình huống đặc biệt) nên không phạt; facePass=true khi skipped." },
+
+  { c:"trust", q:"Vì sao dùng 3 mức thay vì chỉ có/không?", o:[
+    "Cho phức tạp",
+    "Mức 'review' cho phép con người (giảng viên) phán quyết các ca mập mờ thay vì máy quyết cứng",
+    "Vì Firestore yêu cầu",
+    "Không có lý do"], a:1,
+    e:"'review' là vùng đệm cho ca nghi ngờ (QR cũ, mặt yếu, thiếu peer) — giữ con người trong vòng quyết định, giảm oan/sai." },
+
+  { c:"trust", q:"Nếu lớp đặt faceRequired=false và peerRequired=false, sinh viên chỉ quét QR giảng viên thì trust?", o:[
+    "absent",
+    "present (cả hai điều kiện đều 'pass' do không bắt buộc)",
+    "review",
+    "error"], a:1,
+    e:"facePass=!faceReq=true, peerPass=!peerReq=true → present. Lớp có thể hạ nhẹ yêu cầu tùy tình huống." },
+
+  { c:"trust", q:"'review' nên được ai xử lý tiếp?", o:[
+    "Tự động thành present sau 1 ngày",
+    "Giảng viên xem lại và quyết định (có thể override)",
+    "Xóa luôn",
+    "Sinh viên tự đổi"], a:1,
+    e:"Ca 'review' chờ giảng viên ở màn xem xét/điểm danh thủ công; giảng viên có teacherOverride." },
+
+  // ---------------- Chống gian lận ----------------
+  { c:"fraud", q:"Có mấy nhóm mẫu (pattern) phát hiện gian lận?", o:[
+    "2",
+    "4: always_same_peers, face_mismatch, rapid_verification, low_peer_count",
+    "6",
+    "1"], a:1,
+    e:"Bốn heuristic: luôn cùng peer, sai khuôn mặt, xác minh quá nhanh, peer count thấp kéo dài." },
+
+  { c:"fraud", q:"'always_same_peers' bị gắn cờ khi nào?", o:[
+    "Khi có 1 buổi",
+    "Khi hai người xác minh cho nhau ở >= 80% số buổi và có >= 2 buổi",
+    "Khi peerCount = 0",
+    "Khi mặt sai"], a:1,
+    e:"count >= sessions.length*0.8 && sessions.length>=2. Ví dụ 5 buổi mà 4+ buổi luôn cặp đôi nhau → nghi." },
+
+  { c:"fraud", q:"'always_same_peers' đạt severity 'high' khi nào?", o:[
+    "Luôn high",
+    "Khi count === sessions.length (đủ 100% số buổi)",
+    "Khi 50%",
+    "Không có high"], a:1,
+    e:"high nếu count bằng đúng tổng số buổi (luôn luôn nhau); còn lại (>=80% nhưng <100%) là medium." },
+
+  { c:"fraud", q:"'face_mismatch' được ghi nhận với bản ghi nào?", o:[
+    "Mọi bản ghi",
+    "Có faceVerification, không skipped, và matched === false",
+    "Chỉ khi thiếu face",
+    "Chỉ khi peer=0"], a:1,
+    e:"face && !face.skipped && face.matched === false → cờ sai khuôn mặt." },
+
+  { c:"fraud", q:"'face_mismatch' severity 'high' khi confidence thế nào?", o:[
+    "confidence > 0.9",
+    "confidence < 0.3",
+    "confidence = 0.5",
+    "Luôn medium"], a:1,
+    e:"severity = confidence < 0.3 ? 'high' : 'medium'. Rất khác mặt (điểm rất thấp) → high." },
+
+  { c:"fraud", q:"'rapid_verification' cần tối thiểu bao nhiêu peerVerifications để xét?", o:[
+    "1", "2 (mới có khoảng cách thời gian giữa 2 lần)", "3", "5"], a:1,
+    e:"if (peerVerifications.length < 2) continue — phải có ít nhất 2 mốc để tính gap." },
+
+  { c:"fraud", q:"'rapid_verification' gắn cờ khi khoảng cách giữa hai lần xác minh (gap) là?", o:[
+    "gap > 60s", "gap < 30 giây", "gap = 45s", "gap bất kỳ"], a:1,
+    e:"Sắp xếp theo verifiedAt; nếu gap (giây) < 30 giữa hai lần liên tiếp → nghi 'quét quá nhanh'." },
+
+  { c:"fraud", q:"'rapid_verification' severity 'high' khi nào?", o:[
+    "gap < 10 giây", "gap < 30", "gap > 20", "Luôn medium"], a:0,
+    e:"severity = gap < 10 ? 'high' : 'medium'. Dưới 10s giữa hai peer là rất bất thường." },
+
+  { c:"fraud", q:"gap đúng bằng 30 giây thì có bị gắn cờ rapid_verification không?", o:[
+    "Có",
+    "Không — điều kiện là '< 30', 30 không nhỏ hơn 30",
+    "Tùy máy",
+    "Luôn high"], a:1,
+    e:"'< 30' strict: gap=30 không thỏa → không cờ. 29.9s mới bị. Câu boundary." },
+
+  { c:"fraud", q:"'low_peer_count' xét một sinh viên khi nào?", o:[
+    "Chỉ 1 buổi",
+    "total >= 2 buổi và tỉ lệ buổi peer thấp (low/total) >= 0.5",
+    "Khi mặt sai",
+    "Khi QR hết hạn"], a:1,
+    e:"low đếm buổi có peerCount < REQUIRED_PEERS; cần >=2 buổi và >=50% buổi bị thấp mới cờ." },
+
+  { c:"fraud", q:"'low_peer_count' severity 'high' khi nào?", o:[
+    "Luôn low",
+    "Khi đa số buổi có peerCount === 0 (majorityZero)",
+    "Khi mặt khớp",
+    "Khi có teacherOverride"], a:1,
+    e:"majorityZero = số buổi peerCount==0 > nửa tổng → high; ngược lại medium." },
+
+  { c:"fraud", q:"Ý nghĩa của phát hiện gian lận trong hệ thống là gì?", o:[
+    "Tự động đánh trượt sinh viên",
+    "Gợi ý cho giảng viên các ca đáng ngờ để xem xét, không tự phán quyết",
+    "Khóa tài khoản",
+    "Báo công an"], a:1,
+    e:"Các pattern chỉ tạo báo cáo/severity để giảng viên rà soát; quyết định cuối vẫn là con người (giữ tính công bằng)." },
+
+  // ---------------- Câu hỏi hội đồng ----------------
+  { c:"why", q:"Nếu hội đồng hỏi 'chống điểm danh hộ bằng cách nào?', trả lời cốt lõi?", o:[
+    "Chỉ dựa GPS",
+    "Ba lớp: QR HMAC xoay (đúng phiên, chống chép), khuôn mặt (đúng người), ngang hàng (có mặt vật lý)",
+    "Chặn wifi",
+    "Gọi điểm danh miệng"], a:1,
+    e:"Nhấn mạnh phối hợp 3 yếu tố; mỗi yếu tố bịt một kiểu gian lận khác nhau, phòng thủ theo chiều sâu." },
+
+  { c:"why", q:"'Vì sao không đặt logic bảo mật ở server?' — trả lời trung thực?", o:[
+    "Vì server chậm",
+    "Do Firebase Spark (free) không chạy Cloud Function gọi mạng; nhiều kiểm phía client — là hạn chế đã biết, hướng nâng cấp là Blaze + Custom Token",
+    "Vì không cần server",
+    "Vì client an toàn tuyệt đối"], a:1,
+    e:"Thành thật về ràng buộc gói free; nêu rõ đây là điểm cần cải tiến (đưa verify + secret về server) khi lên production." },
+
+  { c:"why", q:"'Điểm yếu lớn nhất hiện tại của khâu khuôn mặt?' — nên nêu gì?", o:[
+    "Không có điểm yếu",
+    "So khớp phía client + facePass 'rộng lượng' (không quét vẫn pass); nên chuyển verify về server và siết logic",
+    "Camera đắt",
+    "Ảnh quá nét"], a:1,
+    e:"Nêu quirk facePass khi !faceAttempted và việc so khớp client-side; đề xuất siết & đưa verify về server có kiểm liveness." },
+
+  { c:"why", q:"'Vì sao QR xoay 30s mà hạn 90s, không sợ replay?' — trả lời?", o:[
+    "Có sợ, đây là lỗi",
+    "90s là dung sai lệch đồng hồ/độ trễ; cửa sổ replay ngắn (<=90s) và còn ràng buộc chữ ký + ngang hàng vật lý",
+    "Vì 90s ngẫu nhiên",
+    "Không liên quan replay"], a:1,
+    e:"Cửa sổ 90s đủ ngắn; muốn lợi dụng phải ở gần trong thời gian thực và vẫn cần khuôn mặt + peer → chi phí gian lận cao." },
+
+  { c:"why", q:"'Làm sao chống hai bạn luôn điểm danh hộ nhau?' — cơ chế nào?", o:[
+    "Không chống được",
+    "Heuristic always_same_peers gắn cờ cặp luôn xác minh nhau qua nhiều buổi cho giảng viên xem xét",
+    "Cấm kết bạn",
+    "GPS"], a:1,
+    e:"Phát hiện mẫu 'luôn cùng peer' (>=80% buổi) tạo cảnh báo; không tự phạt mà đưa giảng viên quyết." },
+
+  { c:"why", q:"'Dữ liệu khuôn mặt lưu thế nào cho riêng tư?' — trả lời?", o:[
+    "Lưu ảnh gốc công khai",
+    "Lưu vector đặc trưng 128 chiều (khó dựng lại mặt), không phải ảnh thô",
+    "Không lưu gì",
+    "Đăng lên mạng xã hội"], a:1,
+    e:"Vector descriptor thay cho ảnh → hạn chế khôi phục khuôn mặt, tốt hơn cho quyền riêng tư." },
+
+  { c:"why", q:"'Vì sao có mức review thay vì chỉ present/absent?' — ý nghĩa thiết kế?", o:[
+    "Cho rối",
+    "Giữ con người trong vòng quyết định với ca mập mờ; tránh máy phán oan/sai cứng nhắc",
+    "Vì thiếu dữ liệu",
+    "Do Firestore"], a:1,
+    e:"'review' là vùng xám để giảng viên phán quyết — cân bằng tự động hóa và công bằng." },
+
+  { c:"why", q:"'Nếu mất mạng giữa chừng thì sao?' — hệ thống có gì?", o:[
+    "Hỏng hoàn toàn",
+    "Có hàng đợi offline + fallback (offlineQueue, cloudFallback, retry) để đồng bộ lại khi có mạng",
+    "Xóa dữ liệu",
+    "Bắt làm lại từ đầu luôn"], a:1,
+    e:"App có offlineQueue/cloudFallback/retry để chịu lỗi mạng tạm thời và đồng bộ khi online lại." },
+
+  { c:"why", q:"'Điểm cần cải tiến bạn ưu tiên nhất là gì?' — câu trả lời mạnh?", o:[
+    "Đổi màu app",
+    "Đưa kiểm bảo mật (chữ ký, verify mặt, đếm peer) về server tin cậy; vá lỗ hổng peer 'ma'",
+    "Thêm nhiều emoji",
+    "Bỏ khuôn mặt"], a:1,
+    e:"Ưu tiên chuyển tin cậy về server (Blaze + Custom Token), siết facePass, và chặn peer chưa check-in được cộng." },
+
+  { c:"why", q:"'Vì sao tin được QR không bị chép?' — luận điểm gọn?", o:[
+    "Vì QR đẹp",
+    "Vì HMAC cần secret phiên + QR xoay 30s/hạn 90s: chép cũng nhanh hết hạn và không tự ký được QR mới",
+    "Vì mã hóa AES",
+    "Vì có GPS"], a:1,
+    e:"Chép được ảnh nhưng không ký được QR mới (thiếu secret) và ảnh cũ hết hạn nhanh → giá trị chép rất thấp." },
+];
+
+/* ------------------------------------------------------------------ */
+let mode = "quiz";          // quiz | study
+let filter = "all";
+let list = [];              // filtered questions
+let idx = 0;
+let answered = [];          // per-question chosen index (or -1)
+const results = {};         // cat -> {right,total}
+
+function buildList() {
+  list = Q.map((q, i) => ({ ...q, _id: i })).filter(q => filter === "all" || q.c === filter);
+  idx = 0;
+  answered = list.map(() => -1);
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById("mQuiz").classList.toggle("on", m === "quiz");
+  document.getElementById("mStudy").classList.toggle("on", m === "study");
+  buildList(); render();
+}
+
+function setFilter(f) {
+  filter = f;
+  document.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c.dataset.f === f));
+  buildList(); render();
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "dark" ? "light" : cur === "light" ? "dark"
+    : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme", next);
+}
+
+function renderChips() {
+  const box = document.getElementById("chips");
+  const entries = [["all", "Tất cả"], ...Object.entries(CATS)];
+  box.innerHTML = entries.map(([k, v]) =>
+    `<button class="chip ${k === 'all' ? 'on' : ''}" data-f="${k}" onclick="setFilter('${k}')">${v}${k !== 'all' ? ` <span style="opacity:.6">${Q.filter(q => q.c === k).length}</span>` : ''}</button>`
+  ).join("");
+}
+
+function stats() {
+  let right = 0, done = 0;
+  answered.forEach((a, i) => { if (a !== -1) { done++; if (a === list[i].a) right++; } });
+  return { right, done };
+}
+
+function updateStatus() {
+  const { right } = stats();
+  document.getElementById("pos").textContent = Math.min(idx + 1, list.length);
+  document.getElementById("total").textContent = list.length;
+  document.getElementById("right").textContent = right;
+  document.getElementById("barFill").style.transform = "scaleX(" + (list.length ? idx / list.length : 0) + ")";
+}
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+// cho phép <code> đã có sẵn trong nội dung: ta soạn thủ công nên render trực tiếp
+function md(s) { return s; }
+
+function render() {
+  const stage = document.getElementById("stage");
+  if (idx >= list.length) { renderSummary(); updateStatus(); return; }
+  const q = list[idx];
+  const chosen = answered[idx];
+  const reveal = mode === "study" || chosen !== -1;
+
+  const opts = q.o.map((opt, i) => {
+    let cls = "opt";
+    if (reveal) {
+      if (i === q.a) cls += " correct";
+      else if (i === chosen) cls += " wrong";
+    }
+    const key = String.fromCharCode(65 + i);
+    return `<button class="${cls}" ${reveal ? "disabled" : ""} onclick="choose(${i})">
+      <span class="key">${reveal && i === q.a ? "✓" : reveal && i === chosen ? "✕" : key}</span>
+      <span>${md(opt)}</span></button>`;
+  }).join("");
+
+  const verdict = (mode === "quiz" && chosen !== -1)
+    ? (chosen === q.a
+        ? `<span class="tag ok">✓ Chính xác. </span>`
+        : `<span class="tag no">✕ Chưa đúng. </span>`)
+    : "";
+
+  stage.innerHTML = `
+    <div class="card">
+      <div class="qmeta">
+        <span class="qcat">${CATS[q.c]}</span>
+        <span class="qnum">#${idx + 1} / ${list.length}</span>
+      </div>
+      <p class="qtext">${md(q.q)}</p>
+      <div class="opts">${opts}</div>
+      <div class="explain ${reveal ? "show" : ""}">${verdict}${md(q.e)}</div>
+    </div>
+    <div class="nav">
+      <button class="btn ghost" onclick="prev()" ${idx === 0 ? "disabled" : ""}>←</button>
+      <button class="btn primary" id="nextBtn" onclick="next()" ${(mode === "quiz" && chosen === -1) ? "disabled" : ""}>
+        ${idx === list.length - 1 ? "Xem kết quả" : "Câu tiếp →"}
+      </button>
+    </div>`;
+  updateStatus();
+}
+
+function choose(i) {
+  if (mode === "quiz" && answered[idx] !== -1) return;
+  answered[idx] = i;
+  render();
+}
+
+function next() {
+  if (mode === "quiz" && answered[idx] === -1 && idx < list.length) return;
+  idx++;
+  render();
+}
+function prev() { if (idx > 0) { idx--; render(); } }
+
+function renderSummary() {
+  // tổng hợp theo category
+  const per = {};
+  list.forEach((q, i) => {
+    per[q.c] = per[q.c] || { right: 0, total: 0 };
+    per[q.c].total++;
+    if (answered[i] === q.a) per[q.c].right++;
+  });
+  const { right, done } = stats();
+  const pct = list.length ? Math.round(right / list.length * 100) : 0;
+  const rows = Object.entries(per).map(([c, v]) => {
+    const p = Math.round(v.right / v.total * 100);
+    return `<div class="row">
+      <span class="nm">${CATS[c]}</span>
+      <span class="mini"><i style="width:${p}%;background:${p >= 70 ? 'var(--good)' : p >= 40 ? 'var(--warn)' : 'var(--bad)'}"></i></span>
+      <span class="val">${v.right}/${v.total}</span></div>`;
+  }).join("");
+
+  const msg = pct >= 85 ? "Sẵn sàng bảo vệ! 💪" : pct >= 60 ? "Khá ổn — ôn thêm phần điểm yếu." : "Cần ôn lại kỹ hơn.";
+  document.getElementById("stage").innerHTML = `
+    <div class="card summary">
+      <div class="big">${pct}%</div>
+      <div class="sub">Đúng ${right}/${list.length} câu · ${msg}</div>
+      <div class="bd">${rows}</div>
+      <div class="nav">
+        <button class="btn ghost" onclick="reviewWrong()">Xem câu sai</button>
+        <button class="btn primary" onclick="restart()">Làm lại</button>
+      </div>
+    </div>`;
+}
+
+function restart() { buildList(); render(); }
+
+function reviewWrong() {
+  // lọc còn các câu đã trả lời sai; nếu không có, giữ nguyên
+  const wrongIds = list.filter((q, i) => answered[i] !== -1 && answered[i] !== q.a).map(q => q._id);
+  if (!wrongIds.length) { alert("Không có câu nào sai. Tuyệt vời!"); return; }
+  list = Q.map((q, i) => ({ ...q, _id: i })).filter(q => wrongIds.includes(q._id));
+  answered = list.map(() => -1);
+  idx = 0; mode = "study";
+  document.getElementById("mStudy").classList.add("on");
+  document.getElementById("mQuiz").classList.remove("on");
+  render();
+}
+
+/* init */
+renderChips();
+buildList();
+render();
+</script>

@@ -106,7 +106,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
       { peerId: "student_004", peerName: "Hoang Van E", verifiedAt: Date.now() - 160000, qrNonce: "n3" },
     ],
     peerCount: 3,
-    trustScore: "present",
+    trustPolicy: "present",
     faceVerification: mockFaceOk,
   },
   {
@@ -121,7 +121,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
       { peerId: "student_003", peerName: "Pham Thi D", verifiedAt: Date.now() - 170000, qrNonce: "n5" },
     ],
     peerCount: 2,
-    trustScore: "review",
+    trustPolicy: "review",
     faceVerification: mockFaceSkipped,
   },
   {
@@ -135,7 +135,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: Date.now() - 180000, qrNonce: "n6" },
     ],
     peerCount: 1,
-    trustScore: "review",
+    trustPolicy: "review",
     faceVerification: mockFaceFailed,
   },
   {
@@ -147,7 +147,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
     checkedInAt: Date.now() - 210000,
     peerVerifications: [],
     peerCount: 0,
-    trustScore: "absent",
+    trustPolicy: "absent",
   },
   {
     id: "att_005",
@@ -163,7 +163,7 @@ export const mockAttendanceRecords: AttendanceDoc[] = [
       { peerId: "student_001", peerName: "Nguyen Van A", verifiedAt: Date.now() - 155000, qrNonce: "n10" },
     ],
     peerCount: 4,
-    trustScore: "present",
+    trustPolicy: "present",
   },
 ];
 
@@ -183,7 +183,7 @@ export const mockStudentHistory: AttendanceDoc[] = [
       { peerId: "student_005", peerName: "Vo Thi F", verifiedAt: Date.now() - 86400000 * 7, qrNonce: "h3" },
     ],
     peerCount: 3,
-    trustScore: "present",
+    trustPolicy: "present",
   },
   {
     id: "att_h2",
@@ -196,7 +196,7 @@ export const mockStudentHistory: AttendanceDoc[] = [
       { peerId: "student_002", peerName: "Le Van C", verifiedAt: Date.now() - 86400000 * 14, qrNonce: "h4" },
     ],
     peerCount: 1,
-    trustScore: "review",
+    trustPolicy: "review",
   },
   {
     id: "att_h3",
@@ -207,6 +207,6 @@ export const mockStudentHistory: AttendanceDoc[] = [
     checkedInAt: Date.now() - 86400000 * 21,
     peerVerifications: [],
     peerCount: 0,
-    trustScore: "absent",
+    trustPolicy: "absent",
   },
 ];

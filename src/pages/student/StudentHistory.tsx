@@ -6,13 +6,13 @@ import { currentUserAtom } from "@/store/auth";
 import { globalErrorAtom } from "@/store/ui";
 import { getStudentHistory } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
-import { computeTrustScore } from "@/types";
+import { computeTrustPolicy } from "@/types";
 import PullToRefresh from "@/components/ui/PullToRefresh";
 import type { AttendanceDoc } from "@/types";
 
 function getEffectiveScore(r: AttendanceDoc): string {
   if (r.teacherOverride) return r.teacherOverride;
-  return r.trustScore;
+  return r.trustPolicy;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -49,11 +49,11 @@ export default function StudentHistory() {
           }
           const recalculatedScore = r.teacherOverride
             ? (r.teacherOverride === "present" ? "present" as const : "absent" as const)
-            : computeTrustScore(r.peerCount, r.faceVerification, {
+            : computeTrustPolicy(r.peerCount, r.faceVerification, {
                 faceRequired: sessionInfo.faceRequired,
                 peerRequired: sessionInfo.peerRequired,
               });
-          return { ...r, className: sessionInfo.className, trustScore: recalculatedScore };
+          return { ...r, className: sessionInfo.className, trustPolicy: recalculatedScore };
         })
       );
 

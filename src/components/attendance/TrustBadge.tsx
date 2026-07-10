@@ -1,12 +1,12 @@
 import React from "react";
-import type { TrustScore } from "@/types";
+import type { TrustPolicy } from "@/types";
 
 interface TrustBadgeProps {
-  score: TrustScore;
+  score: TrustPolicy;
   size?: "small" | "medium";
 }
 
-const config: Record<TrustScore, { label: string; bg: string; text: string; dot: string }> = {
+const config: Record<TrustPolicy, { label: string; bg: string; text: string; dot: string }> = {
   present: { label: "Có mặt", bg: "rgba(34,197,94,0.15)", text: "#22c55e", dot: "#22c55e" },
   review: { label: "Xem xét", bg: "rgba(245,158,11,0.15)", text: "#f59e0b", dot: "#f59e0b" },
   absent: { label: "Vắng", bg: "rgba(239,68,68,0.15)", text: "#ef4444", dot: "#ef4444" },

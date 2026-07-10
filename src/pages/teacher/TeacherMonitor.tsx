@@ -9,7 +9,7 @@ import { getSession, endSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import { effectiveTrustScore, getTrustScoreReasons } from "@/types";
+import { effectiveTrustPolicy, getTrustPolicyReasons } from "@/types";
 import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc, ClassDoc, SessionDoc } from "@/types";
@@ -76,11 +76,11 @@ export default function TeacherMonitor() {
   // Tính lại trust score client-side dùng session config (fix session cũ thiếu field)
   const recordsWithScore = records.map((r) => ({
     ...r,
-    trustScore: effectiveTrustScore(r, sessionConfig),
+    trustPolicy: effectiveTrustPolicy(r, sessionConfig),
   }));
 
-  const present = recordsWithScore.filter((r) => r.trustScore === "present").length;
-  const review = recordsWithScore.filter((r) => r.trustScore === "review").length;
+  const present = recordsWithScore.filter((r) => r.trustPolicy === "present").length;
+  const review = recordsWithScore.filter((r) => r.trustPolicy === "review").length;
   const checkedIn = recordsWithScore.length;
 
   // Đối chiếu danh sách chính thức (roster): vắng = SV trong roster chưa điểm danh
@@ -94,7 +94,7 @@ export default function TeacherMonitor() {
   // Vắng = SV trong danh sách chưa điểm danh + record đã quét nhưng bị chấm absent.
   // Thẻ stat và chip filter phải dùng CÙNG một con số (trước đây chip chỉ đếm
   // records absent → hiện "Vắng 0" trong khi thẻ trên "Vắng 1").
-  const absentRecordCount = recordsWithScore.filter((r) => r.trustScore === "absent").length;
+  const absentRecordCount = recordsWithScore.filter((r) => r.trustPolicy === "absent").length;
   const absentCount =
     (useRoster ? absentStudentList.length : (totalStudents > 0 ? totalStudents - checkedIn : 0)) +
     absentRecordCount;
@@ -102,9 +102,9 @@ export default function TeacherMonitor() {
 
   const filteredRecords = recordsWithScore.filter((r) => {
     if (filter === "all") return true;
-    if (filter === "present") return r.trustScore === "present";
-    if (filter === "review") return r.trustScore === "review";
-    if (filter === "absent") return r.trustScore === "absent";
+    if (filter === "present") return r.trustPolicy === "present";
+    if (filter === "review") return r.trustPolicy === "review";
+    if (filter === "absent") return r.trustPolicy === "absent";
     return true;
   });
 
@@ -121,9 +121,9 @@ export default function TeacherMonitor() {
       const batch = writeBatch(db);
       let changed = 0;
       for (const r of records) {
-        const score = effectiveTrustScore(r, sessionConfig);
-        if (score !== r.trustScore) {
-          batch.update(doc(db, "attendance", r.id), { trustScore: score });
+        const score = effectiveTrustPolicy(r, sessionConfig);
+        if (score !== r.trustPolicy) {
+          batch.update(doc(db, "attendance", r.id), { trustPolicy: score, trustScore: score });
           changed++;
         }
       }
@@ -312,13 +312,13 @@ export default function TeacherMonitor() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filteredRecords.map((rec) => {
-              const status = STATUS_CONFIG[rec.trustScore] || STATUS_CONFIG.absent;
+              const status = STATUS_CONFIG[rec.trustPolicy] || STATUS_CONFIG.absent;
               const name = rec.studentName || rec.studentId;
               const initial = name.charAt(0).toUpperCase();
-              const reasons = rec.trustScore !== "present"
+              const reasons = rec.trustPolicy !== "present"
                 ? [
                     ...(rec.reviewReason ? [rec.reviewReason] : []),
-                    ...getTrustScoreReasons(rec.peerCount, rec.faceVerification, sessionConfig),
+                    ...getTrustPolicyReasons(rec.peerCount, rec.faceVerification, sessionConfig),
                   ]
                 : [];
               // Tính khoảng cách nếu có GPS

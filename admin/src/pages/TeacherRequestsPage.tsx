@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, Table, Button, Space, Typography, Modal, App, Empty } from "antd";
-import { CheckOutlined, CloseOutlined, ReloadOutlined } from "@ant-design/icons";
-import { getPendingTeachers, approveTeacher, rejectTeacher } from "@/services/admin-user.service";
+import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { subscribePendingTeachers, approveTeacher, rejectTeacher } from "@/services/admin-user.service";
 import type { UserDoc } from "@/types";
 import type { ColumnsType } from "antd/es/table";
 
@@ -14,16 +14,14 @@ export default function TeacherRequestsPage() {
   const [submitting, setSubmitting] = useState(false);
   const { message } = App.useApp();
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      setRequests(await getPendingTeachers());
-    } finally {
+  // Realtime: yêu cầu mới từ Mini App / thao tác ở tab khác đều tự hiện, khỏi F5
+  useEffect(() => {
+    const unsub = subscribePendingTeachers((users) => {
+      setRequests(users);
       setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
+    });
+    return unsub;
+  }, []);
 
   const handleConfirm = async () => {
     if (!action) return;
@@ -36,8 +34,7 @@ export default function TeacherRequestsPage() {
         await rejectTeacher(action.user.id);
         message.success(`Đã từ chối yêu cầu của ${action.user.name}`);
       }
-      setAction(null);
-      load();
+      setAction(null); // danh sách tự cập nhật qua subscription realtime
     } catch {
       message.error("Thao tác thất bại. Vui lòng thử lại.");
     } finally {
@@ -76,7 +73,6 @@ export default function TeacherRequestsPage() {
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <Title level={4} style={{ margin: 0 }}>Duyệt giảng viên</Title>
-        <Button icon={<ReloadOutlined />} onClick={load}>Làm mới</Button>
       </div>
 
       <Card>

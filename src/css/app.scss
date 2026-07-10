@@ -614,10 +614,3 @@
 .zaui-sheet-content {
   padding-bottom: env(safe-area-inset-bottom, 0px) !important;
 }
-// Popup/Sheet PHẢI nổi TRÊN bottom nav. Mặc định .zaui-mask z-index:1000 —
-// hoà đúng bằng AppBottomNav (position:fixed; zIndex:1000). Khi hoà, thanh nav
-// render sau nên đè lên, che nút dưới cùng của Sheet (vd nút "Lưu" ở modal
-// "Chỉnh sửa thông tin"). Nâng toàn bộ lớp Sheet (mask bọc cả nội dung) lên 1100.
-.zaui-mask {
-  z-index: 1100 !important;
-}

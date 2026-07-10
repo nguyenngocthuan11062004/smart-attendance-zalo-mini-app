@@ -1,6 +1,6 @@
 import { atom } from "jotai";
-import { effectiveTrustScore } from "@/types";
-import type { AttendanceDoc, TrustScore, FaceVerificationResult } from "@/types";
+import { effectiveTrustPolicy } from "@/types";
+import type { AttendanceDoc, TrustPolicy, FaceVerificationResult } from "@/types";
 
 export const myAttendanceAtom = atom<AttendanceDoc | null>(null);
 
@@ -9,10 +9,10 @@ export const peerCountAtom = atom<number>((get) => {
   return att?.peerCount ?? 0;
 });
 
-export const trustScoreAtom = atom<TrustScore>((get) => {
+export const trustPolicyAtom = atom<TrustPolicy>((get) => {
   const att = get(myAttendanceAtom);
   if (!att) return "absent";
-  return effectiveTrustScore(att);
+  return effectiveTrustPolicy(att);
 });
 
 export type AttendanceStep = "idle" | "scan-teacher" | "face-verify" | "show-qr" | "scan-peers" | "done";

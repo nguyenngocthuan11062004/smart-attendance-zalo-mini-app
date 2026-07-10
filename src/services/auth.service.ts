@@ -201,11 +201,42 @@ export function initAuthState(
         try {
           const parsed = JSON.parse(stored) as UserDoc;
           callback(parsed, true);
-          // Refresh nền từ Firestore: admin có thể vừa đổi role (vd duyệt GV)
-          // → cập nhật atom mà không cần đăng nhập lại.
-          getUserDoc(parsed.id)
-            .then((fresh) => { if (!cancelled && fresh) callback(fresh, true); })
-            .catch(() => { /* giữ bản cache */ });
+          // Nền: (1) XÁC MINH danh tính — id trong cache phải trùng tài khoản
+          // Zalo đang đăng nhập. Storage dùng chung theo THIẾT BỊ, nên nếu đổi
+          // tài khoản Zalo (hoặc cache từng bị ghi đè) mà cứ tin cache thì mở
+          // app sẽ hiện hồ sơ của NGƯỜI KHÁC. (2) Refresh doc từ Firestore
+          // (admin có thể vừa đổi role) rồi tự lưu lại storage TẠI ĐÂY —
+          // getUserDoc giờ là hàm đọc thuần, không tự ghi storage nữa.
+          (async () => {
+            let targetId = parsed.id;
+            try {
+              const zaloId = (await getUserID({})).toString();
+              if (zaloId) targetId = zaloId;
+            } catch { /* browser dev — không có Zalo SDK, tin cache */ }
+            if (cancelled) return;
+
+            if (targetId !== parsed.id) {
+              // Cache là của tài khoản khác → nạp đúng hồ sơ theo Zalo id thật
+              const fresh = await getUserDoc(targetId).catch(() => null);
+              if (cancelled) return;
+              if (fresh) {
+                await storageSetItem("user_doc", JSON.stringify(fresh)).catch(() => {});
+                callback(fresh, true);
+              } else {
+                await storageRemoveItem("user_doc").catch(() => {});
+                callback(null, true); // chưa có hồ sơ → AuthGuard đưa về login
+              }
+              return;
+            }
+
+            getUserDoc(parsed.id)
+              .then((fresh) => {
+                if (cancelled || !fresh) return;
+                storageSetItem("user_doc", JSON.stringify(fresh)).catch(() => {});
+                callback(fresh, true);
+              })
+              .catch(() => { /* giữ bản cache */ });
+          })();
           return;
         } catch {
           // corrupted, continue to sign-in
@@ -254,13 +285,21 @@ export function subscribeUsersByRole(
   }, (err) => { console.error("subscribeUsersByRole error:", err); cb([]); });
 }
 
+/**
+ * Đọc THUẦN một user doc theo id — KHÔNG side effect.
+ *
+ * ⚠️ Trước đây hàm này tự lưu kết quả vào storage "user_doc" (phiên đăng nhập).
+ * Nhưng nó còn được dùng để tra hồ sơ NGƯỜI KHÁC (vd lấy tên bạn peer khi quét
+ * QR ngang hàng) → phiên đăng nhập trong storage bị TRÁO thành người vừa quét;
+ * thoát app mở lại là "biến thành" tài khoản đó (bug MSSV đổi thành 20221313).
+ * Việc lưu storage giờ chỉ làm ở các luồng danh tính CHÍNH CHỦ (initAuthState,
+ * createOrUpdateUser, updateUserRole...).
+ */
 export async function getUserDoc(userId: string): Promise<UserDoc | null> {
   try {
     const snap = await withTimeout(getDoc(doc(db, "users", userId)), 5000);
     if (!snap.exists()) return null;
-    const userDoc = { id: snap.id, ...snap.data() } as UserDoc;
-    await storageSetItem("user_doc", JSON.stringify(userDoc));
-    return userDoc;
+    return { id: snap.id, ...snap.data() } as UserDoc;
   } catch {
     return await _getLocalUserDoc(userId);
   }
@@ -280,7 +319,12 @@ export async function createOrUpdateUser(
 
     if (existing.exists()) {
       const data = existing.data() as Omit<UserDoc, "id">;
-      const updates: Record<string, any> = { name, avatar, updatedAt: Date.now() };
+      // KHÔNG ghi đè tên/avatar thật bằng giá trị mặc định: signIn() tự động
+      // (mỗi lần mở app mà không có cache) gọi tới đây với name="Zalo User",
+      // avatar="" — trước đây nó xoá mất tên thật user đã cấp quyền/đã sửa.
+      const updates: Record<string, any> = { updatedAt: Date.now() };
+      if (name && name !== "Zalo User") updates.name = name;
+      if (avatar) updates.avatar = avatar;
       if (followedOA !== undefined) updates.followedOA = followedOA;
       if (phone) { updates.phone = phone; updates.zaloPhone = phone; }
       await withTimeout(setDoc(ref, updates, { merge: true }), 5000);

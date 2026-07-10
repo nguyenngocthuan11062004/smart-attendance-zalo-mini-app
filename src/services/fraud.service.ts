@@ -177,6 +177,33 @@ async function localAnalyzeFraud(
     }
   }
 
+  // Check same_device_multi_account — 1 thiết bị check-in cho ≥2 SV trong cùng
+  // buổi (bắt đúng kịch bản "1 máy đăng nhập nhiều nick điểm danh hộ").
+  // deviceId do Zalo cấp theo THIẾT BỊ, không đổi khi đổi tài khoản trên cùng máy.
+  for (const s of sessions) {
+    const records = sessionAttendance.get(s.id) || [];
+    const byDevice = new Map<string, AttendanceDoc[]>();
+    for (const r of records) {
+      if (!r.deviceId) continue; // bản ghi cũ (trước device binding) — bỏ qua
+      if (!byDevice.has(r.deviceId)) byDevice.set(r.deviceId, []);
+      byDevice.get(r.deviceId)!.push(r);
+    }
+    for (const [dev, recs] of byDevice) {
+      const students = [...new Set(recs.map((r) => r.studentId))];
+      if (students.length >= 2) {
+        const names = students.map(
+          (sid) => recs.find((r) => r.studentId === sid)?.studentName || sid
+        );
+        patterns.push({
+          type: "same_device_multi_account",
+          studentIds: students,
+          description: `${names.join(", ")} điểm danh trên CÙNG một thiết bị (${dev.slice(0, 8)}…) trong một buổi`,
+          severity: "high",
+        });
+      }
+    }
+  }
+
   const summary = patterns.length === 0
     ? "Không phát hiện mẫu gian lận đáng ngờ"
     : `Phát hiện ${patterns.length} mẫu đáng ngờ cần xem xét`;

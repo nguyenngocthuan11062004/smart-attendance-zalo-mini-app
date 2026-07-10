@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { openChat } from "zmp-sdk";
-import { verifyFace, buildSkippedResult } from "@/services/face.service";
+import { verifyFace, buildSkippedResult, hasFaceData } from "@/services/face.service";
 import { haptic } from "@/utils/haptic";
 import type { FaceVerificationResult } from "@/types";
 
@@ -11,6 +11,8 @@ interface FaceVerificationProps {
   teacherId?: string;
   onComplete: (result: FaceVerificationResult) => void;
   onSkip: () => void;
+  /** Dẫn người dùng sang trang đăng ký khuôn mặt khi chưa đăng ký. */
+  onNeedRegister?: () => void;
 }
 
 type VerifyState = "scanning" | "verifying" | "success" | "failed" | "error";
@@ -22,11 +24,14 @@ export default function FaceVerification({
   teacherId,
   onComplete,
   onSkip,
+  onNeedRegister,
 }: FaceVerificationProps) {
   const [state, setState] = useState<VerifyState>("scanning");
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("Dang khoi dong camera...");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Chưa đăng ký khuôn mặt → chặn quét, chỉ cho đi đăng ký (không "Bỏ qua").
+  const [needRegister, setNeedRegister] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -118,7 +123,8 @@ export default function FaceVerification({
 
       if (result.error) {
         if (result.error === "no_registration") {
-          setErrorMsg("Chưa đăng ký khuôn mặt. Vui lòng đăng ký trước.");
+          setNeedRegister(true);
+          setErrorMsg("Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi điểm danh.");
           setState("error");
           stopCamera();
           return;
@@ -171,10 +177,23 @@ export default function FaceVerification({
     }
   }, [captureFrame, sessionId, attendanceId, userId, onComplete, stopCamera]);
 
-  // Chỉ MỞ camera khi mount — KHÔNG tự verify. Chờ người dùng bấm Chụp.
+  // Kiểm tra đăng ký khuôn mặt TRƯỚC khi mở camera. Chưa đăng ký thì KHÔNG bật
+  // camera (không cho "quét" khi chưa có dữ liệu mặt để so) — dẫn đi đăng ký.
+  // Nếu đã đăng ký mới mở camera, chờ người dùng bấm Chụp (không auto-verify).
   useEffect(() => {
     mountedRef.current = true;
-    startCamera();
+    (async () => {
+      const registered = userId ? await hasFaceData(userId) : false;
+      if (!mountedRef.current) return;
+      if (!registered) {
+        setNeedRegister(true);
+        setStatusText("Chưa đăng ký khuôn mặt");
+        setErrorMsg("Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi điểm danh.");
+        setState("error");
+        return; // KHÔNG mở camera
+      }
+      startCamera();
+    })();
 
     return () => {
       mountedRef.current = false;
@@ -396,26 +415,45 @@ export default function FaceVerification({
       {/* Action buttons for failed/error states */}
       {(state === "failed" || state === "error") && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <button
-            // Sai mặt (failed) → chụp lại ngay, camera còn chạy.
-            // Lỗi camera/chưa đăng ký (error) → mở lại camera.
-            onClick={state === "failed" ? handleCaptureNow : handleRetry}
-            style={{
-              width: "100%", height: 52, borderRadius: 14,
-              background: "#be1d2c", border: "none",
-              boxShadow: "0 4px 16px rgba(190,29,44,0.25)",
-              color: "#fff", fontSize: 15, fontWeight: 700,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}
-          >
-            {state === "failed" && (
+          {needRegister ? (
+            // Chưa đăng ký khuôn mặt → KHÔNG cho quét, dẫn thẳng đi đăng ký.
+            <button
+              onClick={() => onNeedRegister?.()}
+              style={{
+                width: "100%", height: 52, borderRadius: 14,
+                background: "#be1d2c", border: "none",
+                boxShadow: "0 4px 16px rgba(190,29,44,0.25)",
+                color: "#fff", fontSize: 15, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                <circle cx="12" cy="13" r="4" />
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" />
               </svg>
-            )}
-            {state === "failed" ? "Chụp lại" : "Thử lại"}
-          </button>
+              Đăng ký khuôn mặt
+            </button>
+          ) : (
+            <button
+              // Sai mặt (failed) → chụp lại ngay, camera còn chạy.
+              // Lỗi camera (error) → mở lại camera.
+              onClick={state === "failed" ? handleCaptureNow : handleRetry}
+              style={{
+                width: "100%", height: 52, borderRadius: 14,
+                background: "#be1d2c", border: "none",
+                boxShadow: "0 4px 16px rgba(190,29,44,0.25)",
+                color: "#fff", fontSize: 15, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}
+            >
+              {state === "failed" && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              )}
+              {state === "failed" ? "Chụp lại" : "Thử lại"}
+            </button>
+          )}
           {teacherId && (
             <button
               onClick={handleContactTeacher}
@@ -432,15 +470,19 @@ export default function FaceVerification({
               Liên hệ giảng viên
             </button>
           )}
-          <button
-            onClick={handleSkip}
-            style={{
-              width: "100%", height: 48, borderRadius: 14, background: "#f0f0f5",
-              border: "none", fontSize: 15, fontWeight: 600, color: "#6b7280",
-            }}
-          >
-            Bỏ qua
-          </button>
+          {/* Chưa đăng ký → KHÔNG cho "Bỏ qua" (tránh lách qua bước mặt mà chưa
+              hề có dữ liệu khuôn mặt). Buộc đi đăng ký trước. */}
+          {!needRegister && (
+            <button
+              onClick={handleSkip}
+              style={{
+                width: "100%", height: 48, borderRadius: 14, background: "#f0f0f5",
+                border: "none", fontSize: 15, fontWeight: 600, color: "#6b7280",
+              }}
+            >
+              Bỏ qua
+            </button>
+          )}
         </div>
       )}
 

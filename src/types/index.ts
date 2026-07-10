@@ -106,10 +106,18 @@ export interface AttendanceDoc {
   checkedInAt: number;
   peerVerifications: PeerVerification[];
   peerCount: number;
-  trustScore: TrustScore;
+  // Danh sách SV đã quét QR của MÌNH (2 chiều). CHỈ để hiển thị "đã có bạn
+  // quét lại bạn chưa" — KHÔNG tính vào trust. Trust chỉ tính từ peerCount
+  // (những người CHÍNH MÌNH quét). Xem addPeerScan / computeTrustPolicy.
+  scannedBy?: string[];
+  // Firestore lưu field này dưới key cũ "trustScore" (tương thích dữ liệu đã
+  // có + query của admin) — map 2 chiều ở attendance.service (mapAttendanceDoc).
+  trustPolicy: TrustPolicy;
   teacherOverride?: "present" | "absent";
   faceVerification?: FaceVerificationResult;
   location?: GeoLocation;  // student GPS location at check-in
+  deviceId?: string;       // định danh thiết bị lúc check-in (chống 1 máy nhiều nick)
+  deviceConflict?: boolean; // thiết bị này đã điểm danh cho SV khác trong phiên (chỉ cảnh báo, không chặn)
   manualBy?: string;      // teacherId who marked manually
   manualReason?: string;   // reason for manual attendance
   manualAt?: number;       // timestamp of manual action
@@ -125,7 +133,7 @@ export interface PeerVerification {
   qrNonce: string;
 }
 
-export type TrustScore = "present" | "review" | "absent";
+export type TrustPolicy = "present" | "review" | "absent";
 
 export interface QRPayload {
   type: "teacher" | "peer";
@@ -146,7 +154,7 @@ export interface FraudReport {
 }
 
 export interface SuspiciousPattern {
-  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "face_mismatch" | "ai_detected";
+  type: "always_same_peers" | "rapid_verification" | "low_peer_count" | "face_mismatch" | "same_device_multi_account" | "ai_detected";
   studentIds: string[];
   description: string;
   severity: "low" | "medium" | "high";
@@ -195,20 +203,22 @@ export interface AbsenceRequestDoc {
 // Số bạn cần quét ở bước ngang hàng để "đủ peer". Đổi 1 chỗ này là đổi toàn app.
 export const REQUIRED_PEERS = 1;
 
-export function computeTrustScore(
+export function computeTrustPolicy(
   peerCount: number,
   faceVerification?: FaceVerificationResult,
   config?: { faceRequired?: boolean; peerRequired?: boolean }
-): TrustScore {
+): TrustPolicy {
   const faceReq = config?.faceRequired !== false;
   const peerReq = config?.peerRequired !== false;
 
   const faceOk =
     faceVerification?.matched === true && (faceVerification.confidence ?? 0) >= 0.7;
-  const faceSkipped = faceVerification?.skipped === true;
-  const faceAttempted = !!faceVerification && !faceSkipped;
 
-  const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
+  // Policy CHẶT (09/07): lớp yêu cầu mặt thì PHẢI có kết quả mặt ĐẠT mới pass.
+  // Chưa quét (không có faceVerification) hay bấm "Bỏ qua" (skipped) đều KHÔNG
+  // pass — fail 1 điều kiện bắt buộc là không được tính "present" (rơi xuống
+  // review/absent cho GV quyết). Trước đây chưa-thử/bỏ-qua được "cho qua".
+  const facePass = !faceReq || faceOk;
   const peerPass = !peerReq || peerCount >= REQUIRED_PEERS;
 
   if (facePass && peerPass) return "present";
@@ -220,9 +230,9 @@ export function computeTrustScore(
  * Điểm tin cậy "hiệu lực" dùng ở mọi nơi hiển thị/tính lại:
  *  - GV override → ưu tiên tuyệt đối
  *  - needsReview (GPS thiếu / QR cũ) → hạ "present" xuống "review"
- *  - còn lại → computeTrustScore theo bước face/peer
+ *  - còn lại → computeTrustPolicy theo bước face/peer
  */
-export function effectiveTrustScore(
+export function effectiveTrustPolicy(
   r: {
     peerCount: number;
     faceVerification?: FaceVerificationResult;
@@ -230,9 +240,9 @@ export function effectiveTrustScore(
     needsReview?: boolean;
   },
   config?: { faceRequired?: boolean; peerRequired?: boolean }
-): TrustScore {
+): TrustPolicy {
   if (r.teacherOverride) return r.teacherOverride === "present" ? "present" : "absent";
-  const base = computeTrustScore(r.peerCount, r.faceVerification, config);
+  const base = computeTrustPolicy(r.peerCount, r.faceVerification, config);
   if (r.needsReview && base === "present") return "review";
   return base;
 }
@@ -240,7 +250,7 @@ export function effectiveTrustScore(
 /**
  * Trả về lý do chi tiết tại sao trust score là review/absent
  */
-export function getTrustScoreReasons(
+export function getTrustPolicyReasons(
   peerCount: number,
   faceVerification?: FaceVerificationResult,
   config?: { faceRequired?: boolean; peerRequired?: boolean }

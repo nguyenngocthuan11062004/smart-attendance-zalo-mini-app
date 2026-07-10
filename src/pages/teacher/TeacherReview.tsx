@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSessionAttendance, teacherOverride, manualCheckIn } from "@/services/attendance.service";
 import { getSession } from "@/services/session.service";
 import { getClassById, getClassStudents } from "@/services/class.service";
-import { effectiveTrustScore, getTrustScoreReasons, REQUIRED_PEERS } from "@/types";
+import { effectiveTrustPolicy, getTrustPolicyReasons, REQUIRED_PEERS } from "@/types";
 import { checkGeoFence } from "@/utils/geo";
 import DarkModal from "@/components/ui/DarkModal";
 import type { AttendanceDoc, ClassDoc, SessionDoc } from "@/types";
@@ -59,7 +59,7 @@ export default function TeacherReview() {
       };
       const recalculated = attendanceData.map((r) => ({
         ...r,
-        trustScore: effectiveTrustScore(r, config),
+        trustPolicy: effectiveTrustPolicy(r, config),
       }));
       const sorted = recalculated.sort((a, b) => a.peerCount - b.peerCount);
       setRecords(sorted);
@@ -97,7 +97,7 @@ export default function TeacherReview() {
     setRecords((prev) =>
       prev.map((r) =>
         r.id === attendanceId
-          ? { ...r, teacherOverride: decision, trustScore: decision === "present" ? "present" : "absent" }
+          ? { ...r, teacherOverride: decision, trustPolicy: decision === "present" ? "present" : "absent" }
           : r
       )
     );
@@ -156,7 +156,7 @@ export default function TeacherReview() {
     };
     const header = "STT,Tên,MSSV,Trạng thái,Peer Count,Khuôn mặt,Thời gian check-in,Lý do thủ công";
     const rows = records.map((r, i) => {
-      const effectiveStatus = r.teacherOverride ? (r.teacherOverride === "present" ? "present" : "absent") : r.trustScore;
+      const effectiveStatus = r.teacherOverride ? (r.teacherOverride === "present" ? "present" : "absent") : r.trustPolicy;
       const manualNote = r.manualReason ? `"${r.manualReason}"` : "";
       return [i + 1, `"${r.studentName}"`, r.studentId, statusMap[effectiveStatus] || effectiveStatus, r.peerCount, faceLabel(r.faceVerification), new Date(r.checkedInAt).toLocaleString("vi-VN"), manualNote].join(",");
     });
@@ -185,13 +185,13 @@ export default function TeacherReview() {
     }
   };
 
-  const borderlineCases = records.filter((r) => r.trustScore === "review" && !r.teacherOverride);
+  const borderlineCases = records.filter((r) => r.trustPolicy === "review" && !r.teacherOverride);
   // Danh sách có mặt (gồm cả GV override present), sắp theo giờ quét
   const presentRecords = records
-    .filter((r) => r.trustScore === "present")
+    .filter((r) => r.trustPolicy === "present")
     .sort((a, b) => a.checkedInAt - b.checkedInAt);
   // Đã quét QR nhưng bị GV đánh vắng — vẫn phải hiện để GV hoàn tác được
-  const absentRecords = records.filter((r) => r.trustScore === "absent");
+  const absentRecords = records.filter((r) => r.trustPolicy === "absent");
   const manualPresentCount = absentStudents.filter((s) => s.markedPresent).length;
   const absentRemaining = absentStudents.filter((s) => !s.markedPresent).length;
   const presentCount = presentRecords.length + manualPresentCount;
@@ -408,7 +408,7 @@ export default function TeacherReview() {
                           <span style={{ fontSize: 11, fontWeight: 600, color: "#b91c1c" }}>{r.reviewReason}</span>
                         </div>
                       )}
-                      {getTrustScoreReasons(r.peerCount, r.faceVerification, {
+                      {getTrustPolicyReasons(r.peerCount, r.faceVerification, {
                         faceRequired: session?.faceRequired,
                         peerRequired: session?.peerRequired,
                       }).map((reason, idx) => (

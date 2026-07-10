@@ -247,7 +247,9 @@ export default function HomePage() {
           <div className="flex-1 ml-3 min-w-0">
             <p className="truncate" style={{ fontSize: 17, fontWeight: 700, color: "#1a1a1a" }}>
               {user.name}
-              {user.mssv && (
+              {/* MSSV chỉ có nghĩa với SV — GV (dù doc còn mssv cũ từ lần
+                  đăng nhập SV trước) không hiển thị */}
+              {role === "student" && user.mssv && (
                 <span style={{ fontWeight: 400, color: "#6b7280" }}> | {user.mssv}</span>
               )}
             </p>

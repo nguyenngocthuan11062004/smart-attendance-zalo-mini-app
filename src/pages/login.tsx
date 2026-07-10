@@ -9,6 +9,7 @@ import { isValidMSSV, isValidHUSTEmail } from "@/utils/sanitize";
 import { signIn, clearLoggedOut, isLoggedOut, requestTeacherApproval, subscribeUserDoc } from "@/services/auth.service";
 import { isStudentVerified, sendOTP, verifyOTP, isEmailVerifyConfigured, isBypassMSSV } from "@/services/email-verify.service";
 import { cacheRemove } from "@/utils/cache";
+import { storageSetItem } from "@/utils/storage";
 import { openWebview } from "zmp-sdk/apis";
 
 type LoginStep = "mssv" | "email" | "otp" | "submitting" | "teacher" | "teacher-pending";
@@ -60,9 +61,13 @@ export default function LoginPage() {
       if (!u) return;
       if (u.role === "teacher" || u.role === "admin") {
         setCurrentUser(u);
+        // Lưu ngay vào storage: lần sau mở app vào thẳng GV, không bị khôi
+        // phục bản cache cũ (chưa có role) rồi nháy qua màn login.
+        storageSetItem("user_doc", JSON.stringify(u)).catch(() => {});
         navigate("/home", { replace: true });
       } else if (u.teacherRejected || u.pendingTeacher === false) {
         setCurrentUser(u);
+        storageSetItem("user_doc", JSON.stringify(u)).catch(() => {});
         setTeacherRejected(true);
       }
     });
