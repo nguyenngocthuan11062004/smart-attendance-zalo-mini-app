@@ -1,0 +1,35 @@
+@startuml seq_attendance
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+actor "Sinh viên\n(Mini App)" as SV
+participant "Màn hình QR\ngiảng viên" as GV
+participant "Bạn cùng lớp" as PEER
+participant "Cloud Functions" as CF
+database "Firestore" as DB
+
+== Bước 1: Quét mã QR giảng viên ==
+SV -> GV : Quét mã QR động
+SV -> CF : scanTeacher(payload, chữ ký, nonce)
+CF -> CF : Kiểm HMAC + thời gian (≤ 90s)
+CF -> DB : Ghi nhận bước 1
+CF --> SV : Hợp lệ
+
+== Bước 2: Xác minh khuôn mặt ==
+SV -> SV : Chụp & so khớp khuôn mặt\n(trên thiết bị, ngưỡng 0,7)
+SV -> CF : submitFaceResult(độ tin cậy)
+CF -> DB : Lưu kết quả khuôn mặt
+
+== Bước 3: Xác minh ngang hàng (≥ 3) ==
+loop tối thiểu 3 bạn
+  SV -> PEER : Trao đổi mã QR cá nhân
+  SV -> CF : scanPeer(mã của bạn)
+  CF -> DB : Thêm lượt xác minh ngang hàng
+end
+
+== Bước 4: Hoàn tất ==
+CF -> CF : Tính điểm tin cậy
+CF -> DB : Lưu bản ghi điểm danh
+CF --> SV : Kết quả (present / review / absent)
+@enduml

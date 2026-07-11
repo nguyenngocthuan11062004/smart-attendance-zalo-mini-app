@@ -1,0 +1,14 @@
+@startuml seq_absence
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+actor "Sinh viên\n(Mini App)" as SV
+database "Firestore" as DB
+actor "Quản trị viên\n(Trang web)" as AD
+
+SV -> DB : Tạo đơn xin nghỉ\n(lý do, đính kèm, status = pending)
+AD -> DB : Xem danh sách đơn chờ duyệt
+AD -> DB : Duyệt hoặc từ chối (kèm ghi chú)
+DB --> SV : Cập nhật trạng thái đơn
+@enduml

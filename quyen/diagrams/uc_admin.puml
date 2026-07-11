@@ -1,0 +1,23 @@
+@startuml uc_admin
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+left to right direction
+
+actor "Quản trị viên" as AD
+rectangle "Quản trị hệ thống" {
+  usecase "Quản lý người dùng" as A1
+  usecase "Phân công lớp và giảng viên" as A2
+  usecase "Nhập danh sách (Excel)" as A3
+  usecase "Duyệt đơn xin nghỉ" as A4
+  usecase "Tạo mã mời giảng viên" as A5
+  usecase "Xem bảng điều khiển" as A6
+}
+AD --> A1
+AD --> A2
+AD --> A3
+AD --> A4
+AD --> A5
+AD --> A6
+@enduml

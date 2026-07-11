@@ -1,0 +1,30 @@
+@startuml deployment
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+node "Thiết bị SV/GV" {
+  artifact "Zalo Mini App"
+}
+node "Máy phòng đào tạo" {
+  artifact "Trang quản trị\n(trình duyệt)" as admin
+}
+cloud "Nền tảng Zalo" as zalo
+node "Firebase (asia-southeast1)" {
+  artifact "Cloud Functions" as cf
+  database "Firestore" as fs
+  database "Storage" as st
+  artifact "Hosting" as host
+}
+cloud "Dịch vụ ngoài\n(Groq, EmailJS, Microsoft)" as ext
+
+"Zalo Mini App" --> zalo
+"Zalo Mini App" --> cf
+"Zalo Mini App" --> fs
+admin --> host
+admin --> cf
+cf --> fs
+cf --> st
+cf --> ext
+@enduml

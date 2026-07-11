@@ -1,0 +1,17 @@
+@startuml uc_gv_lop
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+left to right direction
+
+actor "Giảng viên" as GV
+rectangle "Quản lý lớp và báo cáo" {
+  usecase "Quản lý lớp học" as L1
+  usecase "Xem báo cáo gian lận" as L2
+  usecase "Xem thống kê lớp" as L3
+}
+GV --> L1
+GV --> L2
+GV --> L3
+@enduml

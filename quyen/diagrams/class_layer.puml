@@ -1,0 +1,37 @@
+@startuml class_layer
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+package "Tầng giao diện" {
+  class StudentAttendance
+  class TeacherSession
+  class FaceRegister
+}
+package "Tầng hook" {
+  class useAttendance
+  class useQRGenerator
+  class useAuth
+}
+package "Tầng dịch vụ" {
+  class "attendance.service" as attsvc
+  class "session.service" as sesssvc
+  class "face.service" as facesvc
+  class "auth.service" as authsvc
+}
+package "Firebase" {
+  class Firestore
+  class CloudFunctions
+}
+
+StudentAttendance --> useAttendance
+TeacherSession --> useQRGenerator
+FaceRegister --> facesvc
+useAttendance --> attsvc
+useAuth --> authsvc
+attsvc --> CloudFunctions
+sesssvc --> Firestore
+facesvc --> CloudFunctions
+authsvc --> Firestore
+@enduml

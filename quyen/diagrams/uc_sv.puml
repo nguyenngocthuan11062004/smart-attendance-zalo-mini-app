@@ -1,0 +1,31 @@
+@startuml uc_sv
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+left to right direction
+
+actor "Sinh viên" as SV
+rectangle "Chức năng của Sinh viên" {
+  usecase "Đăng ký khuôn mặt" as U1
+  usecase "Tham gia lớp học" as U2
+  usecase "Điểm danh bốn bước" as U3
+  usecase "Quét mã QR" as U3a
+  usecase "Xác minh khuôn mặt" as U3b
+  usecase "Xác minh ngang hàng" as U3c
+  usecase "Xem lịch sử điểm danh" as U4
+  usecase "Xem lịch học" as U5
+  usecase "Gửi đơn xin nghỉ" as U6
+  usecase "Hỏi trợ lý AI" as U7
+}
+SV --> U1
+SV --> U2
+SV --> U3
+SV --> U4
+SV --> U5
+SV --> U6
+SV --> U7
+U3 ..> U3a : <<include>>
+U3 ..> U3b : <<include>>
+U3 ..> U3c : <<include>>
+@enduml

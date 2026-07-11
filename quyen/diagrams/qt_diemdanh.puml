@@ -1,0 +1,14 @@
+@startuml qt_diemdanh
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+start
+:Giảng viên mở phiên điểm danh;
+:Hệ thống sinh mã QR động (xoay 30 giây);
+:Sinh viên quét QR, xác minh khuôn mặt và ngang hàng;
+:Hệ thống tổng hợp và tính điểm tin cậy;
+:Giảng viên giám sát, xem xét và ghi đè (nếu cần);
+:Giảng viên kết thúc phiên, chốt kết quả;
+stop
+@enduml

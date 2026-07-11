@@ -1,0 +1,796 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+% Việt hoá nhãn thuật toán (algorithm2e) cho nhất quán: "Thuật toán" thay vì "Algorithm"
+\renewcommand{\algorithmcfname}{Thuật toán}
+
+Đây là chương trọng tâm của đồ án. Chương trình bày thiết kế tổng thể và chi tiết của hệ
+thống (kiến trúc, cơ sở dữ liệu, luồng xác thực, các thuật toán cốt lõi, quy trình điểm
+danh và chống gian lận), tiếp đó là quá trình triển khai thành sản phẩm thực tế, và cuối
+cùng là kết quả đánh giá trên các tiêu chí chức năng, bảo mật và hiệu năng.
+
+% ═══════════════════════════════════════════════════════════════
+% PHẦN A — PHÂN TÍCH VÀ THIẾT KẾ
+% ═══════════════════════════════════════════════════════════════
+
+\section{Thiết kế kiến trúc}
+\label{sec:kien-truc}
+
+Hệ thống được tổ chức theo mô hình ba tầng (three-tier), gồm tầng giao diện phía người
+dùng, tầng xử lý nghiệp vụ và tầng lưu trữ dữ liệu, như minh hoạ trong
+Hình~\ref{fig:kientruc}.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Tầng giao diện (Client).} Bao gồm \textit{Zalo Mini App} phục vụ
+  sinh viên cùng giảng viên và \textit{trang quản trị web} phục vụ phòng đào tạo.
+  Tầng này chịu trách nhiệm hiển thị, thu nhận thao tác người dùng, chụp ảnh khuôn mặt và
+  quét mã QR.
+
+  \item \textbf{Tầng xử lý (Backend).} Gồm các hàm Cloud Functions xử lý các nghiệp vụ
+  nhạy cảm: ký và xác minh mã QR, tính điểm tin cậy, phát hiện gian lận, xác thực và phân
+  quyền. Việc đặt các logic quan trọng ở tầng máy chủ giúp tránh để lộ khoá bí mật hay bị
+  can thiệp từ phía thiết bị người dùng.
+
+  \item \textbf{Tầng lưu trữ (Storage).} Gồm cơ sở dữ liệu Firestore lưu dữ liệu nghiệp
+  vụ và đồng bộ theo thời gian thực, cùng Firebase Storage lưu trữ dữ liệu ảnh.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.72\textwidth]{kientruc}
+  \caption{Kiến trúc tổng thể ba tầng của hệ thống}
+  \label{fig:kientruc}
+\end{figure}
+
+\section{Thiết kế chi tiết}
+
+Phần này trình bày thiết kế chi tiết của các thành phần cốt lõi trong hệ thống.
+
+\subsection{Thiết kế cơ sở dữ liệu Firestore}
+\label{sec:db-design}
+
+Khác với cơ sở dữ liệu quan hệ, Firestore lưu dữ liệu theo mô hình tài liệu (document):
+dữ liệu được tổ chức thành các \textit{collection}, mỗi collection chứa nhiều
+\textit{document}. Hệ thống sử dụng các collection chính được liệt kê trong
+Bảng~\ref{tab:collections}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Các collection chính của cơ sở dữ liệu}
+\label{tab:collections}
+\begin{tabular}{|l|p{9.5cm}|}
+\hline
+\textbf{Collection} & \textbf{Mô tả} \\
+\hline
+\texttt{users} & Hồ sơ người dùng (sinh viên, giảng viên, quản trị viên) \\ \hline
+\texttt{classes} & Thông tin lớp học phần, lịch học, danh sách sinh viên \\ \hline
+\texttt{sessions} & Phiên điểm danh, kèm khoá bí mật HMAC và cấu hình \\ \hline
+\texttt{attendance} & Bản ghi điểm danh của từng sinh viên trong một phiên \\ \hline
+\texttt{face\_registrations} & Dữ liệu khuôn mặt đã đăng ký của sinh viên \\ \hline
+\texttt{pairing\_tokens} & Mã ghép nối cho tính năng Cổng máy chiếu \\ \hline
+\texttt{fraud\_reports} & Báo cáo phát hiện gian lận theo phiên \\ \hline
+\texttt{absence\_requests} & Đơn xin nghỉ của sinh viên \\ \hline
+\end{tabular}
+\end{table}
+
+Thiết kế chi tiết của hai collection quan trọng nhất --- \texttt{sessions} và
+\texttt{attendance} --- được trình bày trong Bảng~\ref{tab:session} và
+Bảng~\ref{tab:attendance}. Sơ đồ thực thể --- liên kết tổng thể được trình bày trong
+Hình~\ref{fig:erd}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Cấu trúc collection \texttt{sessions}}
+\label{tab:session}
+\begin{tabular}{|l|l|p{7.5cm}|}
+\hline
+\textbf{Trường} & \textbf{Kiểu} & \textbf{Ý nghĩa} \\
+\hline
+\texttt{classId} & string & Mã lớp học phần \\ \hline
+\texttt{status} & string & Trạng thái: \texttt{active} / \texttt{ended} \\ \hline
+\texttt{hmacSecret} & string & Khoá bí mật để ký mã QR \\ \hline
+\texttt{qrRefreshInterval} & number & Chu kỳ làm mới mã QR (giây) \\ \hline
+\texttt{faceRequired} & boolean & Có yêu cầu xác minh khuôn mặt không \\ \hline
+\texttt{peerRequired} & boolean & Có yêu cầu xác minh ngang hàng không \\ \hline
+\texttt{geoFenceRadius} & number & Bán kính hàng rào địa lý (mét) \\ \hline
+\texttt{startedAt} & number & Thời điểm bắt đầu phiên \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Cấu trúc collection \texttt{attendance}}
+\label{tab:attendance}
+\begin{tabular}{|l|l|p{7.2cm}|}
+\hline
+\textbf{Trường} & \textbf{Kiểu} & \textbf{Ý nghĩa} \\
+\hline
+\texttt{sessionId} & string & Mã phiên điểm danh \\ \hline
+\texttt{studentId} & string & Mã sinh viên \\ \hline
+\texttt{peerVerifications} & array & Danh sách xác minh ngang hàng \\ \hline
+\texttt{peerCount} & number & Số lượt xác minh ngang hàng \\ \hline
+\texttt{trustPolicy} & string & Điểm tin cậy: \texttt{present}/\texttt{review}/\texttt{absent} \\ \hline
+\texttt{faceVerification} & object & Kết quả xác minh khuôn mặt \\ \hline
+\texttt{location} & object & Toạ độ GPS lúc điểm danh \\ \hline
+\end{tabular}
+\end{table}
+
+Ngoài hai collection trên, cấu trúc của một số collection quan trọng khác được trình bày
+trong Bảng~\ref{tab:users} và Bảng~\ref{tab:classes}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Cấu trúc collection \texttt{users}}
+\label{tab:users}
+\begin{tabular}{|l|l|p{7.3cm}|}
+\hline
+\textbf{Trường} & \textbf{Kiểu} & \textbf{Ý nghĩa} \\
+\hline
+\texttt{id} & string & Định danh người dùng (theo Zalo) \\ \hline
+\texttt{role} & string & Vai trò: \texttt{student}/\texttt{teacher}/\texttt{admin} \\ \hline
+\texttt{name} & string & Họ và tên \\ \hline
+\texttt{mssv} & string & Mã số sinh viên (nếu là sinh viên) \\ \hline
+\texttt{faceRegistered} & boolean & Đã đăng ký khuôn mặt hay chưa \\ \hline
+\texttt{hustVerified} & boolean & Đã xác minh email do trường cấp \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Cấu trúc collection \texttt{classes}}
+\label{tab:classes}
+\begin{tabular}{|l|l|p{7.3cm}|}
+\hline
+\textbf{Trường} & \textbf{Kiểu} & \textbf{Ý nghĩa} \\
+\hline
+\texttt{id} & string & Định danh lớp học phần \\ \hline
+\texttt{code} & string & Mã lớp để sinh viên tham gia \\ \hline
+\texttt{teacherId} & string & Định danh giảng viên phụ trách \\ \hline
+\texttt{studentIds} & array & Danh sách sinh viên trong lớp \\ \hline
+\texttt{schedule} & object & Lịch học (thứ, giờ bắt đầu, giờ kết thúc) \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{erd}
+  \caption{Sơ đồ thực thể --- liên kết của cơ sở dữ liệu}
+  \label{fig:erd}
+\end{figure}
+
+Vòng đời của phiên điểm danh và trạng thái của bản ghi điểm danh được mô tả bằng lược đồ
+trạng thái trong Hình~\ref{fig:state}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{state_lifecycle}
+  \caption{Lược đồ trạng thái của phiên và bản ghi điểm danh}
+  \label{fig:state}
+\end{figure}
+
+\subsection{Thiết kế luồng xác thực và phân quyền}
+\label{sec:auth-design}
+
+Luồng xác thực dựa trên việc đăng nhập bằng tài khoản Zalo để lấy danh tính cơ bản, sau đó
+sinh Custom Token của Firebase để thống nhất danh tính người dùng trên toàn hệ thống.
+
+Việc phân quyền được thực thi ở tầng cơ sở dữ liệu bằng quy tắc bảo mật (Security Rules)
+của Firestore. Một nguyên tắc quan trọng là \textbf{ngăn người dùng tự nâng quyền}: tài
+khoản tạo từ phía thiết bị chỉ được phép mang vai trò \texttt{student}, còn vai trò
+\texttt{teacher} và \texttt{admin} chỉ được gán bởi Cloud Function. Đoạn quy tắc minh hoạ
+cho collection \texttt{users} như sau:
+
+\begin{lstlisting}[caption={Quy tắc bảo mật cho collection users},captionpos=b]
+match /users/{userId} {
+  allow read:   if true;
+  allow create: if newDocSafeRole();   // role chi duoc la "student"
+  allow update: if notChangingRole();  // khong duoc tu doi role
+  allow delete: if false;
+}
+\end{lstlisting}
+
+Tương tự, collection \texttt{attendance} bị khoá ghi từ phía thiết bị --- mọi thao tác ghi
+chỉ được thực hiện qua Cloud Function, như Danh sách mã nguồn~\ref{lst:attrule}.
+
+\begin{lstlisting}[caption={Quy tắc bảo mật cho collection attendance},captionpos=b,label=lst:attrule]
+match /attendance/{id} {
+  allow read:   if true;
+  allow create: if false;   // chi tao qua Cloud Function
+  allow update: if false;
+  allow delete: if false;
+}
+\end{lstlisting}
+
+Ma trận phân quyền tổng quát theo vai trò được tóm tắt trong Bảng~\ref{tab:phanquyen}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Ma trận phân quyền theo vai trò}
+\label{tab:phanquyen}
+\begin{tabular}{|p{5cm}|c|c|c|}
+\hline
+\textbf{Thao tác} & \textbf{Sinh viên} & \textbf{Giảng viên} & \textbf{Quản trị} \\
+\hline
+Điểm danh & Có & --- & --- \\ \hline
+Tạo/quản lý phiên điểm danh & --- & Có & --- \\ \hline
+Duyệt, điểm danh thủ công & --- & Có & --- \\ \hline
+Quản lý người dùng, lớp & --- & --- & Có \\ \hline
+Duyệt đơn xin nghỉ & --- & --- & Có \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Thuật toán mã QR HMAC xoay 30 giây}
+\label{sec:hmac-rotating}
+
+Để chống việc chụp màn hình và chia sẻ lại mã QR, hệ thống sinh mã QR động được ký bằng
+HMAC-SHA256 (xem công thức~(\ref{eq:hmac})) và làm mới sau mỗi 30 giây. Nội dung được ký
+là chuỗi ghép từ năm trường: loại mã, mã phiên, mã người dùng, mốc thời gian và một giá
+trị ngẫu nhiên (nonce). Thuật toán sinh mã được trình bày trong Thuật toán~\ref{algo:qr}.
+
+\begin{algorithm}[H]
+\caption{Sinh mã QR động của giảng viên}
+\label{algo:qr}
+\KwIn{Loại mã $type$, mã phiên $sid$, mã người dùng $uid$, khoá bí mật $K$}
+\KwOut{Chuỗi mã QR đã ký}
+$ts \leftarrow$ mốc thời gian hiện tại\;
+$nonce \leftarrow$ chuỗi ngẫu nhiên 16 byte\;
+$msg \leftarrow type : sid : uid : ts : nonce$\;
+$sig \leftarrow \text{HMAC-SHA256}(msg, K)$\;
+\Return $\text{JSON}(type, sid, uid, ts, nonce, sig)$\;
+\end{algorithm}
+
+Đoạn mã rút gọn cho việc sinh mã QR đã ký bằng HMAC được trình bày trong
+Danh sách mã nguồn~\ref{lst:qrsign}.
+
+\begin{lstlisting}[caption={Sinh mã QR đã ký HMAC-SHA256},captionpos=b,label=lst:qrsign]
+function buildQR(type, sessionId, userId, secret) {
+  const ts = Date.now();
+  const nonce = randomHex(16);
+  const msg = [type, sessionId, userId, ts, nonce].join(":");
+  const sig = HmacSHA256(msg, secret).toString();
+  return JSON.stringify({ type, sessionId, userId, ts, nonce, sig });
+}
+\end{lstlisting}
+
+Phía sinh viên (hoặc máy chủ) xác minh mã bằng cách tính lại chữ ký từ cùng nội dung và
+khoá bí mật rồi so sánh với chữ ký kèm theo; mã chỉ hợp lệ nếu chữ ký trùng khớp
+\textbf{và} mốc thời gian còn trong khoảng dung sai 90 giây. Khoảng dung sai 90 giây
+(gấp ba chu kỳ làm mới) nhằm dung hoà sai lệch đồng hồ giữa các thiết bị mà vẫn giới hạn
+thời gian sống của mã. Nhờ đó, ngay cả khi mã QR bị chụp lại, nó cũng nhanh chóng hết
+hạn và không thể dùng cho buổi học khác.
+
+Toàn bộ quá trình khởi tạo khoá bí mật, sinh mã QR động và xác minh phía máy chủ được minh
+hoạ trong Hình~\ref{fig:seq-qr}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{seq_qr}
+  \caption{Lược đồ tuần tự sinh và xác minh mã QR HMAC}
+  \label{fig:seq-qr}
+\end{figure}
+
+\subsection{Thiết kế giao diện và bộ nhận diện}
+\label{sec:ui-design}
+
+Giao diện ứng dụng tuân theo bộ nhận diện của Đại học Bách Khoa Hà Nội, với màu chủ đạo
+là đỏ HUST (mã màu \texttt{\#be1d2c}). Hệ thống xây dựng một bộ thành phần giao diện dùng
+chung nhằm bảo đảm tính nhất quán, tiêu biểu gồm: thẻ thống kê, vòng tròn điểm tin cậy
+(score ring), thanh tiến trình, hộp thoại dạng trượt từ dưới lên, và trình quét mã QR
+nhúng trực tiếp. Toàn bộ giao diện được tối ưu cho màn hình điện thoại với thao tác tối
+giản, phù hợp với kỳ vọng về tốc độ của sinh viên.
+
+\subsection{Luồng điểm danh bốn bước cho sinh viên}
+\label{sec:attendance-flow}
+
+Quy trình điểm danh của sinh viên gồm bốn bước tuần tự:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Quét mã QR của giảng viên.} Sinh viên dùng máy ảnh quét mã QR động đang
+  hiển thị; hệ thống xác minh chữ ký HMAC và mốc thời gian.
+
+  \item \textbf{Xác minh khuôn mặt.} Ứng dụng tự động chụp và so khớp khuôn mặt với ảnh
+  đã đăng ký; kết quả đạt nếu độ tin cậy không nhỏ hơn ngưỡng 0{,}7.
+
+  \item \textbf{Xác minh ngang hàng.} Sinh viên hiển thị mã QR cá nhân và quét mã của các
+  bạn xung quanh; yêu cầu tối thiểu ba lượt xác minh.
+
+  \item \textbf{Hoàn tất.} Hệ thống tổng hợp kết quả và tính điểm tin cậy.
+\end{enumerate}
+
+Quy trình điểm danh tổng quát cùng các điểm rẽ nhánh quyết định được minh hoạ dưới dạng lược
+đồ hoạt động trong Hình~\ref{fig:activity}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.55\textwidth]{activity_diemdanh}
+  \caption{Lược đồ hoạt động của quy trình điểm danh}
+  \label{fig:activity}
+\end{figure}
+
+Điểm tin cậy (trust policy) được tính theo quy tắc: đạt \texttt{present} nếu vượt qua cả
+điều kiện khuôn mặt và điều kiện ngang hàng; \texttt{review} (cần xem xét) nếu chỉ đạt
+một trong hai; và \texttt{absent} nếu không đạt cả hai. Quy tắc này cho phép giảng viên
+tập trung kiểm tra thủ công các trường hợp ở trạng thái \texttt{review}. Quy tắc tính điểm
+tin cậy được trình bày hình thức trong Thuật toán~\ref{algo:trust}.
+
+\begin{algorithm}[H]
+\caption{Tính điểm tin cậy của một lượt điểm danh}
+\label{algo:trust}
+\KwIn{Cờ yêu cầu khuôn mặt $faceReq$, cờ yêu cầu ngang hàng $peerReq$, kết quả khuôn mặt $face$, số lượt ngang hàng $peerCount$}
+\KwOut{Điểm tin cậy thuộc \{present, review, absent\}}
+$facePass \leftarrow (\lnot faceReq) \lor face.matched$\;
+$peerPass \leftarrow (\lnot peerReq) \lor (peerCount \geq 3)$\;
+\eIf{$facePass$ \textbf{và} $peerPass$}{
+  \Return present\;
+}{
+  \eIf{$facePass$ \textbf{hoặc} $peerPass$}{
+    \Return review\;
+  }{
+    \Return absent\;
+  }
+}
+\end{algorithm}
+
+Toàn bộ trình tự tương tác của quy trình điểm danh bốn bước được minh hoạ trong
+Hình~\ref{fig:seq-attendance}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.78\textwidth]{seq_attendance}
+  \caption{Lược đồ tuần tự quy trình điểm danh bốn bước}
+  \label{fig:seq-attendance}
+\end{figure}
+
+Quy trình đăng ký khuôn mặt --- điều kiện tiên quyết cho bước xác minh khi điểm danh --- được
+minh hoạ trong Hình~\ref{fig:seq-face}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{seq_face}
+  \caption{Lược đồ tuần tự đăng ký khuôn mặt}
+  \label{fig:seq-face}
+\end{figure}
+
+\subsection{Hệ thống chống gian lận nhiều lớp}
+\label{sec:anti-fraud}
+
+Hệ thống áp dụng nguyên lý phòng thủ theo chiều sâu với nhiều lớp xác minh bổ trợ: mã QR
+động (chống chia sẻ mã), xác minh khuôn mặt (chống điểm danh hộ), xác minh ngang hàng
+(chống điểm danh từ xa) và kiểm tra vị trí GPS (chống điểm danh ngoài lớp). Bổ sung cho
+các lớp này, một hàm phân tích chạy phía máy chủ rà soát các mẫu hành vi đáng ngờ và lập
+báo cáo gian lận. Các loại hành vi đáng ngờ được hệ thống phát hiện được tổng hợp trong
+Bảng~\ref{tab:fraud}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Phân loại các hành vi đáng ngờ}
+\label{tab:fraud}
+\begin{tabular}{|l|p{9cm}|}
+\hline
+\textbf{Loại} & \textbf{Mô tả} \\
+\hline
+\texttt{always\_same\_peers} & Luôn xác minh ngang hàng với cùng một nhóm bạn \\ \hline
+\texttt{rapid\_verification} & Tốc độ xác minh nhanh bất thường \\ \hline
+\texttt{low\_peer\_count} & Số lượt xác minh ngang hàng quá thấp \\ \hline
+\texttt{face\_mismatch} & Khuôn mặt không khớp \\ \hline
+\texttt{ai\_detected} & Mẫu bất thường do mô hình phân tích phát hiện \\ \hline
+\end{tabular}
+\end{table}
+
+Thuật toán phân tích phát hiện gian lận theo phiên được trình bày trong
+Thuật toán~\ref{algo:fraud}.
+
+\begin{algorithm}[H]
+\caption{Phân tích phát hiện gian lận theo phiên}
+\label{algo:fraud}
+\KwIn{Tập bản ghi điểm danh $A$ của lớp}
+\KwOut{Danh sách mẫu hành vi đáng ngờ $S$}
+$S \leftarrow \emptyset$\;
+\ForEach{sinh viên $s$ trong $A$}{
+  \lIf{tỷ lệ xác minh cùng một nhóm bạn $\geq 80\%$}{thêm \textit{always\_same\_peers}}
+  \lIf{khoảng cách giữa hai lượt xác minh $< 30$ giây}{thêm \textit{rapid\_verification}}
+  \lIf{số lượt ngang hàng $< 3$ ở quá nửa số phiên}{thêm \textit{low\_peer\_count}}
+  \lIf{khuôn mặt không khớp hoặc độ tin cậy $< 0{,}3$}{thêm \textit{face\_mismatch}}
+}
+\Return $S$\;
+\end{algorithm}
+
+\textbf{Kiểm tra vị trí GPS (hàng rào địa lý).} Khi giảng viên mở phiên điểm danh, ứng dụng
+ghi lại toạ độ GPS của thiết bị giảng viên làm tâm khu vực lớp học cùng bán kính cho phép
+(mặc định 200~m). Khi sinh viên điểm danh, thiết bị lấy toạ độ hiện tại và tính khoảng cách
+tới tâm bằng công thức Haversine; nếu vượt quá bán kính, lượt điểm danh bị từ chối. Trường
+hợp sinh viên tắt định vị hoặc từ chối quyền, hệ thống không chặn cứng mà đánh dấu bản ghi
+``cần xem xét'' để giảng viên duyệt. Việc kiểm tra được thực hiện đồng thời ở thiết bị và
+trên máy chủ (Cloud Function tính lại khoảng cách), nên không thể vượt qua bằng cách can
+thiệp phía máy khách.
+
+\subsection{Tính năng Cổng máy chiếu (Teacher Display)}
+\label{sec:projector}
+
+Mã QR hiển thị trên màn hình điện thoại của giảng viên thường quá nhỏ đối với các lớp học
+đông. Để khắc phục, hệ thống thiết kế tính năng \textit{Cổng máy chiếu}: trang quản trị
+web mở trên máy chiếu sẽ sinh một mã ghép nối (pairing token) ngẫu nhiên dài 128 bit, có
+thời hạn 60 giây. Giảng viên dùng Mini App quét mã ghép nối này để liên kết phiên điểm
+danh với màn hình máy chiếu; sau đó mã QR động cỡ lớn sẽ được hiển thị trên máy chiếu.
+
+Trạng thái của mã ghép nối chỉ chuyển một chiều từ \texttt{pending} sang \texttt{paired}
+và không thể quay lại hay bị ghép nối hai lần, nhằm chống tấn công chiếm quyền hiển thị.
+Mã QR trên máy chiếu và trên Mini App được đồng bộ theo cùng một đồng hồ để bảo đảm tính
+nhất quán khi làm mới. Trình tự ghép nối được minh hoạ trong Hình~\ref{fig:seq-pairing}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{seq_pairing}
+  \caption{Lược đồ tuần tự ghép nối Cổng máy chiếu}
+  \label{fig:seq-pairing}
+\end{figure}
+
+Hình~\ref{fig:projector-ui} thể hiện giao diện trang Cổng máy chiếu khi chạy trên
+trình duyệt.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{admin_projector}
+  \caption{Giao diện Cổng máy chiếu trên trình duyệt}
+  \label{fig:projector-ui}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════
+% PHẦN B — TRIỂN KHAI  (Đợt 2)
+% ═══════════════════════════════════════════════════════════════
+
+\section{Xây dựng ứng dụng}
+
+Phần này trình bày quá trình hiện thực hoá hệ thống thành ba thành phần: Mini App, trang
+quản trị và các hàm xử lý phía máy chủ.
+
+\subsection{Triển khai Mini App}
+\label{sec:trien-khai-miniapp}
+
+Phần Mini App được hiện thực bằng React và TypeScript với quy mô khoảng 15.900 dòng mã,
+tổ chức thành 21 trang giao diện, 27 thành phần dùng chung, 10 hook tùy biến và 16 lớp
+dịch vụ (service) đảm nhiệm việc giao tiếp với Firestore và Cloud Functions.
+
+Mối quan hệ phân lớp giữa các thành phần giao diện, hook, dịch vụ và Firebase được minh hoạ
+trong Hình~\ref{fig:class-layer}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{class_layer}
+  \caption{Sơ đồ phân lớp các thành phần phần mềm của Mini App}
+  \label{fig:class-layer}
+\end{figure}
+
+Các trang được phân theo vai trò người dùng:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Chung:} màn hình khởi động, giới thiệu, đăng nhập, trang chủ, hồ sơ và
+  trợ lý hỏi đáp.
+  \item \textbf{Sinh viên:} danh sách lớp, lịch học, đăng ký khuôn mặt, màn hình điểm
+  danh bốn bước và lịch sử điểm danh.
+  \item \textbf{Giảng viên:} danh sách lớp, chi tiết lớp, tạo và quản lý phiên điểm danh,
+  giám sát theo thời gian thực, duyệt kết quả, báo cáo gian lận và thống kê.
+\end{itemize}
+
+Việc giao tiếp với nền tảng Zalo được thực hiện qua ZMP SDK, gồm xác thực người dùng,
+truy cập máy ảnh để quét mã QR và chụp ảnh khuôn mặt, và truy cập vị trí GPS. Một số màn
+hình tiêu biểu được minh hoạ trong Hình~\ref{fig:miniapp}.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.30\textwidth}\centering\includegraphics[width=\linewidth]{mini_home}\caption{Trang chủ}\end{subfigure}\hfill
+  \begin{subfigure}[t]{0.30\textwidth}\centering\includegraphics[width=\linewidth]{mini_classes}\caption{Danh sách lớp}\end{subfigure}\hfill
+  \begin{subfigure}[t]{0.30\textwidth}\centering\includegraphics[width=\linewidth]{mini_schedule}\caption{Thời khoá biểu}\end{subfigure}
+
+  \vspace{0.4cm}
+  \begin{subfigure}[t]{0.30\textwidth}\centering\includegraphics[width=\linewidth]{mini_search}\caption{Tra cứu}\end{subfigure}\hfill
+  \begin{subfigure}[t]{0.30\textwidth}\centering\includegraphics[width=\linewidth]{mini_absence}\caption{Đơn xin nghỉ}\end{subfigure}\hfill
+  \begin{subfigure}[t]{0.30\textwidth}\centering\includegraphics[width=\linewidth]{mini_profile}\caption{Hồ sơ}\end{subfigure}
+  \caption{Một số màn hình chính của Mini App}
+  \label{fig:miniapp}
+\end{figure}
+
+\subsection{Triển khai trang quản trị}
+\label{sec:trien-khai-admin}
+
+Trang quản trị là một ứng dụng web độc lập dành cho phòng đào tạo, được xây dựng bằng
+React kết hợp thư viện giao diện Ant Design, thư viện biểu đồ Recharts và thư viện
+\texttt{xlsx} để nhập/xuất dữ liệu Excel. Trang gồm 12 màn hình chính, trong đó nổi bật
+là: bảng điều khiển thống kê tổng quan, quản lý người dùng, quản lý lớp học, theo dõi
+điểm danh, duyệt đơn xin nghỉ, báo cáo gian lận và quản lý mã mời giảng viên.
+
+Hai tính năng đặc thù của trang quản trị là \textbf{nhập danh sách sinh viên và lớp hàng
+loạt từ tệp Excel} và \textbf{xuất báo cáo điểm danh ra Excel}, giúp giảm đáng kể công
+sức nhập liệu thủ công cho phòng đào tạo. Trang quản trị được triển khai trên Firebase
+Hosting. Giao diện được minh hoạ trong Hình~\ref{fig:admin}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{admin_dashboard}
+  \caption{Bảng điều khiển tổng quan của trang quản trị}
+  \label{fig:admin}
+\end{figure}
+
+Quy trình xử lý đơn xin nghỉ giữa sinh viên và quản trị viên được minh hoạ trong
+Hình~\ref{fig:seq-absence}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\textwidth]{seq_absence}
+  \caption{Lược đồ tuần tự xử lý đơn xin nghỉ}
+  \label{fig:seq-absence}
+\end{figure}
+
+\subsection{Triển khai Cloud Functions}
+\label{sec:trien-khai-functions}
+
+Toàn bộ nghiệp vụ nhạy cảm được xử lý phía máy chủ thông qua 24 hàm Cloud Functions, được
+phân nhóm theo chức năng như trong Bảng~\ref{tab:functions}. Việc tập trung logic ở máy
+chủ bảo đảm khoá bí mật HMAC, thuật toán chống gian lận và việc gán vai trò không bị can
+thiệp từ phía thiết bị người dùng.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Phân nhóm các hàm Cloud Functions}
+\label{tab:functions}
+\begin{tabular}{|p{3.2cm}|p{10cm}|}
+\hline
+\textbf{Nhóm} & \textbf{Các hàm} \\
+\hline
+Phiên điểm danh & \texttt{startSession}, \texttt{endSession} \\ \hline
+Điểm danh & \texttt{scanTeacher}, \texttt{scanPeer}, \texttt{submitFaceResult}, \texttt{manualAttendance}, \texttt{reviewAttendance}, \texttt{calculateTrustPolicies} \\ \hline
+Khuôn mặt & \texttt{registerFace}, \texttt{verifyFace} \\ \hline
+Chống gian lận & \texttt{analyzeFraud}, \texttt{weeklyFraudAnalysis} \\ \hline
+Xác thực \& phân quyền & \texttt{createFirebaseToken}, \texttt{verifyZaloToken}, \texttt{resolveZaloPhoneToken}, \texttt{assignTeacherRole} \\ \hline
+Quản trị & \texttt{adminDashboardStats}, \texttt{adminBulkAssignStudents}, \texttt{adminReviewAbsenceRequest}, \texttt{adminCreateAccount} \\ \hline
+Thông báo \& AI & \texttt{notifySessionStarted}, \texttt{aiChat} \\ \hline
+\end{tabular}
+\end{table}
+
+Một số hàm tiêu biểu được mô tả chi tiết hơn như sau. Nhóm \textbf{phiên điểm danh} gồm
+\texttt{startSession} (sinh khoá bí mật HMAC và khởi tạo phiên) và \texttt{endSession} (đóng
+phiên, chốt kết quả). Nhóm \textbf{điểm danh} là nhóm cốt lõi: \texttt{scanTeacher} xác minh
+mã QR của giảng viên, \texttt{scanPeer} xác minh mã ngang hàng giữa các sinh viên,
+\texttt{submitFaceResult} ghi nhận kết quả khuôn mặt, còn \texttt{calculateTrustPolicies} tổng
+hợp và tính điểm tin cậy cho toàn phiên.
+
+Nhóm \textbf{xác thực và phân quyền} đảm nhiệm việc bắc cầu danh tính: \texttt{verifyZaloToken}
+kiểm tra token Zalo, \texttt{createFirebaseToken} sinh Custom Token, \texttt{assignTeacherRole}
+gán vai trò giảng viên (chỉ ở phía máy chủ). Nhóm
+\textbf{chống gian lận} gồm \texttt{analyzeFraud} chạy theo yêu cầu và
+\texttt{weeklyFraudAnalysis} chạy định kỳ. Việc tập trung toàn bộ các nghiệp vụ nhạy cảm tại
+tầng máy chủ là một quyết định thiết kế quan trọng nhằm bảo đảm an toàn cho hệ thống. Mã nguồn
+chi tiết của một số hàm cốt lõi được trích dẫn trong Phụ lục~\ref{chapter:appendixC}.
+
+% ═══════════════════════════════════════════════════════════════
+% PHẦN C — KIỂM THỬ & ĐÁNH GIÁ  (Đợt 3)
+% ═══════════════════════════════════════════════════════════════
+
+\section{Kiểm thử và đánh giá}
+
+Phần này trình bày kết quả kiểm thử cùng các đánh giá về bảo mật và hiệu năng của hệ thống.
+
+\subsection{Kiểm thử}
+\label{sec:kiem-thu}
+
+Do hệ thống bao gồm nhiều thành phần tương tác trực tiếp với phần cứng thiết bị (máy ảnh,
+cảm biến vị trí) và với nền tảng Zalo, việc kiểm thử được thực hiện chủ yếu theo hình thức
+\textbf{kiểm thử thủ công} theo hướng hộp đen (black-box) trên thiết bị thật. Mục tiêu là
+kiểm chứng tính đúng đắn của từng luồng nghiệp vụ từ góc nhìn người dùng cuối, thay vì chỉ
+kiểm tra từng hàm riêng lẻ. Bên cạnh đó, toàn bộ mã nguồn được kiểm tra kiểu tĩnh bằng trình
+biên dịch TypeScript (\texttt{tsc -{}-noEmit}) nhằm phát hiện sớm các lỗi kiểu dữ liệu trước
+khi chạy.
+
+Môi trường kiểm thử sử dụng bốn điện thoại thông minh cài sẵn Zalo: một máy đóng vai giảng
+viên và ba máy đóng vai sinh viên (để mô phỏng bước xác minh ngang hàng vốn cần tối thiểu ba
+lượt), cùng kết nối Internet qua Wi-Fi hoặc mạng di động. Ngoài ra, ứng dụng còn cung cấp một
+chế độ giả lập dữ liệu (mock mode) cho phép kiểm thử riêng lẻ từng bước trong luồng điểm danh
+mà không phụ thuộc vào dữ liệu thật.
+
+Bộ kịch bản kiểm thử gồm \textbf{72 kịch bản} (TC-01 đến TC-72) được tổ chức thành 19 nhóm
+chức năng, bao phủ toàn bộ các luồng chính của ứng dụng và 17 tình huống biên. Mỗi kịch bản
+mô tả rõ điều kiện tiền đề, các bước thực hiện, kết quả mong đợi và ô đánh dấu Đạt/Không đạt.
+Phân bố số lượng kịch bản theo nhóm chức năng được trình bày trong
+Bảng~\ref{tab:test-coverage}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Phân bố kịch bản kiểm thử theo nhóm chức năng}
+\label{tab:test-coverage}
+\begin{tabular}{|p{9cm}|c|}
+\hline
+\textbf{Nhóm chức năng} & \textbf{Số kịch bản} \\
+\hline
+Xác thực \& onboarding & 6 \\ \hline
+Trang chủ (dashboard) & 3 \\ \hline
+Quản lý lớp học (giảng viên) & 3 \\ \hline
+Tham gia lớp học (sinh viên) & 4 \\ \hline
+Phiên điểm danh (giảng viên) & 5 \\ \hline
+Điểm danh bốn bước (sinh viên) & 4 \\ \hline
+Theo dõi thời gian thực & 3 \\ \hline
+Kết thúc phiên \& điểm tin cậy & 2 \\ \hline
+Xem xét \& ghi đè kết quả & 4 \\ \hline
+Điểm danh thủ công & 2 \\ \hline
+Lịch sử điểm danh (sinh viên) & 2 \\ \hline
+Đăng ký khuôn mặt & 2 \\ \hline
+Hồ sơ người dùng & 4 \\ \hline
+Trợ lý AI & 4 \\ \hline
+Báo cáo gian lận & 2 \\ \hline
+Thống kê (analytics) & 1 \\ \hline
+Cấu hình bước tuỳ chọn & 3 \\ \hline
+Lịch học & 1 \\ \hline
+Tình huống biên (edge case) & 17 \\ \hline
+\textbf{Tổng cộng} & \textbf{72} \\ \hline
+\end{tabular}
+\end{table}
+
+Một số kịch bản tiêu biểu, đại diện cho các cơ chế cốt lõi của hệ thống, được liệt kê trong
+Bảng~\ref{tab:test-sample}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Một số kịch bản kiểm thử tiêu biểu}
+\label{tab:test-sample}
+\begin{tabular}{|l|p{5.8cm}|p{5.8cm}|}
+\hline
+\textbf{Mã} & \textbf{Mục tiêu kiểm thử} & \textbf{Kết quả mong đợi} \\
+\hline
+TC-05 & Ràng buộc định dạng MSSV & MSSV không đủ 8 số hoặc không bắt đầu bằng ``20'' bị từ chối \\ \hline
+TC-18 & Mã QR hiển thị và xoay 30 giây & Mã QR tự làm mới sau mỗi 30 giây \\ \hline
+TC-23 & Xác minh khuôn mặt tự động & So khớp đạt khi độ tin cậy không nhỏ hơn 0{,}7 \\ \hline
+TC-24 & Trao đổi mã QR ngang hàng & Yêu cầu tối thiểu ba lượt xác minh hợp lệ \\ \hline
+TC-30 & Tính điểm tin cậy & Trả về present/review/absent đúng quy tắc \\ \hline
+TC-56 & Mã QR hết hạn & Mã quá 90 giây bị từ chối \\ \hline
+TC-57 & Tự quét mã của chính mình & Hệ thống chặn việc tự xác minh ngang hàng \\ \hline
+\end{tabular}
+\end{table}
+
+Nhóm tình huống biên (17 kịch bản) tập trung vào các trường hợp dễ phát sinh lỗi hoặc bị lợi
+dụng, ví dụ: mã QR đã hết hạn, sinh viên tự quét mã của chính mình ở bước ngang hàng, quét
+trùng một bạn đã xác minh, hoặc mất kết nối mạng giữa chừng. Đây cũng chính là những điểm mà
+cơ chế chống gian lận và khả năng chống chịu lỗi của hệ thống được kiểm chứng.
+
+Quá trình kiểm thử được thực hiện trên thiết bị thật, mỗi kịch bản được đánh dấu Đạt hoặc
+Không đạt trong tài liệu kế hoạch kiểm thử. Các luồng nghiệp vụ chính --- đăng nhập và phân
+vai, tạo và quản lý phiên điểm danh, điểm danh bốn bước, tính điểm tin cậy, xem xét và ghi đè
+kết quả --- đều hoạt động đúng kỳ vọng. Một số lỗi phát hiện trong quá trình kiểm thử, chủ yếu
+liên quan đến việc xử lý tình huống biên và độ trễ khởi động máy ảnh, đã được ghi nhận và khắc
+phục.
+
+\subsection{Đánh giá bảo mật}
+\label{sec:bao-mat}
+
+Vì điểm danh chống gian lận về bản chất là một bài toán bảo mật, hệ thống được rà soát một
+cách có hệ thống theo các nhóm chủ đề quen thuộc (tương tự phân loại của OWASP): xác thực,
+phân quyền, kiểm tra đầu vào, mã hoá, bảo vệ dữ liệu, an toàn của tầng máy chủ và xử lý lỗi.
+Mỗi lĩnh vực được đánh giá cả về những gì đã đạt được lẫn những gì cần cải thiện, kèm theo một
+mức điểm định tính. Kết quả tổng hợp được trình bày trong Bảng~\ref{tab:security-score}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Bảng điểm đánh giá bảo mật theo lĩnh vực}
+\label{tab:security-score}
+\begin{tabular}{|p{5.2cm}|p{6.4cm}|c|}
+\hline
+\textbf{Lĩnh vực} & \textbf{Hiện trạng} & \textbf{Điểm} \\
+\hline
+Xác thực & Đã có cơ chế cơ bản qua Zalo và Custom Token & 7/10 \\ \hline
+Phân quyền & Firestore rules chặt chẽ, giới hạn vai trò & 9/10 \\ \hline
+Kiểm tra đầu vào & Nhiều hàm kiểm tra và làm sạch dữ liệu & 8/10 \\ \hline
+Mã hoá mã QR & HMAC-SHA256 mạnh, khoá bí mật được bảo vệ & 9/10 \\ \hline
+Chống gian lận & Kiểm tra phía máy chủ & 7/10 \\ \hline
+Bảo vệ khoá API & Đã chuyển toàn bộ về phía máy chủ & 8/10 \\ \hline
+Bảo vệ dữ liệu & Rules tốt, song localStorage chưa mã hoá & 7/10 \\ \hline
+Cloud Functions & Có xác thực và giới hạn tần suất & 8/10 \\ \hline
+Xử lý lỗi & Có cơ chế bắt lỗi và thông báo & 7/10 \\ \hline
+Mạng \& ngoại tuyến & Có hàng đợi ngoại tuyến & 6/10 \\ \hline
+\multicolumn{2}{|r|}{\textbf{Tổng điểm}} & \textbf{7{,}6/10} \\ \hline
+\end{tabular}
+\end{table}
+
+Trong quá trình rà soát, sáu lỗ hổng đã được phát hiện và khắc phục, nâng điểm bảo mật tổng
+thể từ 6{,}2/10 lên 7{,}6/10. Các lỗ hổng cùng biện pháp khắc phục tương ứng được tóm tắt
+trong Bảng~\ref{tab:security-fix}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Các lỗ hổng bảo mật đã phát hiện và khắc phục}
+\label{tab:security-fix}
+\begin{tabular}{|p{4.6cm}|c|p{6.6cm}|}
+\hline
+\textbf{Lỗ hổng} & \textbf{Mức độ} & \textbf{Biện pháp khắc phục} \\
+\hline
+Khoá API lộ trong gói mã phía trình duyệt & Cao & Chuyển lời gọi sang Cloud Function, xoá khoá khỏi phần frontend \\ \hline
+Khoá API thật nằm trong tệp ví dụ cấu hình & Cao & Thay bằng giá trị mẫu và thu hồi khoá cũ \\ \hline
+Khoá bí mật HMAC lộ qua Firestore & Cao & Chuyển vào subcollection chỉ giảng viên đọc; Cloud Function kiểm tra mã \\ \hline
+Không giới hạn vai trò khi tạo người dùng & Cao & Rule chỉ cho phép vai trò rỗng hoặc ``student'' \\ \hline
+Đường dự phòng điểm danh bỏ qua kiểm tra & Trung bình & Siết chặt rule và bắt buộc đi qua Cloud Function \\ \hline
+Giả mạo xác minh ngang hàng phía thiết bị & Trung bình & Chuyển khâu xác minh sang máy chủ (hàm \texttt{scanPeer}) \\ \hline
+\end{tabular}
+\end{table}
+
+Nhìn chung, hệ thống có nền tảng bảo mật tốt: mã QR được ký bằng HMAC-SHA256 với khoá bí mật
+được cô lập, quy tắc Firestore ngăn người dùng tự nâng quyền, toàn bộ nghiệp vụ nhạy cảm được
+xử lý phía máy chủ, và mã nguồn không sử dụng các hàm nguy hiểm như \texttt{eval} hay
+\texttt{innerHTML}. Một số hạn chế vẫn còn ở mức ưu tiên trung bình và dài hạn: dữ liệu trong
+\texttt{localStorage} chưa được mã hoá; cơ chế giới hạn tần suất và chống phát lại (nonce) hiện
+lưu trong bộ nhớ tạm nên không bền vững khi mở rộng quy mô; và hệ thống chưa có nhật ký kiểm
+toán (audit log) hay tự đăng xuất sau thời gian dài. Đây là các định hướng để nâng mức độ bảo
+mật lên cao hơn.
+
+\subsection{Đánh giá hiệu năng}
+\label{sec:hieu-nang}
+
+Hiệu năng phía thiết bị được tối ưu bằng cách \textbf{tải trễ} (lazy-load) các mô hình nhận
+diện khuôn mặt: bộ mô hình có dung lượng khoảng 6{,}4~MB chỉ được tải khi người dùng vào các
+trang cần đến, thay vì tải ngay lúc khởi động, nhờ đó thời gian mở ứng dụng được giữ ở mức
+thấp. Hệ thống cũng lựa chọn mô hình phát hiện khuôn mặt gọn nhẹ để có thể chạy trực tiếp trên
+thiết bị di động.
+
+Tính năng giám sát điểm danh theo thời gian thực dựa trên cơ chế lắng nghe thay đổi
+(\texttt{onSnapshot}) của Firestore, cho phép cập nhật gần như tức thời mà không cần liên tục
+hỏi vòng máy chủ (polling), qua đó tiết kiệm băng thông và phản hồi nhanh. Ở phía máy chủ, các
+hàm Cloud Functions hoạt động theo mô hình serverless tự co giãn theo tải và được đặt tại khu
+vực \texttt{asia-southeast1} (gần người dùng tại Việt Nam) nhằm giảm độ trễ. Khi mạng chập
+chờn, hàng đợi ngoại tuyến và cơ chế lưu đệm cục bộ giúp người dùng vẫn thao tác được, dữ liệu
+sẽ được đồng bộ lại khi có kết nối.
+
+Về hạn chế, độ trễ khởi động nguội (cold start) của Cloud Functions có thể làm chậm các yêu
+cầu đầu tiên sau một khoảng thời gian không hoạt động; bên cạnh đó, hiệu năng của khâu nhận
+diện khuôn mặt phụ thuộc vào cấu hình của từng thiết bị. Việc đo đạc hiệu năng một cách định
+lượng (thời gian phản hồi, thông lượng) trên nhiều cấu hình thiết bị khác nhau là một hướng
+phát triển tiếp theo của đồ án.
+
+\section{Triển khai và phát hành}
+\label{sec:phat-hanh}
+
+Hệ thống được phát hành theo nhiều kênh tương ứng với từng thành phần. Mini App được đóng gói
+và phát hành lên nền tảng Zalo thông qua công cụ dòng lệnh (\texttt{zmp deploy}) và phải trải
+qua quy trình kiểm duyệt của Zalo trước khi đến tay người dùng. Trang quản trị được triển khai
+trên Firebase Hosting; còn các hàm Cloud Functions, quy tắc bảo mật và chỉ mục của Firestore
+được triển khai qua công cụ Firebase CLI. Ở giai đoạn hiện tại, hệ thống chạy trên gói miễn
+phí (Spark); để đưa vào sử dụng thực tế ở quy mô lớn, cần nâng lên gói trả phí (Blaze) nhằm
+khai thác đầy đủ năng lực của Cloud Functions. Tô-pô triển khai vật lý của hệ thống được minh
+hoạ trong Hình~\ref{fig:deployment}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{deployment}
+  \caption{Sơ đồ triển khai vật lý của hệ thống}
+  \label{fig:deployment}
+\end{figure}
+
+Về tuân thủ chính sách nền tảng, ứng dụng tuân theo quy định của Zalo Mini App: không yêu cầu
+cấp quyền ngay khi mở ứng dụng mà chỉ xin quyền khi người dùng chủ động thực hiện thao tác
+liên quan; định danh người dùng được lấy qua \texttt{getUserID} (không cần quyền), trong khi
+thông tin cá nhân và số điện thoại được xin theo từng phạm vi riêng. Ứng dụng cũng cung cấp
+đầy đủ Điều khoản sử dụng và Chính sách quyền riêng tư cho người dùng.
+
+Về bảo vệ dữ liệu cá nhân, dữ liệu khuôn mặt chỉ được lưu dưới dạng véc-tơ đặc trưng 128 chiều
+chứ không lưu ảnh gốc trên máy chủ, giúp giảm rủi ro lộ lọt dữ liệu sinh trắc học. Trong quá
+trình chuẩn bị phát hành rộng rãi, sản phẩm cũng được điều chỉnh theo hướng trung lập về
+thương hiệu --- gỡ bỏ các tham chiếu định danh của một cơ sở đào tạo cụ thể khỏi giao diện và
+chính sách --- qua đó thuận lợi hơn cho việc triển khai cho nhiều đơn vị khác nhau.
+
+\subsection*{Kết chương}
+
+Chương này đã trình bày trọn vẹn quá trình hiện thực hoá hệ thống: từ thiết kế kiến trúc ba
+tầng, cơ sở dữ liệu Firestore, luồng xác thực --- phân quyền và các thuật toán cốt lõi (mã QR
+HMAC xoay, điểm danh bốn bước, chống gian lận nhiều lớp, cổng máy chiếu), đến việc triển khai
+thành ba sản phẩm thực tế (Mini App, trang quản trị và các hàm máy chủ), và cuối cùng là kết
+quả kiểm thử cùng các đánh giá về bảo mật (đạt 7{,}6/10), hiệu năng và quy trình phát hành.
+Kết quả cho thấy hệ thống đã đáp ứng được các yêu cầu chức năng và phi chức năng đã đề ra,
+đồng thời cũng bộc lộ một số hạn chế làm tiền đề cho các cải tiến tiếp theo. Chương sau sẽ đi
+sâu vào những giải pháp và đóng góp nổi bật nhất của đồ án.
+
+\end{document}

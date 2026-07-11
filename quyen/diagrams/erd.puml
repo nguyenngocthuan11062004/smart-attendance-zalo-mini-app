@@ -1,0 +1,80 @@
+@startuml erd
+!pragma layout smetana
+skinparam dpi 200
+hide circle
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+entity "users" as users {
+  * id : string
+  --
+  role : string
+  name : string
+  mssv : string
+  faceRegistered : boolean
+}
+
+entity "classes" as classes {
+  * id : string
+  --
+  code : string
+  teacherId : string
+  schedule
+}
+
+entity "sessions" as sessions {
+  * id : string
+  --
+  classId : string
+  teacherId : string
+  status : string
+  hmacSecret : string
+}
+
+entity "attendance" as attendance {
+  * id : string
+  --
+  sessionId : string
+  studentId : string
+  trustPolicy : string
+  peerCount : number
+  faceVerification
+}
+
+entity "face_registrations" as faces {
+  * userId : string
+  --
+  descriptor : number[]
+}
+
+entity "absence_requests" as absence {
+  * id : string
+  --
+  studentId : string
+  classId : string
+  status : string
+}
+
+entity "pairing_tokens" as pairing {
+  * token : string
+  --
+  sessionId : string
+  status : string
+}
+
+entity "fraud_reports" as fraud {
+  * id : string
+  --
+  sessionId : string
+  classId : string
+}
+
+users ||--o{ classes : "giảng dạy >"
+classes ||--o{ sessions : "có >"
+sessions ||--o{ attendance : "ghi nhận >"
+users ||--o{ attendance : "điểm danh >"
+users ||--|| faces : "đăng ký >"
+users ||--o{ absence : "gửi >"
+sessions ||--o{ pairing : "ghép nối >"
+sessions ||--o{ fraud : "phân tích >"
+@enduml

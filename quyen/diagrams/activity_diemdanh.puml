@@ -1,0 +1,27 @@
+@startuml activity_diemdanh
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+start
+:Quét mã QR của giảng viên;
+if (Chữ ký HMAC hợp lệ và còn hạn?) then (không)
+  :Từ chối, yêu cầu quét lại;
+  stop
+else (có)
+endif
+:Xác minh khuôn mặt trên thiết bị;
+:Trao đổi mã QR ngang hàng (≥ 3 bạn);
+:Tính điểm tin cậy;
+if (Đạt cả khuôn mặt và ngang hàng?) then (đủ)
+  :Ghi nhận "present";
+else (thiếu)
+  if (Đạt một trong hai?) then (có)
+    :Ghi nhận "review";
+  else (không)
+    :Ghi nhận "absent";
+  endif
+endif
+:Lưu bản ghi điểm danh;
+stop
+@enduml

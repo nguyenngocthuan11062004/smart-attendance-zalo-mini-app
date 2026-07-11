@@ -1,0 +1,25 @@
+@startuml uc_gv_phien
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+left to right direction
+
+actor "Giảng viên" as GV
+rectangle "Quản lý phiên điểm danh" {
+  usecase "Tạo phiên điểm danh" as P1
+  usecase "Cấu hình bước xác minh" as P2
+  usecase "Hiển thị QR (Cổng máy chiếu)" as P3
+  usecase "Giám sát thời gian thực" as P4
+  usecase "Xem xét và ghi đè kết quả" as P5
+  usecase "Điểm danh thủ công" as P6
+  usecase "Kết thúc phiên" as P7
+}
+GV --> P1
+GV --> P3
+GV --> P4
+GV --> P5
+GV --> P6
+GV --> P7
+P1 ..> P2 : <<include>>
+@enduml

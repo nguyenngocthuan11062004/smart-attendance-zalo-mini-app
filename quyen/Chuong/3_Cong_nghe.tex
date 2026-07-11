@@ -1,0 +1,333 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+Chương này trình bày các công nghệ và nền tảng lý thuyết được sử dụng để xây dựng hệ
+thống, kèm theo lý do lựa chọn so với các phương án thay thế. Các nội dung gồm: nền tảng
+Zalo Mini App, bộ công nghệ phía giao diện, hệ sinh thái Firebase, thuật toán HMAC-SHA256,
+nhận diện khuôn mặt và mã QR.
+
+% ─────────────────────────────────────────────
+\section{Nền tảng Zalo Mini App}
+\label{sec:zalo}
+
+\textit{Zalo Mini App} là nền tảng cho phép xây dựng các ứng dụng chạy trực tiếp bên
+trong ứng dụng Zalo mà không cần cài đặt riêng. Về bản chất, một Mini App là một ứng
+dụng web chạy trong môi trường WebView do Zalo cung cấp, được bổ sung một bộ công cụ
+phát triển (ZMP SDK) để truy cập các năng lực của thiết bị và các dịch vụ của Zalo~\cite{zalominiapp}.
+
+\subsection{Kiến trúc và mô hình hoạt động}
+\label{sec:zalo-kientruc}
+
+Về mặt kiến trúc, một Zalo Mini App là một ứng dụng web (HTML, CSS, JavaScript) được nạp và
+thực thi bên trong một WebView do ứng dụng Zalo quản lý, thay vì được cài đặt như một ứng dụng
+gốc. Mô hình hoạt động có thể chia thành ba lớp: (1) \textit{lớp giao diện} là ứng dụng web
+viết bằng React, chịu trách nhiệm hiển thị và xử lý tương tác của người dùng; (2) \textit{lớp
+cầu nối} ZMP SDK --- một lớp JavaScript trung gian chuyển các lời gọi API trong mã ứng dụng
+thành lệnh tới phần gốc (native) của Zalo và trả kết quả ngược lại; (3) \textit{lớp năng lực
+nền tảng} do Zalo và hệ điều hành cung cấp, gồm máy ảnh, định vị, lưu trữ cục bộ, thông tin
+người dùng và các dịch vụ xã hội của Zalo. Nhờ cách tổ chức này, ứng dụng vừa tận dụng được
+hệ sinh thái web (thư viện React, công cụ đóng gói) vừa truy cập được năng lực thiết bị thông
+qua SDK, trong khi người dùng không phải cài đặt thêm bất kỳ phần mềm nào.
+
+Hệ thống sử dụng các nhóm API chính sau của Zalo SDK: xác thực và lấy thông tin người
+dùng (\texttt{getUserInfo}, \texttt{getPhoneNumber}, \texttt{getAccessToken}); truy cập
+máy ảnh để chụp ảnh khuôn mặt và quét mã QR (\texttt{createCameraContext},
+\texttt{scanQRCode}); truy cập vị trí (\texttt{getLocation}); và lưu trữ cục bộ trên
+thiết bị (\texttt{setItem}, \texttt{getItem}). Các API này được nạp theo nhu cầu từ gói
+\texttt{zmp-sdk}, kết hợp với bộ thành phần giao diện chuẩn của nền tảng (\texttt{zmp-ui},
+hay ZaUI) để bảo đảm giao diện nhất quán với trải nghiệm của ứng dụng Zalo~\cite{zmpdocs}.
+
+\subsection{Quy trình xây dựng và phát hành ứng dụng}
+\label{sec:zalo-quytrinh}
+
+Việc phát triển một Mini App tuân theo quy trình do nền tảng quy định~\cite{zmpdocs}, có thể
+tóm lược thành năm bước từ đăng ký ứng dụng, khởi tạo mã nguồn, lập trình, chạy thử cho đến
+phát hành lên hệ thống Zalo. Toàn bộ quy trình được minh hoạ trong Hình~\ref{fig:qt-taoapp}.
+
+\begin{enumerate}[leftmargin=1.6em]
+  \item \textbf{Đăng ký và tạo Mini App trên cổng nền tảng.} Nhà phát triển đăng nhập cổng dành
+  cho nhà phát triển của Zalo (\texttt{developers.zalo.me}) và bảng điều khiển Mini App tại
+  \texttt{mini.zalo.me}, chọn chức năng \textit{tạo Mini App mới} rồi khai báo các thông tin cơ
+  bản: tên ứng dụng, mô tả và lĩnh vực (danh mục) hoạt động. Sau khi tạo, hệ thống cấp một
+  \textbf{mã định danh ứng dụng (App ID)}; tại đây nhà phát triển cũng khai báo trước các quyền
+  mà ứng dụng sẽ xin của người dùng (thông tin cá nhân, số điện thoại, vị trí)~\cite{zalominiapp}.
+
+  \item \textbf{Cài đặt công cụ và khởi tạo mã nguồn.} Trên máy phát triển, cài đặt Node.js và
+  công cụ dòng lệnh \texttt{zmp-cli}. Lệnh \texttt{zmp create} khởi tạo một dự án mới: công cụ
+  lần lượt hỏi App ID vừa được cấp, mã truy cập (access token), khung nền tảng (đồ án chọn React)
+  và mẫu khởi đầu (template), sau đó sinh ra bộ khung dự án sẵn sàng để phát triển.
+
+  \item \textbf{Tìm hiểu cấu trúc dự án.} Mã nguồn ứng dụng được đặt trong thư mục \texttt{src},
+  trong đó \texttt{pages} chứa các màn hình, \texttt{components} chứa các thành phần giao diện
+  dùng lại, còn \texttt{services} và \texttt{hooks} xử lý nghiệp vụ và gọi dịch vụ. Tệp
+  \texttt{app-config.json} khai báo cấu hình toàn cục của Mini App như tên ứng dụng, biểu tượng,
+  màu chủ đạo và danh sách trang. Đồ án dùng Vite làm công cụ đóng gói, tích hợp với nền tảng
+  qua \texttt{zmp-vite-plugin}; do vậy ứng dụng được chạy bằng \texttt{zmp start} thay vì gọi
+  \texttt{vite} trực tiếp.
+
+  \item \textbf{Bắt đầu lập trình.} Mỗi màn hình được hiện thực dưới dạng một thành phần React
+  trong \texttt{src/pages} và được khai báo tuyến đường (route) tương ứng; giao diện được dựng
+  bằng React kết hợp bộ thành phần ZaUI (\texttt{zmp-ui}), còn các năng lực thiết bị và dịch vụ
+  của Zalo được gọi qua các API của \texttt{zmp-sdk}. Lệnh \texttt{zmp start} khởi động một máy
+  chủ phát triển cục bộ, cho phép xem trước ứng dụng trên trình duyệt và tự động nạp lại khi mã
+  nguồn thay đổi (hot reload); trong giai đoạn này có thể bật chế độ dữ liệu giả lập để kiểm thử
+  các luồng nghiệp vụ mà không phụ thuộc vào máy chủ thật.
+
+  \item \textbf{Phát hành.} Khi ứng dụng đã sẵn sàng, lệnh \texttt{zmp login} xác thực tài khoản
+  nhà phát triển, còn \texttt{zmp deploy} đóng gói và tải bản dựng lên nền tảng. Hệ thống sinh
+  ra một mã QR; quét mã này bằng ứng dụng Zalo sẽ mở Mini App ngay trên thiết bị thật, phục vụ
+  việc kiểm thử trong môi trường gần với thực tế. Trước khi đến tay người dùng cuối, Mini App
+  phải trải qua quy trình kiểm duyệt của Zalo nhằm bảo đảm tuân thủ chính sách của nền
+  tảng~\cite{zmpdocs}.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/qt_taoapp.png}
+\caption{Quy trình xây dựng và phát hành một Zalo Mini App}
+\label{fig:qt-taoapp}
+\end{figure}
+
+Các lệnh cụ thể cho từng bước cài đặt, chạy thử và triển khai được liệt kê chi tiết trong
+Danh sách mã nguồn~\ref{lst:dev} và Danh sách mã nguồn~\ref{lst:deploy} ở phần phụ lục.
+
+\subsection{Lựa chọn nền tảng và mô hình quyền}
+\label{sec:zalo-lua-chon}
+
+\textbf{Lý do lựa chọn.} So với việc phát triển ứng dụng gốc (native) hay ứng dụng web
+lũy tiến (PWA), Zalo Mini App có lợi thế nổi bật là tiếp cận được lượng lớn người dùng
+Zalo tại Việt Nam mà không yêu cầu cài đặt, đồng thời cung cấp sẵn cơ chế xác thực danh
+tính. Bảng~\ref{tab:nentang} so sánh ba phương án.
+
+\begin{table}[H]
+\centering
+\small
+\caption{So sánh Zalo Mini App với PWA và ứng dụng gốc}
+\label{tab:nentang}
+\begin{tabular}{|p{2.9cm}|p{3.4cm}|p{3.1cm}|p{3.1cm}|}
+\hline
+\textbf{Tiêu chí} & \textbf{Zalo Mini App} & \textbf{PWA} & \textbf{Ứng dụng gốc} \\
+\hline
+Cài đặt & Không cần & Không cần & Cần cài qua store \\ \hline
+Tiếp cận người dùng & Rất rộng (qua Zalo) & Trung bình & Phụ thuộc lượt tải \\ \hline
+Xác thực sẵn có & Có (tài khoản Zalo) & Không & Không \\ \hline
+Truy cập API thiết bị & Qua ZMP SDK & Hạn chế & Đầy đủ \\ \hline
+Chi phí phát hành & Thấp & Thấp & Cao \\ \hline
+\end{tabular}
+\end{table}
+
+% ─────────────────────────────────────────────
+\textbf{Mô hình quyền và vòng đời.} Theo chính sách của nền tảng, Mini App không được yêu cầu
+cấp quyền ngay khi mở mà chỉ xin quyền khi người dùng chủ động thực hiện thao tác liên quan;
+các quyền (thông tin cá nhân, số điện thoại, vị trí) được xin theo từng phạm vi riêng biệt.
+Định danh người dùng có thể lấy qua \texttt{getUserID} mà không cần quyền, thuận tiện cho việc
+khởi tạo phiên đăng nhập. Nền tảng cũng cung cấp các sự kiện vòng đời (tạm dừng, tiếp tục,
+thay đổi trạng thái mạng) để ứng dụng phản ứng phù hợp.
+
+\section{Bộ công nghệ phía giao diện}
+\label{sec:frontend}
+
+Phần giao diện của ứng dụng được xây dựng trên các công nghệ sau:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{React 18}~\cite{reactjs} -- thư viện xây dựng giao diện theo mô hình thành
+  phần (component), hỗ trợ cơ chế render đồng thời (concurrent) giúp giao diện mượt mà.
+
+  \item \textbf{TypeScript}~\cite{typescriptlang} -- ngôn ngữ mở rộng của JavaScript với hệ
+  thống kiểu tĩnh, giúp phát hiện sớm lỗi ngay khi viết mã và tăng độ tin cậy của hệ thống.
+
+  \item \textbf{Jotai} -- thư viện quản lý trạng thái theo mô hình ``nguyên tử'' (atomic),
+  cho phép chia trạng thái ứng dụng thành các đơn vị nhỏ độc lập. So với Redux, Jotai có
+  cú pháp gọn nhẹ và phù hợp với các ứng dụng vừa và nhỏ.
+
+  \item \textbf{Tailwind CSS} -- framework CSS theo hướng tiện ích (utility-first), kết
+  hợp với SCSS để xây dựng giao diện nhất quán với bộ nhận diện của trường.
+
+  \item \textbf{Vite} -- công cụ đóng gói (bundler) tốc độ cao, được tích hợp với plugin
+  riêng của Zalo Mini App để biên dịch và đóng gói ứng dụng.
+\end{itemize}
+
+% ─────────────────────────────────────────────
+\section{Hệ sinh thái Firebase}
+\label{sec:firebase}
+
+Phần xử lý phía máy chủ được xây dựng trên nền tảng Firebase của Google, gồm các thành
+phần:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Firestore}~\cite{firestore} -- cơ sở dữ liệu dạng tài liệu (NoSQL) có khả
+  năng đồng bộ theo thời gian thực, phù hợp với việc cập nhật trạng thái phiên điểm danh
+  trực tiếp tới thiết bị của giảng viên.
+
+  \item \textbf{Cloud Functions} -- môi trường thực thi mã phía máy chủ không cần quản
+  lý hạ tầng (serverless), được dùng để xử lý các tác vụ nhạy cảm như ký và xác minh mã
+  QR, phát hiện gian lận, tránh đặt logic quan trọng phía thiết bị người dùng.
+
+  \item \textbf{Firebase Authentication} -- dịch vụ xác thực, được dùng kết hợp với cơ
+  chế cấp token tùy biến (Custom Token) để bắc cầu danh tính từ Zalo sang Firebase.
+
+  \item \textbf{Firebase Hosting và Storage} -- lần lượt phục vụ lưu trữ và phân phối
+  trang quản trị web, và lưu trữ dữ liệu ảnh.
+\end{itemize}
+
+\textbf{Lý do lựa chọn.} Firebase cung cấp gói miễn phí (Spark) đủ cho phạm vi thử
+nghiệm, tích hợp sẵn khả năng đồng bộ thời gian thực và tự co giãn, giúp rút ngắn đáng kể
+thời gian phát triển so với việc tự xây dựng máy chủ.
+
+% ─────────────────────────────────────────────
+\textbf{Mô hình dữ liệu của Firestore.} Firestore tổ chức dữ liệu thành các \textit{collection}
+chứa các \textit{document}; mỗi document gồm các trường và có thể chứa các
+\textit{subcollection} lồng bên trong. Mô hình này linh hoạt, không yêu cầu lược đồ cứng như
+cơ sở dữ liệu quan hệ, nhưng đòi hỏi thiết kế cẩn thận để truy vấn hiệu quả. Việc kiểm soát
+truy cập được thực hiện bằng \textit{quy tắc bảo mật} (Security Rules) --- một ngôn ngữ khai
+báo quy định điều kiện đọc/ghi trên từng đường dẫn dữ liệu, áp dụng ngay tại tầng cơ sở dữ
+liệu. Bên cạnh đó, Cloud Functions hỗ trợ hai dạng chính: hàm gọi trực tiếp từ ứng dụng
+(callable) và hàm kích hoạt theo sự kiện (trigger) khi dữ liệu thay đổi; hệ thống chủ yếu
+dùng hàm callable cho các nghiệp vụ nhạy cảm và một số hàm theo lịch cho phân tích định kỳ.
+
+\section{HMAC-SHA256 và mã xác thực thông điệp}
+\label{sec:hmac}
+
+Mã xác thực thông điệp (Message Authentication Code -- MAC) là một đoạn dữ liệu ngắn
+được sinh ra từ thông điệp và một khoá bí mật, dùng để xác minh tính toàn vẹn và tính
+xác thực của thông điệp. HMAC (Hash-based MAC) là một cấu trúc MAC dựa trên hàm băm mật
+mã, được chuẩn hoá trong RFC 2104~\cite{rfc2104}.
+
+\textbf{Hàm băm mật mã.} Một hàm băm mật mã $H$ ánh xạ dữ liệu có độ dài bất kỳ thành một chuỗi
+bit độ dài cố định và cần thoả mãn ba tính chất an toàn: kháng tiền ảnh (khó tìm $m$ khi biết
+$H(m)$), kháng tiền ảnh thứ hai (khó tìm $m' \neq m$ sao cho $H(m') = H(m)$) và kháng va chạm
+(khó tìm hai thông điệp bất kỳ có cùng giá trị băm). Hàm băm được sử dụng trong đồ án là
+SHA-256 thuộc họ SHA-2, cho đầu ra 256 bit và được chuẩn hoá trong FIPS 180-4~\cite{fips180}.
+
+Các hàm băm họ SHA-2 được xây dựng theo lối băm lặp khối (iterated construction). Một hệ quả
+của lối xây dựng này là điểm yếu \textit{tấn công mở rộng độ dài} (length-extension): nếu chỉ
+tính $H(K \,\|\, m)$ một cách trực tiếp, kẻ tấn công biết giá trị băm và độ dài khoá có thể suy
+ra giá trị băm cho một thông điệp mở rộng mà không cần biết khoá. HMAC khắc phục điều này bằng
+cách lồng hàm băm hai lần với hai lớp đệm khoá khác nhau.
+
+Với hàm băm $H$, khoá bí mật $K$ và thông điệp $m$, giá trị HMAC được định nghĩa như sau:
+
+\begin{equation}
+\text{HMAC}(K, m) = H\big( (K' \oplus opad) \,\|\, H((K' \oplus ipad) \,\|\, m) \big)
+\label{eq:hmac}
+\end{equation}
+
+trong đó $K'$ là khoá $K$ được chuẩn hoá về độ dài khối của hàm băm; $opad$ và $ipad$ là
+hai hằng số đệm; $\oplus$ là phép XOR theo bit; và $\|$ là phép nối chuỗi. Trong đồ án,
+hàm băm được sử dụng là \textbf{SHA-256}~\cite{fips180} do tính kháng va chạm cao và được
+chuẩn hoá rộng rãi.
+
+\textbf{Ứng dụng trong mã QR động.} Hệ thống tạo nội dung mã QR gồm các trường định danh
+phiên, mốc thời gian và một giá trị ngẫu nhiên, sau đó ký toàn bộ bằng HMAC-SHA256 với
+khoá bí mật chỉ được biết phía máy chủ. Nhờ tính chất của HMAC, một bên không nắm giữ
+khoá bí mật không thể tạo ra mã QR hợp lệ; kết hợp với việc mốc thời gian thay đổi mỗi
+30 giây, cơ chế này chống lại việc chụp và phát lại mã QR. Chi tiết thuật toán được trình
+bày trong Chương~\ref{chapter:Experiment}.
+
+\textbf{Tính an toàn.} Cấu trúc lồng hai lần hàm băm của HMAC giúp nó kháng được tấn công mở
+rộng độ dài (length-extension) vốn ảnh hưởng tới cách dùng hàm băm một cách trực tiếp. Với
+SHA-256 --- hàm băm cho đầu ra 256 bit, có độ kháng va chạm và kháng tiền ảnh cao --- việc dò
+tìm khoá bí mật bằng vét cạn là bất khả thi trên thực tế. Do đó, kể cả khi quan sát được nhiều
+mã QR hợp lệ, kẻ tấn công vẫn không thể suy ra khoá bí mật để giả mạo một mã mới. Về mặt lý
+thuyết, HMAC đã được chứng minh là một hàm giả ngẫu nhiên (pseudorandom function -- PRF) và do
+đó là một mã xác thực thông điệp an toàn, với điều kiện hàm nén bên dưới là một
+PRF~\cite{bellare1996hmac}.
+
+\textbf{Chống phát lại.} Mỗi mã QR mang theo một mốc thời gian và một giá trị ngẫu nhiên dùng
+một lần (nonce). Phía máy chủ chỉ chấp nhận mã trong cửa sổ thời gian ngắn (90 giây) và từ
+chối các nonce đã xuất hiện, nhờ đó một mã bị chụp lại sẽ nhanh chóng hết hiệu lực và không
+thể tái sử dụng cho lần điểm danh khác.
+
+% ─────────────────────────────────────────────
+\section{Nhận diện khuôn mặt và FaceNet}
+\label{sec:face-recognition}
+
+Bài toán xác minh khuôn mặt (face verification) là xác định hai ảnh khuôn mặt có thuộc
+về cùng một người hay không, khác với bài toán nhận dạng (identification) là tìm danh
+tính trong một tập lớn. Hệ thống điểm danh sử dụng bài toán xác minh: so khớp khuôn mặt
+thu được tại thời điểm điểm danh với khuôn mặt đã đăng ký của sinh viên.
+
+Phương pháp hiện đại dựa trên mạng nơ-ron tích chập (CNN)~\cite{lecun1998gradient, he2016resnet}
+để trích xuất một véc-tơ đặc trưng (embedding) có số chiều cố định từ ảnh khuôn mặt. Tiếp nối
+các mô hình học sâu cho khuôn mặt như DeepFace~\cite{taigman2014deepface}, mô hình tiêu biểu là
+FaceNet sử dụng hàm mất mát bộ ba (triplet loss) để học không gian đặc trưng sao cho khoảng
+cách giữa các ảnh cùng người là nhỏ và giữa các ảnh khác người là lớn~\cite{schroff2015facenet}.
+Việc so khớp khi đó quy về so sánh khoảng cách giữa hai véc-tơ đặc trưng với một ngưỡng
+cho trước.
+
+\textbf{Cấu trúc trích đặc trưng.} Mạng nơ-ron tích chập trích đặc trưng theo tầng: các tầng
+tích chập (convolution) học các bộ lọc phát hiện đặc trưng cục bộ như cạnh, góc và kết cấu; các
+tầng gộp (pooling) giảm kích thước không gian và tăng tính bất biến với dịch chuyển nhỏ; còn
+các tầng phía sau tổng hợp lại thành véc-tơ đặc trưng. Các kiến trúc rất sâu với kết nối phần
+dư (residual connection) cho phép huấn luyện ổn định và nâng cao chất lượng đặc trưng học
+được~\cite{he2016resnet}.
+
+\textbf{Hàm mất mát bộ ba.} FaceNet huấn luyện mạng sao cho các ảnh của cùng một người nằm gần
+nhau còn ảnh của những người khác nhau nằm xa nhau trong không gian đặc trưng. Với mỗi bộ ba
+gồm ảnh neo $x^a$, ảnh cùng người $x^p$ và ảnh khác người $x^n$, hàm mất mát cần tối thiểu hoá
+được biểu diễn trong Phương trình~\ref{eq:triplet}:
+\begin{equation}
+\mathcal{L} = \sum_{i=1}^{N} \Big[\, \lVert f(x_i^a) - f(x_i^p) \rVert_2^2
+- \lVert f(x_i^a) - f(x_i^n) \rVert_2^2 + \alpha \,\Big]_{+}
+\label{eq:triplet}
+\end{equation}
+trong đó $f(\cdot)$ là véc-tơ đặc trưng (được chuẩn hoá về chuẩn đơn vị), $\alpha$ là biên
+(margin) tối thiểu giữa cặp cùng người và cặp khác người, và $[z]_{+} = \max(z, 0)$. Việc tối
+ưu hàm mất mát này tạo ra không gian đặc trưng mà ở đó khoảng cách Euclid phản ánh mức độ giống
+nhau của hai khuôn mặt~\cite{schroff2015facenet}.
+
+Trong đồ án, quá trình xác minh khuôn mặt được thực hiện phía thiết bị người dùng nhằm
+bảo vệ quyền riêng tư của dữ liệu sinh trắc học. Hạn chế của cách tiếp cận này là chưa có
+cơ chế phát hiện sự sống (liveness detection) ở mức nâng cao để chống giả mạo bằng ảnh
+tĩnh; đây là một đánh đổi đã được ghi nhận và trình bày trong phần hạn chế ở
+Chương~\ref{chapter:conclusion}.
+
+\textbf{Quy trình xử lý.} Việc xác minh khuôn mặt trải qua bốn bước: (1) phát hiện khuôn mặt
+trong khung hình; (2) căn chỉnh theo các điểm mốc (landmark) trên khuôn mặt; (3) trích véc-tơ
+đặc trưng 128 chiều bằng mạng nơ-ron; và (4) so sánh khoảng cách Euclid giữa véc-tơ thu được
+với véc-tơ đã đăng ký. Hai khuôn mặt được xem là của cùng một người nếu khoảng cách nhỏ hơn
+một ngưỡng cho trước (trong đồ án là 0,6).
+
+Đồ án sử dụng thư viện nhận diện khuôn mặt face-api.js~\cite{faceapijs} chạy trực tiếp trên
+trình duyệt, với mô hình phát hiện gọn nhẹ để phù hợp với tài nguyên của thiết bị di động. Vì toàn bộ quá trình diễn
+ra trên thiết bị, hệ thống chỉ lưu véc-tơ đặc trưng --- vốn không thể phục hồi ngược lại thành
+ảnh --- thay cho ảnh khuôn mặt gốc, qua đó giảm thiểu rủi ro lộ lọt dữ liệu sinh trắc học.
+
+% ─────────────────────────────────────────────
+% ─────────────────────────────────────────────
+\section{Mã QR và ứng dụng trong điểm danh}
+\label{sec:qrcode}
+
+Mã QR (Quick Response code)~\cite{iso18004} là một dạng mã vạch hai chiều có khả năng lưu trữ
+lượng dữ liệu lớn hơn nhiều so với mã vạch một chiều, đồng thời cho phép quét nhanh từ nhiều
+góc độ. Một đặc
+điểm quan trọng của mã QR là cơ chế \textbf{sửa lỗi} (error correction) dựa trên mã
+Reed--Solomon, cho phép khôi phục dữ liệu ngay cả khi một phần mã bị che khuất hoặc hư hỏng ở
+một mức độ nhất định.
+
+\textbf{Cấu trúc và khả năng sửa lỗi.} Một mã QR gồm các thành phần định vị --- ba ô tìm kiếm
+(finder pattern) ở ba góc, cùng các mẫu căn chỉnh (alignment) và định thời (timing) --- bên
+cạnh vùng thông tin định dạng/phiên bản và vùng dữ liệu. Chuẩn ISO/IEC 18004 định nghĩa bốn
+mức sửa lỗi L, M, Q và H, lần lượt cho phép khôi phục khoảng 7\%, 15\%, 25\% và 30\% số từ mã
+bị hỏng~\cite{iso18004}. Mức sửa lỗi càng cao thì khả năng quét trong điều kiện che khuất hay
+bẩn càng tốt, nhưng dung lượng dữ liệu khả dụng càng giảm. Ở phiên bản lớn nhất (phiên bản 40),
+một mã QR có thể chứa tối đa khoảng 2953 byte dữ liệu nhị phân. Nội dung mã QR của hệ thống ---
+một chuỗi JSON đã ký HMAC --- chỉ dài khoảng vài trăm byte nên luôn nằm trong giới hạn này, kể
+cả khi chọn mức sửa lỗi cao để tăng độ tin cậy khi quét.
+
+Trong hệ thống điểm danh, mã QR được dùng làm phương tiện truyền tải gọn nhẹ cho hai mục đích:
+truyền nội dung đã ký HMAC từ màn hình giảng viên tới thiết bị sinh viên, và trao đổi thông
+tin xác minh giữa các sinh viên trong bước ngang hàng. Ưu điểm của mã QR là không đòi hỏi kết
+nối trực tiếp giữa hai thiết bị --- chỉ cần một bên hiển thị và một bên dùng máy ảnh để quét
+--- nên rất phù hợp với môi trường lớp học. Tuy nhiên, do mã QR tĩnh dễ bị chụp lại và chia
+sẻ, đồ án kết hợp mã QR với chữ ký HMAC và cơ chế xoay mã theo thời gian tương tự mật khẩu dùng
+một lần theo thời gian (TOTP)~\cite{rfc6238} để khắc phục nhược điểm này (mục~\ref{sec:hmac}).
+
+% ─────────────────────────────────────────────
+\subsection*{Kết chương}
+Chương này đã trình bày các công nghệ nền tảng (Zalo Mini App, React, Firebase) cùng các
+kiến thức lý thuyết cốt lõi (HMAC-SHA256, nhận diện khuôn mặt, mã QR) và lý do lựa
+chọn chúng. Các công nghệ này là cơ sở để thiết kế và triển khai hệ thống được trình bày
+trong chương tiếp theo.
+
+\end{document}

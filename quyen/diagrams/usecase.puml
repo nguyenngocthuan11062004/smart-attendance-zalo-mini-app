@@ -1,0 +1,67 @@
+@startuml usecase
+!pragma layout smetana
+left to right direction
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "Sinh viên" as SV
+actor "Giảng viên" as GV
+actor "Quản trị viên" as AD
+
+rectangle "Hệ thống Zimo Check-in" {
+  usecase "Đăng nhập qua Zalo" as UC_LOGIN
+
+  usecase "Đăng ký khuôn mặt" as UC_FACE
+  usecase "Tham gia lớp học" as UC_JOIN
+  usecase "Điểm danh 4 bước" as UC_ATT
+  usecase "Quét mã QR" as UC_QR
+  usecase "Xác minh khuôn mặt" as UC_VFACE
+  usecase "Xác minh ngang hàng" as UC_PEER
+  usecase "Xem lịch sử điểm danh" as UC_HIST
+  usecase "Gửi đơn xin nghỉ" as UC_ABS
+  usecase "Hỏi trợ lý AI" as UC_AI
+
+  usecase "Quản lý lớp học" as UC_CLASS
+  usecase "Quản lý phiên điểm danh" as UC_SESS
+  usecase "Hiển thị QR (Cổng máy chiếu)" as UC_PROJ
+  usecase "Giám sát thời gian thực" as UC_MON
+  usecase "Xem xét & ghi đè kết quả" as UC_REV
+  usecase "Xem báo cáo gian lận" as UC_FRAUD
+  usecase "Xem thống kê" as UC_STAT
+
+  usecase "Quản lý người dùng" as UC_USER
+  usecase "Phân công lớp & giảng viên" as UC_ASSIGN
+  usecase "Duyệt đơn xin nghỉ" as UC_APPR
+  usecase "Nhập danh sách (Excel)" as UC_IMPORT
+}
+
+SV --> UC_LOGIN
+GV --> UC_LOGIN
+AD --> UC_LOGIN
+
+SV --> UC_FACE
+SV --> UC_JOIN
+SV --> UC_ATT
+SV --> UC_HIST
+SV --> UC_ABS
+SV --> UC_AI
+UC_ATT ..> UC_QR : <<include>>
+UC_ATT ..> UC_VFACE : <<include>>
+UC_ATT ..> UC_PEER : <<include>>
+
+GV --> UC_CLASS
+GV --> UC_SESS
+GV --> UC_PROJ
+GV --> UC_MON
+GV --> UC_REV
+GV --> UC_FRAUD
+GV --> UC_STAT
+
+AD --> UC_USER
+AD --> UC_ASSIGN
+AD --> UC_APPR
+AD --> UC_IMPORT
+@enduml

@@ -1,0 +1,29 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+\chapter*{ABSTRACT}
+\thispagestyle{plain}
+
+In most universities today, nearly every student already uses Zalo. Deploying an attendance
+application directly on the Zalo Mini App platform therefore brings significant convenience:
+students can check in immediately without installing any additional software. Meanwhile,
+traditional methods such as oral roll-call or paper sign-in sheets are time-consuming for large
+classes and cannot reliably guarantee that students are genuinely present.
+
+This thesis presents the design and implementation of a smart attendance system named
+\textit{Zimo Check-in}, built on the Zalo Mini App platform. The check-in procedure is designed
+in four steps: scanning a dynamic QR code that is signed with HMAC-SHA256 and refreshed every
+30 seconds, verifying the student's face directly on the device, exchanging peer-to-peer
+confirmation codes among nearby students, and aggregating these results into a trust policy.
+Combining such complementary verification layers helps ensure accurate and honest attendance
+records without requiring expensive dedicated hardware.
+
+In terms of architecture, the product comprises a Mini App for students and lecturers, a
+web-based administration dashboard for the academic office, and server-side functions running on
+Firebase. It further provides supporting features such as a projector gateway that displays a
+large QR code for crowded classrooms, real-time attendance monitoring, and leave-request
+management. Experimental results show that the system operates stably and satisfactorily meets
+the functional and security requirements defined for it.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} \textit{smart attendance, Zalo Mini App, rotating QR, HMAC-SHA256, face verification, Firebase.}
+\end{document}

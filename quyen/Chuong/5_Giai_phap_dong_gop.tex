@@ -1,0 +1,154 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+Chương~\ref{chapter:Experiment} đã trình bày chi tiết cách hệ thống được thiết kế và hiện
+thực hoá. Chương này nhìn lại những giải pháp kỹ thuật mang tính \textbf{đóng góp nổi bật}
+nhất --- đã được liệt kê tóm tắt ở mục~\ref{sec:dong-gop} --- và phân tích sâu hơn về lý do
+chúng tạo nên sự khác biệt của hệ thống so với các cách làm thông thường, kèm theo những ưu
+điểm và giới hạn còn tồn tại. Để tránh trùng lặp, phần mô tả cơ chế hoạt động chi tiết được
+tham chiếu tới các mục tương ứng trong Chương~\ref{chapter:Experiment}.
+
+\section{Cơ chế mã QR HMAC xoay theo thời gian}
+\label{sec:dg-qr}
+
+Phần lớn các hệ thống điểm danh bằng mã QR hiện nay sử dụng \textbf{mã QR tĩnh}: mỗi buổi học
+(hoặc mỗi lớp) gắn với một mã cố định. Điểm yếu cố hữu của cách làm này là mã có thể bị chụp
+màn hình và gửi cho người vắng mặt, khiến việc ``điểm danh hộ'' từ xa trở nên dễ dàng --- đây
+chính là hình thức gian lận phổ biến nhất mà Chương~\ref{chapter:Related_works} đã chỉ ra.
+
+Đóng góp của đồ án là thay thế mã tĩnh bằng \textbf{mã QR động được ký bằng HMAC-SHA256 và làm
+mới sau mỗi 30 giây} (cơ chế và thuật toán sinh mã đã được trình bày ở
+mục~\ref{sec:hmac-rotating} và Thuật toán~\ref{algo:qr}). Giá trị cốt lõi nằm ở ba tính chất
+kết hợp: (i) mã chỉ có hiệu lực trong cửa sổ ngắn (90 giây) nên ảnh chụp nhanh chóng hết hạn;
+(ii) chữ ký HMAC khiến không thể tự tạo ra một mã hợp lệ nếu không có khoá bí mật --- vốn được
+cô lập ở phía máy chủ; và (iii) mốc thời gian gắn trong mã ngăn việc phát lại (replay).
+
+Một điểm tinh tế nhưng quan trọng là cơ chế \textbf{đồng bộ đồng hồ giữa nhiều nguồn hiển thị}:
+mã QR trên điện thoại giảng viên và mã trên màn hình máy chiếu (mục~\ref{sec:projector}) cùng
+được sinh theo một mốc thời gian thống nhất, nhờ đó luôn khớp nhau ở mỗi chu kỳ làm mới. Cửa
+sổ dung sai 90 giây (gấp ba lần chu kỳ) được lựa chọn để dung hoà sai lệch đồng hồ giữa các
+thiết bị mà vẫn giữ thời gian sống của mã đủ ngắn. Nhờ cách tiếp cận này, hệ thống vô hiệu hoá
+hình thức gian lận phổ biến nhất mà không đòi hỏi bất kỳ phần cứng chuyên dụng nào, chỉ dùng
+chính chiếc điện thoại sẵn có của người dùng.
+
+\section{Cổng máy chiếu và cơ chế pairing one-shot}
+\label{sec:dg-projector}
+
+Khi áp dụng mã QR động vào lớp học đông, một vấn đề thực tiễn nảy sinh: mã hiển thị trên màn
+hình điện thoại của giảng viên quá nhỏ để sinh viên ở cuối phòng có thể quét, trong khi việc
+chuyền tay điện thoại vừa bất tiện vừa mất an toàn. Đây là rào cản thường bị bỏ qua trong các
+nghiên cứu nhưng lại quyết định khả năng sử dụng thực tế của hệ thống.
+
+Đóng góp của đồ án là tính năng \textbf{Cổng máy chiếu} (mục~\ref{sec:projector}): một trang
+web mở trên máy chiếu của lớp sẽ hiển thị mã QR động cỡ lớn, được liên kết với phiên điểm danh
+của giảng viên thông qua một \textbf{mã ghép nối dùng một lần} (one-shot pairing token) dài
+128 bit, có thời hạn 60 giây.
+
+Điểm mới về mặt an toàn nằm ở \textbf{quy tắc chuyển trạng thái một chiều}: mã ghép nối chỉ đi
+từ trạng thái \texttt{pending} sang \texttt{paired} đúng một lần, không thể quay lại cũng
+không thể bị ghép nối lần thứ hai. Thiết kế này ngăn chặn nguy cơ một bên thứ ba chiếm quyền
+hiển thị (hijack) màn hình máy chiếu để phát mã giả. Nhờ đó, tính năng vừa giải quyết bài toán
+khả dụng cho lớp đông, vừa giữ nguyên các bảo đảm an toàn của cơ chế mã QR động --- một sự kết
+hợp giữa trải nghiệm người dùng và bảo mật mà các ứng dụng điểm danh thông thường ít khi cung
+cấp.
+
+\section{Hệ thống chống gian lận nhiều lớp}
+\label{sec:dg-fraud}
+
+Hầu hết các hệ thống điểm danh hiện có chỉ dựa trên \textbf{một yếu tố xác minh duy nhất} (một
+lần quét mã, hoặc một lần nhận diện khuôn mặt). Hệ quả là chỉ cần vượt qua yếu tố đó là gian
+lận thành công --- một điểm thất bại đơn lẻ (single point of failure).
+
+Đóng góp của đồ án là một quy trình điểm danh \textbf{đa yếu tố bốn bước} (mã QR, khuôn mặt,
+xác minh ngang hàng và định vị) được tổng hợp bằng điểm tin cậy
+(mục~\ref{sec:attendance-flow}), thiết kế theo nguyên lý \textbf{phòng thủ theo chiều sâu}
+(defense in depth): mỗi lớp chống lại một hình thức gian lận khác nhau, và để qua mặt hệ thống,
+người gian lận phải vượt qua đồng thời nhiều lớp. Sự tương ứng giữa từng lớp xác minh và hình
+thức gian lận bị ngăn chặn được tóm tắt trong Bảng~\ref{tab:defense-layers}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Các lớp xác minh và hình thức gian lận bị ngăn chặn}
+\label{tab:defense-layers}
+\begin{tabular}{|p{5cm}|p{8.5cm}|}
+\hline
+\textbf{Lớp xác minh} & \textbf{Hình thức gian lận bị ngăn chặn} \\
+\hline
+Mã QR động (HMAC) & Chụp và chia sẻ lại mã để điểm danh hộ \\ \hline
+Xác minh khuôn mặt & Nhờ người khác điểm danh thay \\ \hline
+Xác minh ngang hàng & Điểm danh từ xa khi không thực sự có mặt \\ \hline
+Định vị GPS & Điểm danh khi đang ở ngoài khu vực lớp học \\ \hline
+Phân tích hành vi phía máy chủ & Thông đồng có hệ thống (cùng nhóm, xác minh quá nhanh\ldots) \\ \hline
+\end{tabular}
+\end{table}
+
+Trong các lớp trên, \textbf{xác minh ngang hàng} (peer-to-peer) là đóng góp giàu tính mới mẻ
+nhất. Thay vì chỉ tin vào một bằng chứng do chính sinh viên cung cấp, hệ thống yêu cầu sinh
+viên trao đổi mã QR với tối thiểu ba bạn xung quanh; việc xác minh chéo này tạo ra một
+\textbf{bằng chứng về sự hiện diện vật lý} mà một yếu tố đơn lẻ (mã hay khuôn mặt) khó tạo ra
+được --- rất khó để ``được ba người trong phòng xác minh'' nếu không thực sự có mặt. Bổ trợ
+cho lớp phòng ngừa này, một hàm phân tích chạy phía máy chủ rà soát các mẫu hành vi đáng ngờ
+(Bảng~\ref{tab:fraud}) như luôn xác minh với cùng một nhóm hay tốc độ xác minh bất thường, qua
+đó bổ sung thêm một lớp \textbf{phát hiện} bên cạnh các lớp \textbf{ngăn chặn}.
+
+Cần thẳng thắn nhìn nhận giới hạn: xác minh ngang hàng vẫn có thể bị một nhóm sinh viên thông
+đồng cùng có mặt để xác minh khống cho nhau. Tuy nhiên, chính lớp phân tích hành vi được thiết
+kế để phát hiện kiểu thông đồng lặp lại này, và việc kết hợp nhiều lớp khiến chi phí gian lận
+tăng cao hơn đáng kể so với hệ thống chỉ dùng một yếu tố.
+
+\section{Kiến trúc ba vai trò và phân quyền}
+\label{sec:dg-role}
+
+Một thách thức của đề tài là phải thực thi phân quyền chặt chẽ trên một nền tảng bị ràng buộc:
+Zalo Mini App không có máy chủ xác thực truyền thống, còn hệ thống vận hành phần lớn trên gói
+dịch vụ miễn phí của Firebase. Trong bối cảnh đó, việc bảo đảm mỗi vai trò chỉ làm đúng phần
+việc của mình là không hiển nhiên.
+
+Đóng góp của đồ án là một \textbf{kiến trúc ba vai trò} (sinh viên, giảng viên, quản trị) với
+phân quyền được thực thi ngay tại tầng cơ sở dữ liệu bằng quy tắc bảo mật của Firestore, kết
+hợp cơ chế cấp token tùy biến (mục~\ref{sec:auth-design}, Bảng~\ref{tab:phanquyen}). Nguyên
+tắc thiết kế cốt lõi là \textbf{ngăn tự nâng quyền} (privilege escalation): tài khoản tạo từ
+phía thiết bị chỉ được mang vai trò \texttt{student}, còn vai trò giảng viên hay quản trị chỉ
+có thể được gán bởi hàm phía máy chủ. Đồng thời, mọi nghiệp vụ nhạy cảm --- ký mã QR, tính
+điểm tin cậy, phát hiện gian lận --- đều được tập trung xử lý ở máy chủ để không thể bị can
+thiệp từ thiết bị người dùng.
+
+Điểm đáng chú ý là kiến trúc này đạt được mô hình \textbf{đặc quyền tối thiểu} (least
+privilege) và chống leo thang quyền mà \textbf{không cần một máy chủ ứng dụng riêng}, qua đó
+phù hợp với ràng buộc và chi phí của nền tảng. Giới hạn hiện tại --- một số quy tắc còn dựa
+trên cấu trúc dữ liệu thay vì danh tính đầy đủ do hạn chế của gói miễn phí --- đã được nhận
+diện và có thể khắc phục khi nâng cấp gói dịch vụ, như đã đề cập ở mục~\ref{sec:bao-mat}.
+
+\section{Tuân thủ chính sách nền tảng Zalo}
+\label{sec:dg-zalo}
+
+Nhiều sản phẩm thử nghiệm trong môi trường học thuật thường bỏ qua các yêu cầu về chính sách
+nền tảng và quyền riêng tư, dẫn tới việc không thể thực sự phát hành tới người dùng. Đồ án này
+xác định \textbf{khả năng triển khai thực tế} là một mục tiêu, nên việc tuân thủ chính sách
+trở thành một đóng góp có ý nghĩa thực tiễn.
+
+Cụ thể, ứng dụng được xây dựng để tuân thủ chính sách của Zalo Mini App: không yêu cầu cấp
+quyền tại thời điểm mở ứng dụng mà chỉ xin quyền khi người dùng chủ động thao tác, và xin theo
+từng phạm vi riêng biệt (thông tin cá nhân, số điện thoại). Hệ thống cung cấp đầy đủ Điều
+khoản sử dụng và Chính sách quyền riêng tư, đồng thời xử lý \textbf{dữ liệu sinh trắc học một
+cách có trách nhiệm}: khuôn mặt chỉ được lưu dưới dạng véc-tơ đặc trưng 128 chiều chứ không lưu
+ảnh gốc, trên cơ sở có sự đồng thuận của người dùng.
+
+Hướng tới khả năng áp dụng cho nhiều cơ sở đào tạo khác nhau, sản phẩm còn được điều chỉnh
+theo hướng trung lập về thương hiệu. Những yếu tố này tuy không nằm ở phần ``lõi thuật toán''
+nhưng lại là điều kiện cần để một hệ thống điểm danh có thể đi từ nguyên mẫu tới một sản phẩm
+dùng được trong thực tế.
+
+\subsection*{Kết chương}
+
+Chương này đã phân tích năm đóng góp nổi bật của đồ án: cơ chế mã QR động HMAC có đồng bộ đa
+thiết bị, tính năng Cổng máy chiếu với ghép nối một chiều an toàn, hệ thống chống gian lận
+nhiều lớp với điểm nhấn là xác minh ngang hàng, kiến trúc phân quyền chặt chẽ trên nền tảng bị
+ràng buộc, và việc tuân thủ chính sách nền tảng hướng tới triển khai thực tế. Xuyên suốt các
+đóng góp này là một tư tưởng nhất quán: nâng cao tính trung thực của điểm danh bằng cách kết
+hợp nhiều lớp bảo vệ chi phí thấp, trong khi vẫn giữ trải nghiệm đơn giản cho người dùng và
+khả năng triển khai thực tế. Phần kết luận sau đây sẽ nhìn lại toàn bộ kết quả và bàn về các
+định hướng mở rộng tiếp theo.
+
+\end{document}

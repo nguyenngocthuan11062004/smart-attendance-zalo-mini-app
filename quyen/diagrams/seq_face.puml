@@ -1,0 +1,23 @@
+@startuml seq_face
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+actor "Sinh viên\n(Mini App)" as SV
+participant "Mô hình nhận diện\n(trên thiết bị)" as M
+participant "Cloud Functions" as CF
+database "Firestore" as DB
+
+SV -> SV : Mở chức năng đăng ký khuôn mặt
+SV -> M : Tải mô hình nhận diện
+SV -> M : Chụp ảnh khuôn mặt (hai lần)
+M -> M : Trích véc-tơ đặc trưng 128 chiều
+M -> M : So khớp hai ảnh (khoảng cách < 0,6)
+alt Hai ảnh khớp
+  SV -> CF : registerFace(descriptor)
+  CF -> DB : Lưu face_registrations + faceRegistered = true
+  CF --> SV : Đăng ký thành công
+else Không khớp hoặc không thấy mặt
+  M --> SV : Yêu cầu chụp lại
+end
+@enduml

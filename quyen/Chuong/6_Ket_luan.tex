@@ -1,0 +1,98 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Kết luận}
+\label{sec:ket-luan}
+
+Đồ án đã hoàn thành mục tiêu xây dựng một hệ thống điểm danh thông minh, chống gian lận trên
+nền tảng Zalo Mini App, áp dụng được cho môi trường đào tạo đại học. Đối chiếu với các mục
+tiêu cụ thể đặt ra ở mục~\ref{sec:muc-tieu}, kết quả đạt được như sau:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Mã QR động chống chia sẻ.} Hệ thống đã hiện thực mã QR ký bằng HMAC-SHA256,
+  xoay theo chu kỳ 30 giây và đồng bộ giữa điện thoại giảng viên với màn hình máy chiếu, qua
+  đó vô hiệu hoá việc chụp và chia sẻ lại mã.
+
+  \item \textbf{Xác minh khuôn mặt phía thiết bị.} Việc nhận diện khuôn mặt được thực hiện
+  ngay trên thiết bị người dùng, chỉ lưu véc-tơ đặc trưng 128 chiều thay vì ảnh gốc.
+
+  \item \textbf{Xác minh ngang hàng.} Cơ chế trao đổi mã giữa các sinh viên (tối thiểu ba
+  lượt) đã tạo ra bằng chứng về sự hiện diện vật lý, chống điểm danh từ xa.
+
+  \item \textbf{Trang quản trị web.} Đã xây dựng trang quản trị cho giảng viên và phòng đào
+  tạo với các chức năng quản lý lớp, giám sát phiên theo thời gian thực và xuất báo cáo Excel.
+
+  \item \textbf{Phát hiện gian lận nhiều lớp.} Hệ thống tổng hợp bốn yếu tố xác minh thành
+  điểm tin cậy và bổ sung hàm phân tích phía máy chủ để phát hiện, lập báo cáo tự động các
+  mẫu hành vi đáng ngờ.
+\end{itemize}
+
+Về sản phẩm, đồ án đã tạo ra ba thành phần hoạt động được: một Mini App cho sinh viên và giảng
+viên, một trang quản trị web, và một tập các hàm xử lý phía máy chủ trên nền tảng Firebase
+(chi tiết ở Chương~\ref{chapter:Experiment}). Hệ thống đã được kiểm thử theo bộ 72 kịch bản và
+đạt mức điểm tự đánh giá bảo mật 7{,}6/10. Những đóng góp nổi bật --- đặc biệt là cơ chế xác
+minh ngang hàng và mã QR động có đồng bộ đa thiết bị
+(Chương~\ref{chapter:SolutionAndContribution}) --- cho thấy có thể nâng cao đáng kể tính trung
+thực của điểm danh bằng các lớp bảo vệ chi phí thấp, chỉ dựa trên thiết bị sẵn có của người
+dùng mà không cần phần cứng chuyên dụng.
+
+\section{Hạn chế}
+\label{sec:han-che}
+
+Bên cạnh các kết quả đạt được, đồ án vẫn còn một số hạn chế cần được nhìn nhận một cách thẳng
+thắn:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Phạm vi triển khai.} Hệ thống mới được thử nghiệm ở mức thử nghiệm (pilot)
+  trong khuôn khổ một đồ án, chưa triển khai ở quy mô toàn trường; kết quả kiểm thử do đó còn
+  mang tính định tính, chưa có số liệu trên tập người dùng lớn.
+
+  \item \textbf{Một số nội dung ngoài phạm vi.} Hệ thống chưa tích hợp với hệ thống quản lý
+  học tập (LMS) của nhà trường, chưa hỗ trợ thẻ sinh viên RFID/NFC, và mới dừng ở mức phát
+  hiện sự sống (liveness) cơ bản nên vẫn còn rủi ro bị qua mặt bằng ảnh hoặc video.
+
+  \item \textbf{Bảo mật và vận hành.} Một số dữ liệu phía thiết bị (\texttt{localStorage})
+  chưa được mã hoá; cơ chế giới hạn tần suất và chống phát lại còn lưu trong bộ nhớ tạm nên
+  không bền vững khi mở rộng quy mô; hệ thống cũng chưa có nhật ký kiểm toán và hiện vẫn vận
+  hành trên gói dịch vụ miễn phí (xem mục~\ref{sec:bao-mat}).
+
+  \item \textbf{Gian lận còn lại.} Xác minh ngang hàng vẫn có thể bị một nhóm sinh viên thông
+  đồng cùng có mặt để xác minh khống cho nhau; lớp phân tích hành vi chỉ giảm thiểu chứ chưa
+  loại bỏ hoàn toàn rủi ro này.
+
+  \item \textbf{Hiệu năng.} Đồ án chưa thực hiện đo đạc hiệu năng định lượng (thời gian phản
+  hồi, thông lượng) trên nhiều cấu hình thiết bị khác nhau.
+\end{itemize}
+
+\section{Hướng phát triển}
+\label{sec:huong-phat-trien}
+
+Từ những hạn chế nêu trên, đồ án đề xuất các hướng phát triển tiếp theo, sắp xếp theo mức độ
+ưu tiên:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Củng cố bảo mật và vận hành.} Mã hoá dữ liệu trên thiết bị; chuyển cơ chế giới
+  hạn tần suất và chống phát lại sang lưu trữ bền vững; bổ sung nhật ký kiểm toán, tự đăng xuất
+  sau thời gian dài và nâng cấp lên gói dịch vụ trả phí để khai thác đầy đủ năng lực máy chủ.
+
+  \item \textbf{Nâng cao chống gian lận.} Áp dụng học máy để phát hiện gian lận dựa trên dữ
+  liệu thay vì chỉ dựa trên luật; tăng cường phát hiện sự sống (chống giả mạo bằng ảnh, video)
+  và nhận diện thiết bị bất thường.
+
+  \item \textbf{Tích hợp hệ thống nhà trường.} Kết nối với hệ thống quản lý học tập (LMS), hỗ
+  trợ thẻ sinh viên RFID/NFC và đăng nhập một lần (SSO) với tài khoản của trường.
+
+  \item \textbf{Bảo vệ dữ liệu cá nhân.} Hướng tới mã hoá đầu cuối cho dữ liệu sinh trắc học,
+  giảm thiểu lưu trữ thông tin định danh không cần thiết, và mời kiểm thử xâm nhập (penetration
+  testing) độc lập.
+
+  \item \textbf{Mở rộng sản phẩm.} Nhờ đã được điều chỉnh theo hướng trung lập về thương hiệu,
+  hệ thống có thể được triển khai cho nhiều cơ sở đào tạo khác nhau, kèm theo các tính năng
+  thống kê và thông báo phong phú hơn.
+\end{itemize}
+
+Tóm lại, đồ án đã xây dựng thành công một hệ thống điểm danh chống gian lận hoàn chỉnh và khả
+thi về mặt triển khai, đồng thời chỉ ra một lộ trình rõ ràng để tiếp tục hoàn thiện hệ thống
+thành một sản phẩm sẵn sàng cho môi trường thực tế.
+
+\end{document}

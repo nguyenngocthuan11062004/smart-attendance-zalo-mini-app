@@ -1,0 +1,21 @@
+@startuml state_lifecycle
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+state "Vòng đời phiên điểm danh" as Session {
+  [*] --> active : giảng viên mở phiên
+  active --> ended : kết thúc / hết thời lượng
+  ended --> [*]
+}
+
+state "Trạng thái bản ghi điểm danh" as Att {
+  [*] --> present : đủ khuôn mặt và ngang hàng
+  [*] --> review : chưa đủ điều kiện
+  review --> present : ghi đè (có mặt)
+  review --> absent : ghi đè (vắng)
+  present --> [*]
+  absent --> [*]
+}
+@enduml

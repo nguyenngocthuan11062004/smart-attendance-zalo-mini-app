@@ -1,0 +1,29 @@
+@startuml seq_qr
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+participant "Giảng viên\n(Mini App)" as GV
+participant "Cloud Functions" as CF
+database "Firestore" as DB
+participant "Sinh viên\n(Mini App)" as SV
+
+GV -> CF : startSession(classId)
+CF -> DB : Tạo phiên + khoá bí mật\n(subcollection, chỉ giảng viên đọc)
+CF --> GV : Trả khoá bí mật
+
+loop mỗi 30 giây
+  GV -> GV : Sinh mã QR\nsig = HMAC-SHA256(payload, khoá)
+  GV -> GV : Hiển thị mã QR động
+end
+
+SV -> GV : Quét mã QR
+SV -> CF : scanTeacher(payload, sig, ts, nonce)
+CF -> CF : Tính lại HMAC, so sánh chữ ký
+CF -> CF : Kiểm thời gian (≤ 90s) + nonce chưa dùng
+alt Chữ ký đúng và còn hạn
+  CF --> SV : Chấp nhận điểm danh
+else Sai chữ ký hoặc hết hạn
+  CF --> SV : Từ chối
+end
+@enduml

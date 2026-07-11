@@ -1,0 +1,17 @@
+@startuml qt_xinnghi
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+start
+:Sinh viên gửi đơn xin nghỉ (lý do, đính kèm);
+:Đơn ở trạng thái "chờ duyệt";
+:Quản trị viên xem xét đơn;
+if (Chấp nhận?) then (có)
+  :Duyệt đơn;
+else (không)
+  :Từ chối kèm ghi chú;
+endif
+:Cập nhật trạng thái đơn cho sinh viên;
+stop
+@enduml

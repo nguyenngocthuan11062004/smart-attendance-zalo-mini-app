@@ -1,0 +1,35 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+\chapter*{TÓM TẮT NỘI DUNG ĐỒ ÁN}
+\thispagestyle{plain}
+
+Trong bối cảnh hầu hết sinh viên hiện nay đều đã sử dụng Zalo, việc triển khai ứng dụng điểm
+danh trực tiếp trên nền tảng Zalo Mini App mang lại sự thuận tiện lớn: người dùng có thể điểm
+danh ngay mà không cần cài đặt thêm bất kỳ ứng dụng mới nào. Trong khi đó, các phương pháp
+điểm danh truyền thống như gọi tên hay ký danh sách giấy lại tiêu tốn nhiều thời gian đối với
+các lớp học đông và khó bảo đảm sinh viên thực sự có mặt.
+
+Đồ án trình bày việc xây dựng hệ thống điểm danh thông minh mang tên \textit{Zimo Check-in}
+trên nền tảng Zalo Mini App. Quy trình điểm danh được thiết kế gồm bốn bước: quét mã QR động
+được ký bằng HMAC-SHA256 và làm mới sau mỗi 30 giây, xác minh khuôn mặt ngay trên thiết bị,
+trao đổi mã xác nhận ngang hàng giữa các sinh viên, và tổng hợp lại thành điểm tin cậy. Việc
+kết hợp nhiều lớp xác minh bổ trợ này giúp bảo đảm tính chính xác và trung thực của kết quả
+điểm danh mà không đòi hỏi phần cứng chuyên dụng đắt tiền.
+
+Về mặt hệ thống, sản phẩm gồm một Mini App dành cho sinh viên và giảng viên, một trang quản
+trị web phục vụ phòng đào tạo, và các hàm xử lý phía máy chủ trên nền tảng Firebase. Hệ thống
+còn cung cấp nhiều tính năng hỗ trợ như cổng máy chiếu hiển thị mã QR cỡ lớn cho lớp đông,
+giám sát điểm danh theo thời gian thực và quản lý đơn xin nghỉ. Kết quả thử nghiệm cho thấy hệ
+thống vận hành ổn định và đáp ứng tốt các yêu cầu về chức năng cũng như bảo mật đã đặt ra.
+
+\vspace{1em}
+\noindent\textbf{Từ khoá:} \textit{điểm danh thông minh, Zalo Mini App, QR động, HMAC-SHA256, xác minh khuôn mặt, Firebase.}
+
+\vspace{1em}
+\begin{flushright}
+Sinh viên thực hiện
+
+\vspace{2em}
+\textit{(Ký và ghi rõ họ tên)}
+\end{flushright}
+\end{document}

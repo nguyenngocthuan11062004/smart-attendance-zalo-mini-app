@@ -1,0 +1,529 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\datalist[entry]{none/global//global/global}
+  \entry{zalostats}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=Z}{%
+         family={{Zalo}},
+         familyi={Z\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{Z1}
+    \strng{fullhash}{Z1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{VietnamNet}
+    \field{note}{[Online]. Available:
+  \url{https://vietnamnet.vn/en/zalo-s-number-of-users-hits-78-3-million-putting-telcos-at-pipeline-trap-2436470.html}.
+  Truy cập ngày 08/06/2026}
+    \field{title}{Zalo reaches 78.3 million monthly active users}
+    \field{year}{2025}
+  \endentry
+
+  \entry{zalominiapp}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=Z}{%
+         family={{Zalo}},
+         familyi={Z\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{Z1}
+    \strng{fullhash}{Z1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{\url{https://mini.zalo.me}}
+    \field{note}{Truy cập ngày 01/06/2026}
+    \field{title}{Zalo Mini App Documentation}
+    \field{year}{2024}
+  \endentry
+
+  \entry{arulogun2013rfid}{article}{}
+    \name{author}{4}{}{%
+      {{hash=AOT}{%
+         family={Arulogun},
+         familyi={A\bibinitperiod},
+         given={O.\bibnamedelima T.},
+         giveni={O\bibinitperiod\bibinitdelim T\bibinitperiod},
+      }}%
+      {{hash=OA}{%
+         family={Olatunbosun},
+         familyi={O\bibinitperiod},
+         given={A.},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=FOA}{%
+         family={Fakolujo},
+         familyi={F\bibinitperiod},
+         given={O.\bibnamedelima A.},
+         giveni={O\bibinitperiod\bibinitdelim A\bibinitperiod},
+      }}%
+      {{hash=OOM}{%
+         family={Olaniyi},
+         familyi={O\bibinitperiod},
+         given={O.\bibnamedelima M.},
+         giveni={O\bibinitperiod\bibinitdelim M\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{AOTOAFOA+1}
+    \strng{fullhash}{AOTOAFOAOOM1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{number}{2}
+    \field{pages}{1\bibrangedash 9}
+    \field{title}{{RFID}-Based Students Attendance Management System}
+    \field{volume}{4}
+    \field{journaltitle}{International Journal of Scientific \& Engineering
+  Research}
+    \field{year}{2013}
+  \endentry
+
+  \entry{nfcforum}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=N}{%
+         family={{NFC Forum}},
+         familyi={N\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{N2}
+    \strng{fullhash}{N2}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{NFC Forum}
+    \field{note}{[Online]. Available: \url{https://nfc-forum.org}}
+    \field{title}{{NFC} Forum Technical Specifications}
+    \field{year}{2020}
+  \endentry
+
+  \entry{apoorv2016ble}{inproceedings}{}
+    \name{author}{2}{}{%
+      {{hash=AR}{%
+         family={Apoorv},
+         familyi={A\bibinitperiod},
+         given={Raghav},
+         giveni={R\bibinitperiod},
+      }}%
+      {{hash=MP}{%
+         family={Mathur},
+         familyi={M\bibinitperiod},
+         given={Puja},
+         giveni={P\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{ARMP1}
+    \strng{fullhash}{ARMP1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{booktitle}{2016 IEEE Region 10 Conference (TENCON)}
+    \field{title}{Smart attendance management using {Bluetooth} Low Energy and
+  {Android}}
+    \field{year}{2016}
+  \endentry
+
+  \entry{ibeacon}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=A}{%
+         family={{Apple Inc.}},
+         familyi={A\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{A1}
+    \strng{fullhash}{A1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{Apple Inc.}
+    \field{note}{[Online]. Available:
+  \url{https://developer.apple.com/ibeacon/}}
+    \field{title}{Getting Started with {iBeacon}}
+    \field{year}{2014}
+  \endentry
+
+  \entry{schroff2015facenet}{article}{}
+    \name{author}{3}{}{%
+      {{hash=SF}{%
+         family={Schroff},
+         familyi={S\bibinitperiod},
+         given={Florian},
+         giveni={F\bibinitperiod},
+      }}%
+      {{hash=KD}{%
+         family={Kalenichenko},
+         familyi={K\bibinitperiod},
+         given={Dmitry},
+         giveni={D\bibinitperiod},
+      }}%
+      {{hash=PJ}{%
+         family={Philbin},
+         familyi={P\bibinitperiod},
+         given={James},
+         giveni={J\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{SFKDPJ1}
+    \strng{fullhash}{SFKDPJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{pages}{815\bibrangedash 823}
+    \field{title}{{FaceNet}: A Unified Embedding for Face Recognition and
+  Clustering}
+    \field{journaltitle}{Proceedings of the IEEE Conference on Computer Vision
+  and Pattern Recognition (CVPR)}
+    \field{year}{2015}
+  \endentry
+
+  \entry{zmpdocs}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=Z}{%
+         family={{Zalo}},
+         familyi={Z\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{Z1}
+    \strng{fullhash}{Z1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{\url{https://mini.zalo.me/docs/}}
+    \field{note}{Truy cập ngày 25/06/2026}
+    \field{title}{Zalo Mini App --- Developer Documentation (Start, CLI,
+  Deploy)}
+    \field{year}{2024}
+  \endentry
+
+  \entry{reactjs}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=M}{%
+         family={{Meta Open Source}},
+         familyi={M\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{M1}
+    \strng{fullhash}{M1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{Meta}
+    \field{note}{[Online]. Available: \url{https://react.dev}}
+    \field{title}{{React}: The Library for Web and Native User Interfaces}
+    \field{year}{2024}
+  \endentry
+
+  \entry{typescriptlang}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=M}{%
+         family={{Microsoft}},
+         familyi={M\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{M2}
+    \strng{fullhash}{M2}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{Microsoft}
+    \field{note}{[Online]. Available: \url{https://www.typescriptlang.org}}
+    \field{title}{{TypeScript}: {JavaScript} With Syntax For Types}
+    \field{year}{2024}
+  \endentry
+
+  \entry{firestore}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=G}{%
+         family={{Google}},
+         familyi={G\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{G1}
+    \strng{fullhash}{G1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{Google Firebase}
+    \field{note}{[Online]. Available:
+  \url{https://firebase.google.com/docs/firestore}}
+    \field{title}{Cloud {Firestore} Documentation}
+    \field{year}{2024}
+  \endentry
+
+  \entry{rfc2104}{misc}{}
+    \name{author}{3}{}{%
+      {{hash=KH}{%
+         family={Krawczyk},
+         familyi={K\bibinitperiod},
+         given={Hugo},
+         giveni={H\bibinitperiod},
+      }}%
+      {{hash=BM}{%
+         family={Bellare},
+         familyi={B\bibinitperiod},
+         given={Mihir},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=CR}{%
+         family={Canetti},
+         familyi={C\bibinitperiod},
+         given={Ran},
+         giveni={R\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{KHBMCR1}
+    \strng{fullhash}{KHBMCR1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{RFC 2104, IETF}
+    \field{title}{{HMAC}: Keyed-Hashing for Message Authentication}
+    \field{year}{1997}
+  \endentry
+
+  \entry{fips180}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=N}{%
+         family={{National Institute of Standards and Technology}},
+         familyi={N\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{N1}
+    \strng{fullhash}{N1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{FIPS PUB 180-4, U.S. Department of Commerce}
+    \field{title}{Secure Hash Standard ({SHS})}
+    \field{year}{2015}
+  \endentry
+
+  \entry{bellare1996hmac}{inproceedings}{}
+    \name{author}{3}{}{%
+      {{hash=BM}{%
+         family={Bellare},
+         familyi={B\bibinitperiod},
+         given={Mihir},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=CR}{%
+         family={Canetti},
+         familyi={C\bibinitperiod},
+         given={Ran},
+         giveni={R\bibinitperiod},
+      }}%
+      {{hash=KH}{%
+         family={Krawczyk},
+         familyi={K\bibinitperiod},
+         given={Hugo},
+         giveni={H\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{BMCRKH1}
+    \strng{fullhash}{BMCRKH1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{booktitle}{Advances in Cryptology --- CRYPTO '96}
+    \field{pages}{1\bibrangedash 15}
+    \field{series}{Lecture Notes in Computer Science}
+    \field{title}{Keying Hash Functions for Message Authentication}
+    \field{volume}{1109}
+    \field{year}{1996}
+  \endentry
+
+  \entry{lecun1998gradient}{article}{}
+    \name{author}{4}{}{%
+      {{hash=LY}{%
+         family={LeCun},
+         familyi={L\bibinitperiod},
+         given={Yann},
+         giveni={Y\bibinitperiod},
+      }}%
+      {{hash=BL}{%
+         family={Bottou},
+         familyi={B\bibinitperiod},
+         given={L\'eon},
+         giveni={L\bibinitperiod},
+      }}%
+      {{hash=BY}{%
+         family={Bengio},
+         familyi={B\bibinitperiod},
+         given={Yoshua},
+         giveni={Y\bibinitperiod},
+      }}%
+      {{hash=HP}{%
+         family={Haffner},
+         familyi={H\bibinitperiod},
+         given={Patrick},
+         giveni={P\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{LYBLBY+1}
+    \strng{fullhash}{LYBLBYHP1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{number}{11}
+    \field{pages}{2278\bibrangedash 2324}
+    \field{title}{Gradient-Based Learning Applied to Document Recognition}
+    \field{volume}{86}
+    \field{journaltitle}{Proceedings of the IEEE}
+    \field{year}{1998}
+  \endentry
+
+  \entry{he2016resnet}{inproceedings}{}
+    \name{author}{4}{}{%
+      {{hash=HK}{%
+         family={He},
+         familyi={H\bibinitperiod},
+         given={Kaiming},
+         giveni={K\bibinitperiod},
+      }}%
+      {{hash=ZX}{%
+         family={Zhang},
+         familyi={Z\bibinitperiod},
+         given={Xiangyu},
+         giveni={X\bibinitperiod},
+      }}%
+      {{hash=RS}{%
+         family={Ren},
+         familyi={R\bibinitperiod},
+         given={Shaoqing},
+         giveni={S\bibinitperiod},
+      }}%
+      {{hash=SJ}{%
+         family={Sun},
+         familyi={S\bibinitperiod},
+         given={Jian},
+         giveni={J\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{HKZXRS+1}
+    \strng{fullhash}{HKZXRSSJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{booktitle}{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}
+    \field{pages}{770\bibrangedash 778}
+    \field{title}{Deep Residual Learning for Image Recognition}
+    \field{year}{2016}
+  \endentry
+
+  \entry{taigman2014deepface}{inproceedings}{}
+    \name{author}{4}{}{%
+      {{hash=TY}{%
+         family={Taigman},
+         familyi={T\bibinitperiod},
+         given={Yaniv},
+         giveni={Y\bibinitperiod},
+      }}%
+      {{hash=YM}{%
+         family={Yang},
+         familyi={Y\bibinitperiod},
+         given={Ming},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=RM}{%
+         family={Ranzato},
+         familyi={R\bibinitperiod},
+         given={Marc'Aurelio},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=WL}{%
+         family={Wolf},
+         familyi={W\bibinitperiod},
+         given={Lior},
+         giveni={L\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{TYYMRM+1}
+    \strng{fullhash}{TYYMRMWL1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{booktitle}{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}
+    \field{pages}{1701\bibrangedash 1708}
+    \field{title}{{DeepFace}: Closing the Gap to Human-Level Performance in
+  Face Verification}
+    \field{year}{2014}
+  \endentry
+
+  \entry{faceapijs}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=MV}{%
+         family={M\"uhler},
+         familyi={M\bibinitperiod},
+         given={Vincent},
+         giveni={V\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{MV1}
+    \strng{fullhash}{MV1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{GitHub}
+    \field{note}{[Online]. Available:
+  \url{https://github.com/justadudewhohacks/face-api.js}}
+    \field{title}{face-api.js: {JavaScript} API for Face Detection and
+  Recognition in the Browser}
+    \field{year}{2020}
+  \endentry
+
+  \entry{iso18004}{misc}{}
+    \name{author}{1}{}{%
+      {{hash=I}{%
+         family={{ISO/IEC}},
+         familyi={I\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{I1}
+    \strng{fullhash}{I1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{International Organization for Standardization}
+    \field{title}{{ISO/IEC} 18004:2015 -- Information technology -- Automatic
+  identification and data capture techniques -- {QR} Code bar code symbology
+  specification}
+    \field{year}{2015}
+  \endentry
+
+  \entry{rfc6238}{misc}{}
+    \name{author}{4}{}{%
+      {{hash=MD}{%
+         family={M'Raihi},
+         familyi={M\bibinitperiod},
+         given={David},
+         giveni={D\bibinitperiod},
+      }}%
+      {{hash=MS}{%
+         family={Machani},
+         familyi={M\bibinitperiod},
+         given={Salah},
+         giveni={S\bibinitperiod},
+      }}%
+      {{hash=PM}{%
+         family={Pei},
+         familyi={P\bibinitperiod},
+         given={Mingliang},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=RJ}{%
+         family={Rydell},
+         familyi={R\bibinitperiod},
+         given={Johan},
+         giveni={J\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{MDMSPM+1}
+    \strng{fullhash}{MDMSPMRJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{howpublished}{RFC 6238, IETF}
+    \field{title}{{TOTP}: Time-Based One-Time Password Algorithm}
+    \field{year}{2011}
+  \endentry
+\enddatalist
+\endinput

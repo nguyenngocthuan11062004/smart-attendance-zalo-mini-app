@@ -1,0 +1,34 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+skinparam ActivityBackgroundColor #eef1f7
+skinparam ActivityBorderColor #5a5a5a
+skinparam ActivityDiamondBackgroundColor #f7efe1
+skinparam ArrowColor #5a5a5a
+
+start
+:Tạo Mini App trên cổng Zalo
+(mini.zalo.me);
+note right
+  Điền tên, mô tả, lĩnh vực
+  Nhận App ID và khai báo quyền
+end note
+:Cài đặt Node.js và công cụ zmp-cli;
+:Khởi tạo dự án bằng zmp create
+(khai App ID, chọn React và ZaUI);
+:Lập trình màn hình và dịch vụ
+(React, ZaUI, zmp-sdk);
+:Chạy thử cục bộ bằng zmp start
+(xem trước, hot reload);
+:Phát hành: zmp login rồi zmp deploy;
+:Quét mã QR mở thử trên thiết bị thật;
+if (Kiểm duyệt Zalo đạt?) then (đạt)
+  :Mini App đến tay người dùng;
+  stop
+else (chưa đạt)
+  :Chỉnh sửa theo phản hồi
+  và nộp lại;
+  stop
+endif
+@enduml

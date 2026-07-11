@@ -1,0 +1,47 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {2.1}{\ignorespaces So sánh các phương pháp điểm danh}}{6}{table.caption.10}%
+\contentsline {table}{\numberline {2.2}{\ignorespaces Tổng hợp yêu cầu chức năng theo vai trò}}{10}{table.caption.16}%
+\contentsline {table}{\numberline {2.3}{\ignorespaces Đặc tả use case ``Đăng nhập và chọn vai trò''}}{11}{table.caption.17}%
+\contentsline {table}{\numberline {2.4}{\ignorespaces Đặc tả use case ``Đăng ký khuôn mặt''}}{11}{table.caption.18}%
+\contentsline {table}{\numberline {2.5}{\ignorespaces Đặc tả use case ``Tham gia lớp học''}}{12}{table.caption.19}%
+\contentsline {table}{\numberline {2.6}{\ignorespaces Đặc tả use case ``Điểm danh bốn bước''}}{12}{table.caption.20}%
+\contentsline {table}{\numberline {2.7}{\ignorespaces Đặc tả use case ``Xem lịch sử điểm danh''}}{12}{table.caption.21}%
+\contentsline {table}{\numberline {2.8}{\ignorespaces Đặc tả use case ``Gửi đơn xin nghỉ''}}{13}{table.caption.22}%
+\contentsline {table}{\numberline {2.9}{\ignorespaces Đặc tả use case ``Xem lịch học''}}{13}{table.caption.23}%
+\contentsline {table}{\numberline {2.10}{\ignorespaces Đặc tả use case ``Sử dụng trợ lý AI''}}{13}{table.caption.24}%
+\contentsline {table}{\numberline {2.11}{\ignorespaces Đặc tả use case ``Quản lý lớp học''}}{14}{table.caption.25}%
+\contentsline {table}{\numberline {2.12}{\ignorespaces Đặc tả use case ``Tạo và quản lý phiên điểm danh''}}{14}{table.caption.26}%
+\contentsline {table}{\numberline {2.13}{\ignorespaces Đặc tả use case ``Hiển thị QR qua Cổng máy chiếu''}}{14}{table.caption.27}%
+\contentsline {table}{\numberline {2.14}{\ignorespaces Đặc tả use case ``Giám sát điểm danh thời gian thực''}}{15}{table.caption.28}%
+\contentsline {table}{\numberline {2.15}{\ignorespaces Đặc tả use case ``Xem xét và ghi đè kết quả''}}{15}{table.caption.29}%
+\contentsline {table}{\numberline {2.16}{\ignorespaces Đặc tả use case ``Điểm danh thủ công''}}{15}{table.caption.30}%
+\contentsline {table}{\numberline {2.17}{\ignorespaces Đặc tả use case ``Xem báo cáo gian lận''}}{16}{table.caption.31}%
+\contentsline {table}{\numberline {2.18}{\ignorespaces Đặc tả use case ``Xem thống kê lớp học''}}{16}{table.caption.32}%
+\contentsline {table}{\numberline {2.19}{\ignorespaces Đặc tả use case ``Quản lý người dùng''}}{16}{table.caption.33}%
+\contentsline {table}{\numberline {2.20}{\ignorespaces Đặc tả use case ``Duyệt đơn xin nghỉ''}}{17}{table.caption.34}%
+\contentsline {table}{\numberline {2.21}{\ignorespaces Đặc tả use case ``Nhập danh sách từ Excel''}}{17}{table.caption.35}%
+\contentsline {table}{\numberline {2.22}{\ignorespaces Đặc tả use case ``Xem bảng điều khiển và quản lý mã mời''}}{17}{table.caption.36}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Zalo Mini App với PWA và ứng dụng gốc}}{21}{table.caption.38}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Các collection chính của cơ sở dữ liệu}}{28}{table.caption.40}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Cấu trúc collection \texttt {sessions}}}{29}{table.caption.41}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Cấu trúc collection \texttt {attendance}}}{29}{table.caption.42}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Cấu trúc collection \texttt {users}}}{29}{table.caption.43}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Cấu trúc collection \texttt {classes}}}{29}{table.caption.44}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Ma trận phân quyền theo vai trò}}{31}{table.caption.47}%
+\contentsline {table}{\numberline {4.7}{\ignorespaces Phân loại các hành vi đáng ngờ}}{36}{table.caption.52}%
+\contentsline {table}{\numberline {4.8}{\ignorespaces Phân nhóm các hàm Cloud Functions}}{42}{table.caption.59}%
+\contentsline {table}{\numberline {4.9}{\ignorespaces Phân bố kịch bản kiểm thử theo nhóm chức năng}}{43}{table.caption.60}%
+\contentsline {table}{\numberline {4.10}{\ignorespaces Một số kịch bản kiểm thử tiêu biểu}}{44}{table.caption.61}%
+\contentsline {table}{\numberline {4.11}{\ignorespaces Bảng điểm đánh giá bảo mật theo lĩnh vực}}{45}{table.caption.62}%
+\contentsline {table}{\numberline {4.12}{\ignorespaces Các lỗ hổng bảo mật đã phát hiện và khắc phục}}{45}{table.caption.63}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Các lớp xác minh và hình thức gian lận bị ngăn chặn}}{49}{table.caption.65}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {A.1}{\ignorespaces Yêu cầu môi trường cài đặt}}{58}{table.caption.69}%
+\addvspace {10\p@ }
+\contentsfinish 
+\contentsfinish 

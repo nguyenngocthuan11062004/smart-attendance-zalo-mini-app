@@ -1,0 +1,172 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+Chương này giới thiệu tổng quan về đề tài. Trước hết, chương đặt vấn đề thông qua bối cảnh
+hoạt động điểm danh tại các trường đại học cùng những hạn chế của các phương pháp hiện hành.
+Tiếp đó, chương xác định mục tiêu và phạm vi của đề tài, trình bày định hướng giải pháp cùng
+các đóng góp chính, và cuối cùng mô tả bố cục của toàn bộ quyển báo cáo.
+
+% ─────────────────────────────────────────────
+\section{Đặt vấn đề}
+\label{sec:dat-van-de}
+
+Điểm danh là một hoạt động bắt buộc và diễn ra thường xuyên trong công tác quản lý đào
+tạo tại các trường đại học. Kết quả điểm danh không chỉ phản ánh ý thức học tập của
+sinh viên mà còn là một căn cứ để đánh giá điều kiện dự thi theo quy chế đào tạo. Tuy
+nhiên, cho đến nay phần lớn các lớp học vẫn sử dụng những phương pháp điểm danh truyền
+thống như gọi tên, ký tên vào danh sách giấy, hoặc chuyền tay phiếu điểm danh. Các
+phương pháp này tuy đơn giản nhưng tiêu tốn nhiều thời gian của giờ học, đặc biệt với
+các lớp học phần đông sinh viên, và rất khó kiểm soát tính trung thực.
+
+Nhằm khắc phục các nhược điểm trên, nhiều giải pháp điểm danh ứng dụng công nghệ đã
+được nghiên cứu và triển khai, bao gồm thẻ từ và thẻ RFID, công nghệ NFC, đèn hiệu
+Bluetooth năng lượng thấp (BLE Beacon), mã QR, hay nhận diện khuôn mặt. Mỗi giải pháp
+giải quyết được một phần bài toán nhưng đồng thời cũng bộc lộ những hạn chế riêng về
+chi phí phần cứng, độ phức tạp khi triển khai hoặc khả năng chống gian lận, sẽ được
+phân tích chi tiết trong Chương~\ref{chapter:Related_works}.
+
+Song song với sự phát triển của các giải pháp công nghệ, sự phổ biến của điện thoại
+thông minh và các nền tảng nhắn tin đã tạo ra một cơ hội mới. Tại Việt Nam, Zalo là một
+trong những ứng dụng nhắn tin phổ biến nhất với hơn 78 triệu người dùng thường xuyên hằng
+tháng~\cite{zalostats}, gần như bao phủ toàn bộ nhóm sinh viên. Nền tảng \textit{Zalo Mini App} cho
+phép xây dựng các ứng dụng chạy trực tiếp bên trong Zalo mà người dùng không cần cài
+đặt thêm phần mềm, đồng thời cung cấp sẵn cơ chế xác thực người dùng, truy cập máy ảnh,
+định vị và quét mã QR~\cite{zalominiapp}. Đây là tiền đề thuận lợi để xây dựng một hệ
+thống điểm danh hiện đại, tiếp cận được số đông sinh viên với chi phí triển khai thấp.
+
+Từ thực tiễn nêu trên, đề tài tập trung giải quyết bốn vấn đề chính mà các hệ thống
+điểm danh hiện hành tại trường đại học còn gặp phải:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Gian lận điểm danh hộ (proxy attendance).} Đây là vấn đề nghiêm trọng
+  nhất: một sinh viên có thể điểm danh thay cho bạn vắng mặt bằng cách ký hộ, chụp ảnh
+  màn hình mã QR gửi cho nhau, hoặc khai báo hộ thông tin. Phần lớn các phương pháp hiện
+  hành không có cơ chế xác minh danh tính người điểm danh tại thời điểm điểm danh.
+
+  \item \textbf{Tốc độ chậm với lớp học đông.} Với các lớp học phần trên 50 sinh viên,
+  việc gọi tên hoặc ký danh sách có thể chiếm nhiều phút đầu giờ, gây gián đoạn bài
+  giảng và giảm hiệu quả sử dụng thời gian trên lớp.
+
+  \item \textbf{Giảng viên khó giám sát theo thời gian thực.} Giảng viên không có công
+  cụ để theo dõi tiến trình điểm danh ngay khi đang diễn ra, cũng như thiếu báo cáo
+  thống kê dài hạn phục vụ việc đánh giá chuyên cần.
+
+  \item \textbf{Thiếu kênh xin phép nghỉ chính thức.} Sinh viên không có cách gửi đơn
+  xin nghỉ có lý do trong hệ thống, dẫn đến khó khăn khi đối chiếu và xử lý các trường
+  hợp vắng có phép.
+\end{itemize}
+
+Những vấn đề này đặt ra câu hỏi nghiên cứu trọng tâm của đề tài: \textit{làm thế nào
+kết hợp mã QR động, xác minh sinh trắc học và xác minh ngang hàng giữa các sinh viên để
+xây dựng một quy trình điểm danh vừa nhanh chóng, thuận tiện, vừa có khả năng chống gian
+lận cao mà không đòi hỏi phần cứng chuyên dụng đắt tiền?} Việc trả lời câu hỏi này chính
+là động lực thúc đẩy việc thực hiện đề tài.
+
+% ─────────────────────────────────────────────
+\section{Mục tiêu và phạm vi đề tài}
+\label{sec:muc-tieu}
+
+\textbf{Mục tiêu tổng quát} của đồ án là xây dựng một hệ thống điểm danh thông minh,
+chống gian lận, hoạt động trên nền tảng Zalo Mini App, áp dụng được cho môi trường đào
+tạo đại học. Hệ thống có tên \textit{Zimo Check-in}.
+
+Để đạt được mục tiêu tổng quát, đồ án đặt ra các \textbf{mục tiêu cụ thể} sau:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Xây dựng ứng dụng điểm danh trên Zalo Mini App sử dụng mã QR động xoay theo chu
+  kỳ 30 giây dựa trên thuật toán HMAC-SHA256 nhằm chống việc chụp màn hình và chia sẻ mã.
+
+  \item Tích hợp cơ chế xác minh khuôn mặt phía thiết bị người dùng để xác thực danh
+  tính sinh viên tại thời điểm điểm danh.
+
+  \item Thiết kế cơ chế xác minh ngang hàng (peer-to-peer) yêu cầu mỗi sinh viên trao
+  đổi mã xác nhận với tối thiểu ba sinh viên xung quanh, nhằm chống điểm danh từ xa.
+
+  \item Xây dựng trang quản trị web cho giảng viên và phòng đào tạo phục vụ quản lý lớp,
+  giám sát phiên điểm danh theo thời gian thực và xuất báo cáo.
+
+  \item Thiết kế hệ thống phát hiện gian lận nhiều lớp với khả năng cảnh báo và lập báo
+  cáo tự động.
+\end{enumerate}
+
+\textbf{Về nghiệp vụ}, hệ thống phục vụ ba nhóm vai trò người dùng: sinh viên, giảng
+viên và quản trị viên (đại diện cho phòng đào tạo).
+
+\textbf{Về kỹ thuật}, phạm vi triển khai gồm: ứng dụng phía người dùng là một Zalo Mini
+App xây dựng bằng React, TypeScript và thư viện quản lý trạng thái Jotai; trang quản trị
+là một ứng dụng web; và phần xử lý phía máy chủ dựa trên nền tảng Firebase (Firestore,
+Cloud Functions, Storage).
+
+\textbf{Về quy mô triển khai}, đồ án được thực hiện ở mức thử nghiệm (pilot) trong khuôn
+khổ một đồ án tốt nghiệp, chưa triển khai chính thức ở quy mô toàn trường.
+
+\textbf{Các nội dung nằm ngoài phạm vi} của đồ án bao gồm: tích hợp với hệ thống quản lý
+học tập (LMS) của nhà trường, tích hợp thẻ sinh viên RFID, và cơ chế chống giả mạo khuôn
+mặt bằng kỹ thuật phát hiện sự sống (liveness detection) ở mức nâng cao. Những hạn chế
+này được trình bày trung thực ở Chương~\ref{chapter:conclusion}.
+
+% ─────────────────────────────────────────────
+\section{Định hướng giải pháp}
+\label{sec:dong-gop}
+
+Để giải quyết những vấn đề nêu trên, đề tài lựa chọn định hướng xây dựng hệ thống điểm danh
+ngay trên nền tảng Zalo Mini App, tận dụng việc sinh viên đã sẵn có Zalo nên không cần cài
+đặt ứng dụng mới. Thay vì dựa vào một yếu tố xác minh duy nhất, hệ thống kết hợp nhiều lớp
+xác minh bổ trợ (mã QR động, khuôn mặt và ngang hàng) theo nguyên lý phòng thủ theo chiều
+sâu; các nghiệp vụ nhạy cảm được tập trung xử lý phía máy chủ trên nền tảng Firebase nhằm
+bảo đảm an toàn. Theo định hướng đó, các đóng góp chính của đồ án bao gồm:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Cơ chế mã QR động dựa trên HMAC-SHA256 xoay 30 giây}, có đồng bộ đồng
+  hồ giữa nhiều thiết bị (điện thoại của giảng viên và màn hình máy chiếu), giúp chống
+  hiệu quả việc chụp và chia sẻ lại mã QR.
+
+  \item \textbf{Tính năng ``Cổng máy chiếu'' (Teacher Display)} cho phép hiển thị mã QR
+  cỡ lớn trên máy chiếu của lớp học, sử dụng cơ chế ghép nối (pairing) bằng mã thông báo
+  128-bit với quy tắc chuyển trạng thái một chiều, an toàn.
+
+  \item \textbf{Quy trình điểm danh đa yếu tố bốn bước} (mã QR, khuôn mặt, ngang hàng,
+  định vị) kết hợp thành một hệ thống chống gian lận nhiều lớp theo nguyên lý phòng thủ
+  theo chiều sâu (defense in depth).
+
+  \item \textbf{Kiến trúc ba vai trò với phân quyền chặt chẽ}, sử dụng quy tắc bảo mật
+  của Firestore kết hợp cơ chế cấp token tùy biến (Custom Token).
+
+  \item \textbf{Bảo đảm tuân thủ chính sách của nền tảng Zalo}, bao gồm chính sách quyền
+  riêng tư, xử lý dữ liệu sinh trắc học và cơ chế đồng thuận của người dùng.
+\end{enumerate}
+
+% ─────────────────────────────────────────────
+\section{Bố cục đồ án}
+\label{sec:bo-cuc}
+
+Phần còn lại của quyển báo cáo được tổ chức như sau:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Chương~\ref{chapter:Related_works} -- Khảo sát và phân tích yêu cầu:}
+  khảo sát các hệ thống điểm danh hiện có, so sánh ưu nhược điểm, phân tích đối tượng
+  người dùng và xác định các yêu cầu chức năng, phi chức năng.
+
+  \item \textbf{Chương~\ref{chapter:Methodology} -- Nền tảng lý thuyết và công nghệ sử
+  dụng:} trình bày các công nghệ và kiến thức nền tảng được áp dụng, gồm nền tảng Zalo
+  Mini App, hệ sinh thái Firebase, thuật toán HMAC-SHA256, nhận diện khuôn mặt và mã QR.
+
+  \item \textbf{Chương~\ref{chapter:Experiment} -- Phân tích thiết kế, triển khai và
+  đánh giá hệ thống:} trình bày kiến trúc tổng thể, thiết kế cơ sở dữ liệu, các thuật
+  toán cốt lõi, quá trình triển khai và kết quả đánh giá về chức năng, bảo mật, hiệu năng.
+
+  \item \textbf{Chương~\ref{chapter:SolutionAndContribution} -- Các giải pháp và đóng
+  góp nổi bật:} phân tích sâu những giải pháp kỹ thuật tạo nên sự khác biệt của hệ thống.
+
+  \item \textbf{Chương~\ref{chapter:conclusion} -- Kết luận và hướng phát triển:} đánh
+  giá lại những gì đã làm được, chỉ ra các điểm còn hạn chế và phác thảo lộ trình mở rộng.
+\end{itemize}
+
+% ─────────────────────────────────────────────
+\subsection*{Kết chương}
+Chương này đã đặt vấn đề từ bối cảnh và các khó khăn thực tiễn của hoạt động điểm danh, xác
+định mục tiêu, phạm vi, trình bày định hướng giải pháp cùng những đóng góp chính của đề tài,
+đồng thời giới thiệu bố cục của quyển báo cáo. Chương tiếp theo sẽ khảo sát các hệ thống điểm
+danh hiện có và phân tích các yêu cầu đặt ra cho hệ thống cần xây dựng.
+
+\end{document}

@@ -1,0 +1,362 @@
+\subsection{Use case của Sinh viên}
+
+Các use case của sinh viên được đặc tả lần lượt trong: Bảng~\ref{tab:uc-login} (đăng nhập và
+chọn vai trò), Bảng~\ref{tab:uc-face} (đăng ký khuôn mặt), Bảng~\ref{tab:uc-join} (tham gia
+lớp học), Bảng~\ref{tab:uc-attendance} (điểm danh bốn bước), Bảng~\ref{tab:uc-history} (xem
+lịch sử điểm danh), Bảng~\ref{tab:uc-absence} (gửi đơn xin nghỉ), Bảng~\ref{tab:uc-schedule}
+(xem lịch học) và Bảng~\ref{tab:uc-ai} (sử dụng trợ lý AI).
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Đăng nhập và chọn vai trò''}
+\label{tab:uc-login}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-01 \\ \hline
+\textbf{Tác nhân} & Sinh viên, Giảng viên, Quản trị viên \\ \hline
+\textbf{Mô tả} & Người dùng đăng nhập qua tài khoản Zalo và chọn vai trò để truy cập hệ thống. \\ \hline
+\textbf{Tiền điều kiện} & Đã cài đặt Zalo và mở Mini App. \\ \hline
+\textbf{Luồng chính} & 1. Người dùng mở ứng dụng. \newline 2. Hệ thống lấy định danh Zalo. \newline 3. Người dùng chọn vai trò Sinh viên hoặc Giảng viên. \newline 4. Nếu là sinh viên, nhập MSSV hợp lệ (8 chữ số, bắt đầu ``20''). \newline 5. Hệ thống lưu hồ sơ và chuyển vào trang chủ tương ứng vai trò. \\ \hline
+\textbf{Luồng ngoại lệ} & MSSV sai định dạng: hệ thống báo lỗi và yêu cầu nhập lại. Người dùng từ chối cấp quyền Zalo: một số chức năng bị hạn chế. \\ \hline
+\textbf{Hậu điều kiện} & Phiên đăng nhập được thiết lập; vai trò được lưu. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Đăng ký khuôn mặt''}
+\label{tab:uc-face}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-02 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên đăng ký dữ liệu khuôn mặt phục vụ xác minh khi điểm danh. \\ \hline
+\textbf{Tiền điều kiện} & Tài khoản sinh viên đã đăng nhập và quyền máy ảnh đã được cấp. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên mở chức năng đăng ký khuôn mặt. \newline 2. Ứng dụng tải mô hình nhận diện. \newline 3. Sinh viên chụp hai ảnh khuôn mặt. \newline 4. Ứng dụng trích véc-tơ đặc trưng 128 chiều và so khớp hai ảnh (khoảng cách $<$ 0,6). \newline 5. Hệ thống lưu véc-tơ đặc trưng. \\ \hline
+\textbf{Luồng ngoại lệ} & Không phát hiện được khuôn mặt hoặc hai ảnh không khớp: yêu cầu chụp lại. \\ \hline
+\textbf{Hậu điều kiện} & Thuộc tính \texttt{faceRegistered} được đặt true; véc-tơ đặc trưng được lưu. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Tham gia lớp học''}
+\label{tab:uc-join}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-03 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên tham gia một lớp học phần bằng mã lớp do giảng viên cung cấp. \\ \hline
+\textbf{Tiền điều kiện} & Sinh viên đã đăng nhập và được giảng viên cung cấp mã lớp. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên nhập mã lớp được cung cấp. \newline 2. Máy chủ đối chiếu mã lớp với cơ sở dữ liệu và xác nhận còn hiệu lực. \newline 3. Sinh viên được ghi danh vào lớp tương ứng. \\ \hline
+\textbf{Luồng ngoại lệ} & Mã lớp không tồn tại hoặc sai định dạng: báo lỗi. Sinh viên đã ở trong lớp: thông báo đã tham gia. \\ \hline
+\textbf{Hậu điều kiện} & Sinh viên có trong danh sách của lớp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Điểm danh bốn bước''}
+\label{tab:uc-attendance}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-04 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên thực hiện điểm danh qua bốn bước: quét mã QR, xác minh khuôn mặt, xác minh ngang hàng và hoàn tất. \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập, đã đăng ký khuôn mặt, đang ở trong lớp và phiên điểm danh đang mở. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên quét mã QR động của giảng viên; hệ thống kiểm tra chữ ký HMAC và thời gian. \newline 2. Ứng dụng tự động chụp và so khớp khuôn mặt (đạt khi độ tin cậy $\geq$ 0,7). \newline 3. Sinh viên trao đổi mã QR với tối thiểu ba bạn xung quanh. \newline 4. Hệ thống tổng hợp kết quả, tính điểm tin cậy và lưu bản ghi điểm danh. \\ \hline
+\textbf{Luồng ngoại lệ} & Mã QR hết hạn/sai chữ ký: từ chối. Khuôn mặt không khớp hoặc số lượt ngang hàng $<$ 3: kết quả chuyển trạng thái ``cần xem xét''. \\ \hline
+\textbf{Hậu điều kiện} & Bản ghi điểm danh được lưu kèm điểm tin cậy (present/review/absent). \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Xem lịch sử điểm danh''}
+\label{tab:uc-history}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-05 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên xem lại lịch sử điểm danh của mình theo lớp và thời gian. \\ \hline
+\textbf{Tiền điều kiện} & Sinh viên đã đăng nhập và có sẵn bản ghi điểm danh các buổi trước. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên mở trang lịch sử. \newline 2. Hệ thống hiển thị danh sách bản ghi kèm điểm tin cậy. \newline 3. Sinh viên lọc theo lớp hoặc khoảng thời gian. \\ \hline
+\textbf{Luồng ngoại lệ} & Chưa có dữ liệu: hiển thị trạng thái trống. \\ \hline
+\textbf{Hậu điều kiện} & Không thay đổi dữ liệu. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Gửi đơn xin nghỉ''}
+\label{tab:uc-absence}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-06 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên gửi đơn xin nghỉ buổi học kèm lý do và tệp đính kèm. \\ \hline
+\textbf{Tiền điều kiện} & Sinh viên đã đăng nhập và đang tham gia lớp có buổi cần xin nghỉ. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên chọn lớp/buổi cần xin nghỉ. \newline 2. Nhập lý do và đính kèm minh chứng (nếu có). \newline 3. Gửi đơn; hệ thống lưu đơn với trạng thái ``chờ duyệt''. \\ \hline
+\textbf{Luồng ngoại lệ} & Thiếu thông tin bắt buộc: báo lỗi. \\ \hline
+\textbf{Hậu điều kiện} & Đơn xin nghỉ được tạo với trạng thái chờ duyệt. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Xem lịch học''}
+\label{tab:uc-schedule}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-17 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên xem thời khoá biểu các lớp đã tham gia. \\ \hline
+\textbf{Tiền điều kiện} & Sinh viên đã đăng nhập và đã tham gia ít nhất một lớp học phần. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên mở trang lịch học. \newline 2. Hệ thống hiển thị lịch theo ngày/tuần kèm phòng học và thời gian. \\ \hline
+\textbf{Luồng ngoại lệ} & Chưa tham gia lớp nào: hiển thị trạng thái trống. \\ \hline
+\textbf{Hậu điều kiện} & Không thay đổi dữ liệu. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Sử dụng trợ lý AI''}
+\label{tab:uc-ai}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-18 \\ \hline
+\textbf{Tác nhân} & Sinh viên \\ \hline
+\textbf{Mô tả} & Sinh viên hỏi đáp với trợ lý AI về thông tin liên quan đến điểm danh và lịch học. \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên mở trang trợ lý AI. \newline 2. Nhập câu hỏi. \newline 3. Hệ thống gọi mô hình ngôn ngữ qua Cloud Function và trả lời. \\ \hline
+\textbf{Luồng ngoại lệ} & Dịch vụ AI gặp lỗi: thông báo và cho phép thử lại. \\ \hline
+\textbf{Hậu điều kiện} & Không thay đổi dữ liệu nghiệp vụ. \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Use case của Giảng viên}
+
+Các use case của giảng viên được đặc tả lần lượt trong: Bảng~\ref{tab:uc-class} (quản lý lớp
+học), Bảng~\ref{tab:uc-session} (tạo và quản lý phiên điểm danh), Bảng~\ref{tab:uc-projector}
+(hiển thị QR qua Cổng máy chiếu), Bảng~\ref{tab:uc-monitor} (giám sát điểm danh thời gian
+thực), Bảng~\ref{tab:uc-review} (xem xét và ghi đè kết quả), Bảng~\ref{tab:uc-manual} (điểm
+danh thủ công), Bảng~\ref{tab:uc-fraud} (xem báo cáo gian lận) và Bảng~\ref{tab:uc-analytics}
+(xem thống kê lớp học).
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Quản lý lớp học''}
+\label{tab:uc-class}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-07 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên tạo lớp học phần, cấu hình lịch học và quản lý danh sách sinh viên. \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập vai trò giảng viên. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên tạo lớp với tên, mã, lịch học. \newline 2. Hệ thống sinh mã lớp để sinh viên tham gia. \newline 3. Giảng viên xem và quản lý danh sách sinh viên trong lớp. \\ \hline
+\textbf{Luồng ngoại lệ} & Thông tin lớp không hợp lệ: báo lỗi. \\ \hline
+\textbf{Hậu điều kiện} & Lớp học được tạo và sẵn sàng cho điểm danh. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Tạo và quản lý phiên điểm danh''}
+\label{tab:uc-session}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-08 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên mở một phiên điểm danh cho lớp, cấu hình các yêu cầu xác minh và kết thúc phiên. \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập vai trò giảng viên và có ít nhất một lớp. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên chọn lớp và mở phiên. \newline 2. Cấu hình thời lượng, bật/tắt xác minh khuôn mặt và ngang hàng. \newline 3. Hệ thống sinh khoá bí mật HMAC và hiển thị mã QR động xoay 30 giây. \newline 4. Khi buổi học kết thúc, giảng viên đóng phiên điểm danh. \\ \hline
+\textbf{Luồng ngoại lệ} & Đã có phiên đang mở: yêu cầu kết thúc trước khi mở phiên mới. \\ \hline
+\textbf{Hậu điều kiện} & Phiên điểm danh được tạo (active) hoặc kết thúc (ended). \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Hiển thị QR qua Cổng máy chiếu''}
+\label{tab:uc-projector}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-09 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên liên kết phiên điểm danh với màn hình máy chiếu để hiển thị mã QR cỡ lớn. \\ \hline
+\textbf{Tiền điều kiện} & Đang có phiên điểm danh mở; trang Cổng máy chiếu đang hiển thị mã ghép nối. \\ \hline
+\textbf{Luồng chính} & 1. Trang máy chiếu sinh mã ghép nối (hết hạn 60 giây). \newline 2. Giảng viên quét mã ghép nối bằng Mini App. \newline 3. Hệ thống chuyển mã sang trạng thái ``paired'' và gắn phiên. \newline 4. Máy chiếu hiển thị mã QR điểm danh cỡ lớn, đồng bộ với phiên. \\ \hline
+\textbf{Luồng ngoại lệ} & Mã ghép nối hết hạn hoặc đã được ghép: yêu cầu sinh mã mới. \\ \hline
+\textbf{Hậu điều kiện} & Máy chiếu hiển thị mã QR đồng bộ với phiên của giảng viên. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Giám sát điểm danh thời gian thực''}
+\label{tab:uc-monitor}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-10 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên theo dõi tiến trình điểm danh của sinh viên theo thời gian thực. \\ \hline
+\textbf{Tiền điều kiện} & Đang có phiên điểm danh mở. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên mở màn hình giám sát. \newline 2. Hệ thống hiển thị danh sách sinh viên kèm điểm tin cậy, số lượt ngang hàng và khoảng cách GPS, cập nhật tức thời. \newline 3. Giảng viên lọc theo trạng thái khi cần. \\ \hline
+\textbf{Luồng ngoại lệ} & Mất kết nối mạng: hiển thị trạng thái ngoại tuyến và đồng bộ lại khi có mạng. \\ \hline
+\textbf{Hậu điều kiện} & Không thay đổi dữ liệu điểm danh. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Xem xét và ghi đè kết quả''}
+\label{tab:uc-review}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-11 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên xem xét các bản ghi ``cần xem xét'' và ghi đè trạng thái khi cần. \\ \hline
+\textbf{Tiền điều kiện} & Phiên điểm danh đã hoặc đang diễn ra. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên mở trang xem xét. \newline 2. Hệ thống hiển thị bản ghi kèm độ tin cậy khuôn mặt và lý do. \newline 3. Giảng viên ghi đè thành ``có mặt'' hoặc ``vắng'' kèm lý do. \\ \hline
+\textbf{Luồng ngoại lệ} & Không có bản ghi cần xem xét: hiển thị trạng thái trống. \\ \hline
+\textbf{Hậu điều kiện} & Trạng thái điểm danh được cập nhật kèm thông tin ghi đè. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Điểm danh thủ công''}
+\label{tab:uc-manual}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-12 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên điểm danh thủ công cho sinh viên trong trường hợp đặc biệt. \\ \hline
+\textbf{Tiền điều kiện} & Phiên điểm danh đang mở hoặc vừa kết thúc. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên chọn sinh viên cần điểm danh thủ công. \newline 2. Nhập lý do (nếu có). \newline 3. Hệ thống ghi nhận có mặt kèm thông tin người thực hiện. \\ \hline
+\textbf{Luồng ngoại lệ} & Hủy điểm danh thủ công: hệ thống khôi phục trạng thái trước đó. \\ \hline
+\textbf{Hậu điều kiện} & Bản ghi điểm danh thủ công được lưu kèm người thực hiện và thời điểm. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Xem báo cáo gian lận''}
+\label{tab:uc-fraud}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-13 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên xem báo cáo các hành vi điểm danh đáng ngờ do hệ thống phân tích. \\ \hline
+\textbf{Tiền điều kiện} & Đã có dữ liệu điểm danh để phân tích. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên mở trang báo cáo gian lận. \newline 2. Hệ thống chạy phân tích và liệt kê các mẫu đáng ngờ kèm mức độ. \newline 3. Giảng viên xuất báo cáo ra tệp CSV. \\ \hline
+\textbf{Luồng ngoại lệ} & Không phát hiện hành vi đáng ngờ: hiển thị báo cáo trống. \\ \hline
+\textbf{Hậu điều kiện} & Báo cáo gian lận được tạo và có thể xuất ra tệp. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Xem thống kê lớp học''}
+\label{tab:uc-analytics}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-19 \\ \hline
+\textbf{Tác nhân} & Giảng viên \\ \hline
+\textbf{Mô tả} & Giảng viên xem thống kê chuyên cần của lớp (có mặt/xem xét/vắng) dưới dạng biểu đồ. \\ \hline
+\textbf{Tiền điều kiện} & Có dữ liệu điểm danh của lớp. \\ \hline
+\textbf{Luồng chính} & 1. Giảng viên mở trang thống kê. \newline 2. Hệ thống tổng hợp và hiển thị biểu đồ theo phiên và theo sinh viên. \\ \hline
+\textbf{Luồng ngoại lệ} & Chưa có dữ liệu: hiển thị trạng thái trống. \\ \hline
+\textbf{Hậu điều kiện} & Không thay đổi dữ liệu. \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Use case của Quản trị viên}
+
+Các use case của quản trị viên được đặc tả lần lượt trong: Bảng~\ref{tab:uc-user} (quản lý
+người dùng), Bảng~\ref{tab:uc-approve} (duyệt đơn xin nghỉ), Bảng~\ref{tab:uc-import} (nhập
+danh sách từ Excel) và Bảng~\ref{tab:uc-dashboard} (xem bảng điều khiển và quản lý mã mời).
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Quản lý người dùng''}
+\label{tab:uc-user}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-14 \\ \hline
+\textbf{Tác nhân} & Quản trị viên \\ \hline
+\textbf{Mô tả} & Quản trị viên quản lý tài khoản người dùng và gán vai trò giảng viên. \\ \hline
+\textbf{Tiền điều kiện} & Quản trị viên đã xác thực và truy cập được trang quản trị web. \\ \hline
+\textbf{Luồng chính} & 1. Quản trị viên tìm kiếm, lọc người dùng theo vai trò. \newline 2. Tạo mã mời hoặc gán vai trò giảng viên. \newline 3. Hệ thống cập nhật vai trò ở phía máy chủ. \\ \hline
+\textbf{Luồng ngoại lệ} & Thao tác trái phép bị quy tắc bảo mật từ chối. \\ \hline
+\textbf{Hậu điều kiện} & Vai trò người dùng được cập nhật an toàn. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Duyệt đơn xin nghỉ''}
+\label{tab:uc-approve}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-15 \\ \hline
+\textbf{Tác nhân} & Quản trị viên \\ \hline
+\textbf{Mô tả} & Quản trị viên xem xét và phê duyệt hoặc từ chối các đơn xin nghỉ của sinh viên. \\ \hline
+\textbf{Tiền điều kiện} & Có đơn xin nghỉ ở trạng thái chờ duyệt. \\ \hline
+\textbf{Luồng chính} & 1. Quản trị viên mở danh sách đơn chờ duyệt. \newline 2. Xem lý do và minh chứng đính kèm. \newline 3. Phê duyệt hoặc từ chối kèm ghi chú. \\ \hline
+\textbf{Luồng ngoại lệ} & Không có đơn chờ duyệt: hiển thị trạng thái trống. \\ \hline
+\textbf{Hậu điều kiện} & Trạng thái đơn được cập nhật (đã duyệt/từ chối). \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Nhập danh sách từ Excel''}
+\label{tab:uc-import}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-16 \\ \hline
+\textbf{Tác nhân} & Quản trị viên \\ \hline
+\textbf{Mô tả} & Quản trị viên nhập danh sách sinh viên hoặc lớp hàng loạt từ tệp Excel. \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập trang quản trị; có tệp Excel đúng định dạng. \\ \hline
+\textbf{Luồng chính} & 1. Quản trị viên tải lên tệp Excel. \newline 2. Hệ thống đọc và kiểm tra dữ liệu. \newline 3. Hệ thống tạo hàng loạt bản ghi tương ứng. \\ \hline
+\textbf{Luồng ngoại lệ} & Tệp sai định dạng hoặc dữ liệu lỗi: báo lỗi và bỏ qua dòng lỗi. \\ \hline
+\textbf{Hậu điều kiện} & Dữ liệu được nhập vào hệ thống. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đặc tả use case ``Xem bảng điều khiển và quản lý mã mời''}
+\label{tab:uc-dashboard}
+\begin{tabular}{|p{3cm}|p{10.6cm}|}
+\hline
+\textbf{Mã use case} & UC-20 \\ \hline
+\textbf{Tác nhân} & Quản trị viên \\ \hline
+\textbf{Mô tả} & Quản trị viên xem thống kê tổng hợp toàn hệ thống và tạo, quản lý mã mời giảng viên. \\ \hline
+\textbf{Tiền điều kiện} & Đã đăng nhập trang quản trị. \\ \hline
+\textbf{Luồng chính} & 1. Quản trị viên mở bảng điều khiển. \newline 2. Xem các số liệu tổng hợp. \newline 3. Tạo mã mời giảng viên có thời hạn. \\ \hline
+\textbf{Luồng ngoại lệ} & Chưa có dữ liệu: hiển thị trạng thái trống. \\ \hline
+\textbf{Hậu điều kiện} & Mã mời được tạo; vai trò giảng viên được gán khi mã được sử dụng. \\ \hline
+\end{tabular}
+\end{table}

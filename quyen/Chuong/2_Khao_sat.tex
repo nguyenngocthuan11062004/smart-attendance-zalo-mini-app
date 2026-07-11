@@ -1,0 +1,302 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+Chương này khảo sát hiện trạng các hệ thống điểm danh, phân tích tổng quan chức năng của hệ
+thống cần xây dựng thông qua các tác nhân và ca sử dụng, đặc tả chi tiết các chức năng, và
+cuối cùng xác định các yêu cầu phi chức năng làm căn cứ cho việc thiết kế ở các chương sau.
+
+% ─────────────────────────────────────────────
+\section{Khảo sát hiện trạng}
+\label{sec:khao-sat-he-thong}
+
+Có thể phân loại các phương pháp điểm danh đang được sử dụng thành sáu nhóm chính, từ
+thủ công đến tự động hoá bằng công nghệ.
+
+\subsection{Điểm danh thủ công}
+Đây là phương pháp truyền thống nhất: giảng viên gọi tên hoặc cho sinh viên ký vào danh
+sách giấy. Ưu điểm là đơn giản, không cần thiết bị. Tuy nhiên phương pháp này tốn nhiều
+thời gian với lớp đông, dễ bị ký hộ, và kết quả ở dạng giấy nên khó thống kê, lưu trữ và
+tra cứu về sau.
+
+\subsection{Thẻ từ và thẻ RFID}
+Sinh viên quẹt thẻ qua đầu đọc để ghi nhận sự hiện diện. Phương pháp này nhanh và tự
+động hoá việc lưu trữ, nhưng đòi hỏi chi phí đầu tư đầu đọc và thẻ, đồng thời vẫn tồn
+tại nguy cơ quẹt hộ thẻ cho bạn vắng mặt vì thẻ không gắn với danh tính sinh trắc
+học~\cite{arulogun2013rfid}.
+
+\subsection{Công nghệ NFC}
+NFC hoạt động tương tự RFID nhưng tích hợp sẵn trên điện thoại thông minh, cho phép chạm
+điện thoại vào thẻ hoặc thiết bị để điểm danh. Ưu điểm là tận dụng thiết bị cá nhân,
+song không phải điện thoại nào cũng hỗ trợ NFC và vẫn chưa giải quyết được vấn đề xác
+minh danh tính~\cite{nfcforum}.
+
+\subsection{Đèn hiệu Bluetooth năng lượng thấp (BLE Beacon)}
+Một thiết bị beacon đặt trong phòng học phát tín hiệu Bluetooth; ứng dụng trên điện thoại
+sinh viên phát hiện tín hiệu để xác nhận sự hiện diện trong phạm vi lớp học. Phương pháp
+này thuận tiện và xác định được vị trí tương đối, nhưng phải trang bị beacon cho từng
+phòng và tín hiệu có thể bị bắt từ ngoài phòng, dẫn tới điểm danh
+sai~\cite{apoorv2016ble, ibeacon}.
+
+\subsection{Mã QR tĩnh}
+Giảng viên hiển thị một mã QR cố định để sinh viên quét và điểm danh. Cách này rẻ và
+nhanh, không cần phần cứng chuyên dụng. Tuy nhiên nhược điểm lớn nhất là mã QR tĩnh có
+thể bị chụp màn hình và chia sẻ cho sinh viên vắng mặt quét từ xa, làm mất hoàn toàn ý
+nghĩa chống gian lận.
+
+\subsection{Nhận diện khuôn mặt}
+Hệ thống dùng camera và mô hình học sâu để nhận diện khuôn mặt sinh viên. Phương pháp này
+xác thực được danh tính, chống điểm danh hộ tốt. Tuy nhiên nếu triển khai tập trung bằng
+camera tại lớp thì chi phí cao, còn nếu chỉ dựa vào ảnh tĩnh thì có thể bị qua mặt bằng
+ảnh chụp nếu thiếu cơ chế phát hiện sự sống (liveness)~\cite{schroff2015facenet}.
+
+\subsection{So sánh và bài học rút ra}
+\label{sec:so-sanh}
+
+Bảng~\ref{tab:so-sanh} so sánh sáu phương án trên theo các tiêu chí quan trọng. Mức đánh
+giá được quy ước: \textit{Thấp / Trung bình (TB) / Cao}, hoặc \textit{Có / Không}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{So sánh các phương pháp điểm danh}
+\label{tab:so-sanh}
+\begin{tabular}{|p{2.6cm}|c|c|c|c|c|}
+\hline
+\textbf{Phương án} & \textbf{Chi phí} & \textbf{Độ phức tạp} & \textbf{Chống} & \textbf{Trải nghiệm} & \textbf{Cần TB} \\
+ & \textbf{phần cứng} & \textbf{triển khai} & \textbf{gian lận} & \textbf{sinh viên} & \textbf{riêng} \\
+\hline
+Thủ công        & Thấp & Thấp & Thấp & Thấp & Không \\ \hline
+RFID / thẻ từ   & Cao  & TB   & TB   & TB   & Có \\ \hline
+NFC             & TB   & TB   & TB   & TB   & Có \\ \hline
+BLE Beacon      & TB   & Cao  & TB   & Cao  & Có \\ \hline
+QR tĩnh         & Thấp & Thấp & Thấp & Cao  & Không \\ \hline
+Nhận diện mặt   & Cao  & Cao  & Cao  & TB   & Tuỳ \\ \hline
+\end{tabular}
+\end{table}
+
+Từ bảng so sánh có thể rút ra hai bài học quan trọng. Thứ nhất, \textbf{không có phương
+án đơn lẻ nào vừa rẻ, vừa thuận tiện, vừa chống gian lận tốt}: các phương án rẻ và thuận
+tiện (QR tĩnh) lại yếu về chống gian lận, trong khi các phương án chống gian lận tốt
+(nhận diện mặt) lại đắt hoặc phức tạp. Thứ hai, để đạt khả năng chống gian lận cao mà
+vẫn giữ chi phí thấp, cần \textbf{kết hợp nhiều lớp xác minh} bổ trợ cho nhau thay vì dựa
+vào một cơ chế duy nhất. Đây chính là định hướng thiết kế của hệ thống trong đồ án.
+
+% ─────────────────────────────────────────────
+\section{Tổng quan chức năng}
+\label{sec:tong-quan-cn}
+
+\subsection{Tác nhân và đối tượng người dùng}
+\label{sec:doi-tuong}
+
+Hệ thống có ba tác nhân (actor), tương ứng ba nhóm người dùng với đặc điểm và kỳ vọng
+khác nhau:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Sinh viên} là người dùng đông nhất. Họ kỳ vọng thao tác điểm danh nhanh
+  (chỉ vài giây), không tốn nhiều dung lượng mạng, giao diện thân thiện trên điện thoại
+  và không phải cài thêm ứng dụng.
+
+  \item \textbf{Giảng viên} cần công cụ tạo và quản lý phiên điểm danh, giám sát tiến
+  trình theo thời gian thực, xử lý các trường hợp ngoại lệ (điểm danh thủ công, duyệt
+  lại) và xem báo cáo chuyên cần.
+
+  \item \textbf{Quản trị viên} (phòng đào tạo) cần quản lý dữ liệu ở quy mô lớn: nhập
+  danh sách sinh viên và lớp hàng loạt, phân công sinh viên vào lớp, duyệt đơn xin nghỉ
+  và xem thống kê tổng hợp toàn hệ thống.
+\end{itemize}
+
+\subsection{Biểu đồ use case tổng quát}
+\label{sec:use-case}
+
+Mỗi tác nhân tương tác với một tập các ca sử dụng (use case) phản ánh các yêu cầu chức
+năng của hệ thống. Sơ đồ use case tổng quát được trình bày trong Hình~\ref{fig:usecase};
+đặc tả chi tiết từng use case được trình bày ở mục~\ref{sec:dac-ta}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{usecase}
+  \caption{Sơ đồ use case tổng thể của hệ thống}
+  \label{fig:usecase}
+\end{figure}
+
+\subsection{Biểu đồ use case phân rã}
+\label{sec:use-case-phan-ra}
+
+Để làm rõ phạm vi chức năng của từng tác nhân, sơ đồ use case tổng quát được phân rã
+theo bốn nhóm: nhóm chức năng của sinh viên (Hình~\ref{fig:uc-sv}), nhóm quản lý phiên
+điểm danh của giảng viên (Hình~\ref{fig:uc-gv-phien}), nhóm quản lý lớp và báo cáo của
+giảng viên (Hình~\ref{fig:uc-gv-lop}) cùng nhóm quản trị hệ thống của quản trị viên
+(Hình~\ref{fig:uc-admin}). Hai nhóm sau được trình bày chung trong Hình~\ref{fig:uc-lop-admin}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\textwidth]{uc_sv}
+  \caption{Use case phân rã -- nhóm chức năng của Sinh viên}
+  \label{fig:uc-sv}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{uc_gv_phien}
+  \caption{Use case phân rã -- nhóm quản lý phiên điểm danh của Giảng viên}
+  \label{fig:uc-gv-phien}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{uc_gv_lop}
+    \caption{Quản lý lớp và báo cáo (Giảng viên)}
+    \label{fig:uc-gv-lop}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.42\textwidth}
+    \centering
+    \includegraphics[width=0.85\textwidth]{uc_admin}
+    \caption{Quản trị hệ thống (Quản trị viên)}
+    \label{fig:uc-admin}
+  \end{subfigure}
+  \caption{Use case phân rã -- nhóm quản lý lớp và nhóm quản trị hệ thống}
+  \label{fig:uc-lop-admin}
+\end{figure}
+
+\subsection{Quy trình nghiệp vụ}
+\label{sec:quy-trinh}
+
+Bên cạnh các use case rời rạc, hai quy trình nghiệp vụ tiêu biểu của hệ thống được mô
+tả dưới dạng biểu đồ hoạt động trong Hình~\ref{fig:quy-trinh}. Hình~\ref{fig:qt-diemdanh} mô tả quy trình một buổi
+điểm danh từ khi giảng viên mở phiên đến khi chốt kết quả; Hình~\ref{fig:qt-xinnghi}
+mô tả quy trình xử lý đơn xin nghỉ với sự tham gia của sinh viên và quản trị viên.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=0.78\textwidth]{qt_diemdanh}
+    \caption{Quy trình một buổi điểm danh}
+    \label{fig:qt-diemdanh}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \includegraphics[width=0.92\textwidth]{qt_xinnghi}
+    \caption{Quy trình xử lý đơn xin nghỉ}
+    \label{fig:qt-xinnghi}
+  \end{subfigure}
+  \caption{Quy trình nghiệp vụ tiêu biểu của hệ thống}
+  \label{fig:quy-trinh}
+\end{figure}
+
+\newpage
+\subsection{Yêu cầu chức năng}
+\label{sec:yeu-cau-cn}
+
+Trên cơ sở phân tích đối tượng người dùng và sơ đồ use case, các yêu cầu chức năng
+(Functional Requirement -- FR) của hệ thống được tổng hợp theo ba vai trò trong
+Bảng~\ref{tab:fr}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Tổng hợp yêu cầu chức năng theo vai trò}
+\label{tab:fr}
+\begin{tabular}{|c|p{12cm}|}
+\hline
+\textbf{Mã} & \textbf{Mô tả chức năng} \\
+\hline
+\multicolumn{2}{|l|}{\textbf{Sinh viên}} \\
+\hline
+FR-S.1 & Đăng nhập bằng tài khoản Zalo và xác minh email sinh viên của trường \\ \hline
+FR-S.2 & Đăng ký khuôn mặt phục vụ xác minh danh tính \\ \hline
+FR-S.3 & Xem danh sách lớp và lịch học của bản thân \\ \hline
+FR-S.4 & Thực hiện điểm danh theo quy trình bốn bước (QR, khuôn mặt, ngang hàng, vị trí) \\ \hline
+FR-S.5 & Xem lịch sử điểm danh và trạng thái chuyên cần \\ \hline
+FR-S.6 & Gửi đơn xin nghỉ có lý do \\ \hline
+FR-S.7 & Sử dụng trợ lý hỏi đáp (AI Chat) \\ \hline
+\multicolumn{2}{|l|}{\textbf{Giảng viên}} \\
+\hline
+FR-T.1 & Tạo lớp học phần hoặc tham gia bằng mã mời \\ \hline
+FR-T.2 & Tạo phiên điểm danh, tuỳ chọn bật/tắt các bước xác minh \\ \hline
+FR-T.3 & Hiển thị mã QR qua tính năng Cổng máy chiếu \\ \hline
+FR-T.4 & Giám sát phiên điểm danh theo thời gian thực \\ \hline
+FR-T.5 & Điểm danh thủ công và duyệt lại kết quả điểm danh \\ \hline
+FR-T.6 & Xem báo cáo gian lận của lớp \\ \hline
+\multicolumn{2}{|l|}{\textbf{Quản trị viên}} \\
+\hline
+FR-A.1 & Quản lý người dùng và tài khoản \\ \hline
+FR-A.2 & Quản lý lớp học và phân công sinh viên hàng loạt (nhập từ Excel) \\ \hline
+FR-A.3 & Duyệt đơn xin nghỉ của sinh viên \\ \hline
+FR-A.4 & Xem bảng thống kê tổng hợp (dashboard) \\ \hline
+FR-A.5 & Quản lý mã mời giảng viên và báo cáo gian lận \\ \hline
+\end{tabular}
+\end{table}
+
+% ─────────────────────────────────────────────
+\section{Đặc tả chức năng}
+\label{sec:dac-ta}
+
+Phần này đặc tả chi tiết các use case chính của hệ thống. Mỗi use case được mô tả theo cấu
+trúc thống nhất: mã, tác nhân, mô tả, tiền điều kiện, luồng sự kiện chính, luồng ngoại lệ và
+hậu điều kiện.
+
+\input{Chuong/Phu_luc_B}
+
+% ─────────────────────────────────────────────
+\section{Yêu cầu phi chức năng}
+\label{sec:yeu-cau-pcn}
+
+Ngoài các chức năng nghiệp vụ, hệ thống phải đáp ứng các yêu cầu phi chức năng
+(Non-Functional Requirement -- NFR) sau:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Bảo mật.} Mã QR phải được ký bằng HMAC-SHA256 và chống phát lại; mọi
+  thao tác ghi dữ liệu quan trọng phải được kiểm soát bằng quy tắc bảo mật của Firestore
+  và xử lý phía máy chủ; khoá bí mật và khoá API không được lộ phía thiết bị người dùng.
+
+  \item \textbf{Hiệu năng.} Thời gian khởi động ứng dụng và thao tác quét QR phải đủ
+  nhanh để không gây gián đoạn giờ học; dữ liệu phiên điểm danh được đồng bộ theo thời
+  gian thực.
+
+  \item \textbf{Khả năng mở rộng.} Hệ thống cần phục vụ được số lượng lớn sinh viên nhờ
+  khả năng tự co giãn của Firestore.
+
+  \item \textbf{Tính sẵn sàng và hoạt động ngoại tuyến.} Hệ thống cần có hàng đợi xử lý
+  ngoại tuyến (offline queue) để không mất dữ liệu khi mạng chập chờn.
+
+  \item \textbf{Trải nghiệm người dùng.} Giao diện tối ưu cho điện thoại, nhất quán với
+  bộ nhận diện của trường, thao tác tối giản.
+
+  \item \textbf{Tuân thủ.} Hệ thống tuân thủ chính sách kiểm duyệt của nền tảng Zalo và
+  các quy định về quyền riêng tư, đặc biệt với dữ liệu khuôn mặt.
+\end{itemize}
+
+Mức độ đáp ứng các yêu cầu bảo mật được đánh giá định lượng theo một bộ tiêu chí 10 lĩnh
+vực và trình bày chi tiết ở Chương~\ref{chapter:Experiment}.
+
+\bigskip
+\noindent Bên cạnh các yêu cầu trên, hệ thống còn chịu một số \textbf{ràng buộc} về nền tảng
+và phạm vi:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Ràng buộc nền tảng.} Ứng dụng phía người dùng phải chạy trong môi trường
+  Zalo Mini App, do đó bị giới hạn bởi bộ API và chính sách của nền tảng; phần xử lý phía
+  máy chủ vận hành trên gói miễn phí của Firebase trong giai đoạn thử nghiệm.
+
+  \item \textbf{Ràng buộc thiết bị.} Quy trình điểm danh yêu cầu thiết bị có máy ảnh và kết
+  nối Internet; bước xác minh ngang hàng cần tối thiểu ba thiết bị sinh viên ở gần nhau.
+
+  \item \textbf{Ràng buộc phạm vi.} Trong khuôn khổ một đồ án tốt nghiệp, hệ thống được
+  triển khai ở mức thử nghiệm, chưa tích hợp với hệ thống quản lý đào tạo của trường và chưa
+  hỗ trợ thẻ sinh viên RFID/NFC.
+\end{itemize}
+
+% ─────────────────────────────────────────────
+\subsection*{Kết chương}
+Chương này đã khảo sát sáu phương pháp điểm danh hiện có và chỉ ra rằng cần kết hợp nhiều
+lớp xác minh để vừa chống gian lận tốt vừa giữ chi phí hợp lý. Trên cơ sở phân tích các tác
+nhân, sơ đồ use case và đặc tả chức năng, chương đã xác định đầy đủ các yêu cầu chức năng và
+phi chức năng của hệ thống. Chương tiếp theo trình bày các công nghệ và nền tảng lý thuyết
+được sử dụng để hiện thực hoá các yêu cầu này.
+
+\end{document}

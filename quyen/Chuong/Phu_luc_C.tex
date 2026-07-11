@@ -1,0 +1,152 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+\label{chapter:appendixC}
+Phụ lục này trích dẫn một số đoạn mã nguồn cốt lõi của hệ thống nhằm minh hoạ cách hiện thực
+các cơ chế đã trình bày ở các chương trước. Mã được rút gọn (lược bỏ phần khai báo kiểu và
+chú thích) để tập trung vào phần logic chính.
+
+\section{Ký và tạo nội dung mã QR}
+
+Đoạn mã trong Danh sách mã nguồn~\ref{lst:c-crypto} (tệp \texttt{src/utils/crypto.ts}) thực hiện việc ký
+nội dung mã QR bằng HMAC-SHA256 và tạo chuỗi JSON cuối cùng để mã hoá thành mã QR.
+
+\begin{lstlisting}[caption={crypto.ts --- ký và tạo nội dung mã QR},captionpos=b,label=lst:c-crypto]
+import CryptoJS from "crypto-js";
+
+export function signPayload(data, secret) {
+  const message =
+    `${data.type}:${data.sessionId}:${data.userId}:${data.timestamp}:${data.nonce}`;
+  return CryptoJS.HmacSHA256(message, secret).toString();
+}
+
+export function createQRContent(type, sessionId, userId, secret) {
+  const timestamp = Date.now();
+  const nonce = CryptoJS.lib.WordArray.random(16).toString();
+  const signature =
+    signPayload({ type, sessionId, userId, timestamp, nonce }, secret);
+  return JSON.stringify({ type, sessionId, userId, timestamp, nonce, signature });
+}
+\end{lstlisting}
+
+\section{Sinh mã QR xoay theo thời gian}
+
+Danh sách mã nguồn~\ref{lst:c-qrgen} (tệp \texttt{useQRGenerator.ts}) sinh lại mã QR sau mỗi
+30 giây dựa trên một mốc đồng hồ chung (anchor), nhờ đó mã trên Mini App và trên máy chiếu
+luôn đồng bộ.
+
+\begin{lstlisting}[caption={useQRGenerator --- mã QR xoay 30 giây có đồng bộ},captionpos=b,label=lst:c-qrgen]
+export function useQRGenerator(options) {
+  const [qrDataURL, setQrDataURL] = useState("");
+  const lastPeriodRef = useRef(-1);
+  const refreshInterval = options?.refreshIntervalMs || 30000;
+
+  useEffect(() => {
+    if (!options) return;
+    const tick = async () => {
+      const { type, sessionId, userId, secret, anchor } = options;
+      // clock anchor keeps Mini App and projector in sync
+      const useAnchor = anchor || Date.now();
+      const elapsed = Math.max(0, Date.now() - useAnchor);
+      const periodIndex = Math.floor(elapsed / refreshInterval);
+      // regenerate QR only when entering a new 30s period
+      if (periodIndex !== lastPeriodRef.current) {
+        lastPeriodRef.current = periodIndex;
+        const content = type === "teacher"
+          ? createTeacherQR(sessionId, userId, secret)
+          : createPeerQR(sessionId, userId, secret);
+        setQrDataURL(await generateQRDataURL(content));
+      }
+    };
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [options?.sessionId, options?.secret, refreshInterval]);
+
+  return { qrDataURL };
+}
+\end{lstlisting}
+
+\section{Bảo mật phía máy chủ: chống phát lại và giới hạn tần suất}
+
+Danh sách mã nguồn~\ref{lst:c-server} (tệp \texttt{attendance.service.ts} phía máy chủ) cho thấy hàm
+Cloud Function \texttt{scanTeacher} kiểm tra giới hạn tần suất, theo dõi nonce để chống phát
+lại và xác minh chữ ký HMAC ở phía máy chủ.
+
+\begin{lstlisting}[caption={Cloud Function --- chống phát lại và giới hạn tần suất},captionpos=b,label=lst:c-server]
+// In-memory nonce tracking to prevent QR replay (TTL 120s > QR expiry 90s)
+const usedNonces = new Map();
+const NONCE_TTL_MS = 120_000;
+
+function checkAndRecordNonce(nonce) {
+  const now = Date.now();
+  for (const [key, expiry] of usedNonces) {
+    if (now > expiry) usedNonces.delete(key);
+  }
+  if (usedNonces.has(nonce)) return false;
+  usedNonces.set(nonce, now + NONCE_TTL_MS);
+  return true;
+}
+
+export const scanTeacher = onCall(requireAuth(
+  async (data, ctx, userId) => {
+  if (!checkRateLimit(userId, 10, 60_000)) {
+    throw new HttpsError("resource-exhausted", "Too many requests");
+  }
+  const { qrPayload, sessionId } = data;
+  // load session secret, then verify HMAC + timestamp + nonce
+  if (!verifyHMAC(qrPayload, secret)) { /* reject: bad signature */ }
+  if (!checkAndRecordNonce(qrPayload.nonce)) { /* reject: replay */ }
+}));
+\end{lstlisting}
+
+\section{Tính điểm tin cậy}
+
+Danh sách mã nguồn~\ref{lst:c-trust} (tệp \texttt{src/types/index.ts}) là hàm tính điểm tin cậy, hiện
+thực trực tiếp quy tắc đã trình bày ở Thuật toán~\ref{algo:trust}.
+
+\begin{lstlisting}[caption={computeTrustPolicy --- tính điểm tin cậy},captionpos=b,label=lst:c-trust]
+export function computeTrustPolicy(peerCount, faceVerification, config) {
+  const faceReq = config?.faceRequired !== false;
+  const peerReq = config?.peerRequired !== false;
+
+  const faceOk = faceVerification?.matched === true
+    && (faceVerification.confidence || 0) >= 0.7;
+  const faceSkipped = faceVerification?.skipped === true;
+  const faceAttempted = !!faceVerification && !faceSkipped;
+
+  const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
+  const peerPass = !peerReq || peerCount >= 3;
+
+  if (facePass && peerPass) return "present";
+  if (facePass || peerPass) return "review";
+  return "absent";
+}
+\end{lstlisting}
+
+\section{Quy tắc bảo mật Firestore}
+
+Danh sách mã nguồn~\ref{lst:c-rules} (tệp \texttt{firestore.rules}) minh hoạ các hàm trợ giúp ngăn người
+dùng tự nâng quyền và quy tắc áp dụng cho collection \texttt{users}.
+
+\begin{lstlisting}[caption={firestore.rules --- chống tự nâng quyền},captionpos=b,label=lst:c-rules]
+function notChangingRole() {
+  return !('role' in request.resource.data) ||
+         !('role' in resource.data) ||
+         request.resource.data.role == resource.data.role;
+}
+
+function newDocSafeRole() {
+  // new user: only role "student" is accepted
+  return !('role' in request.resource.data) ||
+         request.resource.data.role == 'student';
+}
+
+match /users/{userId} {
+  allow read:   if true;
+  allow create: if newDocSafeRole();   // no self-elevation
+  allow update: if notChangingRole();  // cannot change own role
+  allow delete: if false;
+}
+\end{lstlisting}
+
+\end{document}

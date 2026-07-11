@@ -1,0 +1,21 @@
+@startuml seq_oauth
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+participant "Sinh viên\n(Mini App)" as SV
+participant "Cloud Functions" as CF
+participant "Microsoft\n(OAuth 2.0)" as MS
+database "Firestore" as DB
+
+SV -> CF : initMicrosoftOAuth()
+CF --> SV : URL đăng nhập + state
+SV -> MS : Đăng nhập và đồng ý cấp quyền
+MS --> SV : Mã uỷ quyền (authorization code)
+SV -> CF : microsoftOAuthCallback(code, state)
+CF -> MS : Đổi code lấy token truy cập
+MS --> CF : Access token + email trường
+CF -> DB : Đánh dấu hustVerified = true
+CF -> CF : Sinh Firebase Custom Token
+CF --> SV : Custom Token để đăng nhập Firebase
+@enduml

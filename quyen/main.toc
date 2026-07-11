@@ -1,0 +1,90 @@
+\contentsline {chapter}{GHI CHÚ VỀ VIỆC SỬ DỤNG CÔNG CỤ AI}{i}{chapter*.4}%
+\ttl@change@i {\@ne }{chapter}{0.0cm}{\bfseries \vspace {0.3cm}}{{\bfseries CHƯƠNG \thecontentslabel .\ }}{}{\titlerule *[0.3pc]{.}\contentspage }\relax 
+\ttl@change@v {chapter}{}{}{}\relax 
+\ttl@change@i {\@ne }{section}{0.0cm}{\vspace {0.3cm}}{\thecontentslabel \ }{}{\titlerule *[0.3pc]{.}\contentspage }\relax 
+\ttl@change@v {section}{}{}{}\relax 
+\ttl@change@i {\@ne }{subsection}{1.0cm}{\vspace {0.3cm}}{\thecontentslabel \ }{}{\titlerule *[0.3pc]{.}\contentspage }\relax 
+\ttl@change@v {subsection}{}{}{}\relax 
+\thispagestyle {empty}
+\contentsline {chapter}{\numberline {1}GIỚI THIỆU ĐỀ TÀI}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Đặt vấn đề}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Mục tiêu và phạm vi đề tài}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Định hướng giải pháp}{3}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Bố cục đồ án}{4}{section.1.4}%
+\contentsline {chapter}{\numberline {2}KHẢO SÁT VÀ PHÂN TÍCH YÊU CẦU}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Khảo sát hiện trạng}{5}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Điểm danh thủ công}{5}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Thẻ từ và thẻ RFID}{5}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Công nghệ NFC}{5}{subsection.2.1.3}%
+\contentsline {subsection}{\numberline {2.1.4}Đèn hiệu Bluetooth năng lượng thấp (BLE Beacon)}{5}{subsection.2.1.4}%
+\contentsline {subsection}{\numberline {2.1.5}Mã QR tĩnh}{5}{subsection.2.1.5}%
+\contentsline {subsection}{\numberline {2.1.6}Nhận diện khuôn mặt}{6}{subsection.2.1.6}%
+\contentsline {subsection}{\numberline {2.1.7}So sánh và bài học rút ra}{6}{subsection.2.1.7}%
+\contentsline {section}{\numberline {2.2}Tổng quan chức năng}{6}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Tác nhân và đối tượng người dùng}{6}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Biểu đồ use case tổng quát}{7}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Biểu đồ use case phân rã}{8}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.4}Quy trình nghiệp vụ}{9}{subsection.2.2.4}%
+\contentsline {subsection}{\numberline {2.2.5}Yêu cầu chức năng}{10}{subsection.2.2.5}%
+\contentsline {section}{\numberline {2.3}Đặc tả chức năng}{10}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Use case của Sinh viên}{10}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Use case của Giảng viên}{13}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Use case của Quản trị viên}{16}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Yêu cầu phi chức năng}{17}{section.2.4}%
+\contentsline {chapter}{\numberline {3}NỀN TẢNG LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG}{19}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Nền tảng Zalo Mini App}{19}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Kiến trúc và mô hình hoạt động}{19}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Quy trình xây dựng và phát hành ứng dụng}{19}{subsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1.3}Lựa chọn nền tảng và mô hình quyền}{21}{subsection.3.1.3}%
+\contentsline {section}{\numberline {3.2}Bộ công nghệ phía giao diện}{22}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Hệ sinh thái Firebase}{22}{section.3.3}%
+\contentsline {section}{\numberline {3.4}HMAC-SHA256 và mã xác thực thông điệp}{23}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Nhận diện khuôn mặt và FaceNet}{24}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Mã QR và ứng dụng trong điểm danh}{25}{section.3.6}%
+\contentsline {chapter}{\numberline {4}PHÂN TÍCH THIẾT KẾ, TRIỂN KHAI VÀ ĐÁNH GIÁ HỆ THỐNG}{27}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Thiết kế kiến trúc}{27}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Thiết kế chi tiết}{28}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Thiết kế cơ sở dữ liệu Firestore}{28}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Thiết kế luồng xác thực và phân quyền}{31}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Thuật toán mã QR HMAC xoay 30 giây}{32}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Thiết kế giao diện và bộ nhận diện}{33}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.5}Luồng điểm danh bốn bước cho sinh viên}{33}{subsection.4.2.5}%
+\contentsline {subsection}{\numberline {4.2.6}Hệ thống chống gian lận nhiều lớp}{36}{subsection.4.2.6}%
+\contentsline {subsection}{\numberline {4.2.7}Tính năng Cổng máy chiếu (Teacher Display)}{37}{subsection.4.2.7}%
+\contentsline {section}{\numberline {4.3}Xây dựng ứng dụng}{38}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Triển khai Mini App}{38}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Triển khai trang quản trị}{40}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Triển khai Cloud Functions}{42}{subsection.4.3.3}%
+\contentsline {section}{\numberline {4.4}Kiểm thử và đánh giá}{42}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Kiểm thử}{43}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Đánh giá bảo mật}{44}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Đánh giá hiệu năng}{46}{subsection.4.4.3}%
+\contentsline {section}{\numberline {4.5}Triển khai và phát hành}{46}{section.4.5}%
+\contentsline {chapter}{\numberline {5}CÁC GIẢI PHÁP VÀ ĐÓNG GÓP NỔI BẬT}{48}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Cơ chế mã QR HMAC xoay theo thời gian}{48}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Cổng máy chiếu và cơ chế pairing one-shot}{48}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Hệ thống chống gian lận nhiều lớp}{49}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Kiến trúc ba vai trò và phân quyền}{50}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Tuân thủ chính sách nền tảng Zalo}{50}{section.5.5}%
+\contentsline {chapter}{\numberline {6}KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}{52}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Kết luận}{52}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Hạn chế}{52}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Hướng phát triển}{53}{section.6.3}%
+\contentsline {chapter}{TÀI LIỆU THAM KHẢO}{56}{section*.67}%
+\contentsline {chapter}{PHỤ LỤC}{58}{section*.68}%
+\ttl@change@i {\@ne }{chapter}{0.0cm}{\bfseries \vspace {0.3cm}}{{\bfseries {\scshape } \thecontentslabel .\ }}{}{\titlerule *[0.3pc]{.}\contentspage }\relax 
+\ttl@change@v {chapter}{}{}{}\relax 
+\contentsline {chapter}{\numberline {A}HƯỚNG DẪN CÀI ĐẶT VÀ TRIỂN KHAI}{58}{appendix.a.A}%
+\contentsline {section}{\numberline {A.1}Yêu cầu môi trường}{58}{section.a.A.1}%
+\contentsline {section}{\numberline {A.2}Cấu trúc mã nguồn}{58}{section.a.A.2}%
+\contentsline {section}{\numberline {A.3}Cấu hình biến môi trường}{58}{section.a.A.3}%
+\contentsline {section}{\numberline {A.4}Chạy ở môi trường phát triển}{59}{section.a.A.4}%
+\contentsline {section}{\numberline {A.5}Triển khai}{59}{section.a.A.5}%
+\contentsline {section}{\numberline {A.6}Khởi tạo và phân quyền}{59}{section.a.A.6}%
+\contentsline {chapter}{\numberline {B}TRÍCH DẪN MÃ NGUỒN}{61}{appendix.a.B}%
+\contentsline {section}{\numberline {B.1}Ký và tạo nội dung mã QR}{61}{section.a.B.1}%
+\contentsline {section}{\numberline {B.2}Sinh mã QR xoay theo thời gian}{61}{section.a.B.2}%
+\contentsline {section}{\numberline {B.3}Bảo mật phía máy chủ: chống phát lại và giới hạn tần suất}{62}{section.a.B.3}%
+\contentsline {section}{\numberline {B.4}Tính điểm tin cậy}{63}{section.a.B.4}%
+\contentsline {section}{\numberline {B.5}Quy tắc bảo mật Firestore}{64}{section.a.B.5}%
+\contentsfinish 

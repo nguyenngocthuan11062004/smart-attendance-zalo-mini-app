@@ -1,0 +1,17 @@
+@startuml seq_pairing
+skinparam dpi 150
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+
+participant "Máy chiếu\n(Trang web)" as WEB
+database "Firestore" as DB
+participant "Giảng viên\n(Mini App)" as GV
+
+WEB -> DB : Tạo mã ghép nối\n(status = pending, hết hạn 60s)
+WEB -> WEB : Hiển thị QR chứa mã ghép nối
+GV -> WEB : Quét QR mã ghép nối
+GV -> DB : claimPairingToken(token, sessionId)
+DB -> DB : Chuyển pending -> paired\n(một chiều, chỉ một lần)
+DB --> WEB : (onSnapshot) đã paired + sessionId
+WEB -> WEB : Hiển thị mã QR điểm danh cỡ lớn\n(đồng bộ đồng hồ với phiên)
+@enduml

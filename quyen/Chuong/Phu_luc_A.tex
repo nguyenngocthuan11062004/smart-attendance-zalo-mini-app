@@ -1,0 +1,102 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+Phụ lục này hướng dẫn cài đặt, cấu hình và triển khai hệ thống, giúp người đọc có thể tái
+dựng lại môi trường chạy của đồ án.
+
+\section{Yêu cầu môi trường}
+
+Để cài đặt và chạy hệ thống, cần chuẩn bị các thành phần trong Bảng~\ref{tab:moi-truong}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Yêu cầu môi trường cài đặt}
+\label{tab:moi-truong}
+\begin{tabular}{|p{4.6cm}|p{9cm}|}
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} \\ \hline
+Node.js (bản LTS) và npm & Môi trường chạy và quản lý gói cho Mini App, trang quản trị và Cloud Functions \\ \hline
+Zalo Mini App CLI (\texttt{zmp-cli}) & Chạy thử và triển khai Mini App lên nền tảng Zalo \\ \hline
+Firebase CLI & Triển khai Cloud Functions, quy tắc Firestore và trang quản trị \\ \hline
+Tài khoản Zalo Developer & Đăng ký và quản lý Mini App \\ \hline
+Dự án Firebase & Cung cấp Firestore, Storage và Cloud Functions \\ \hline
+\end{tabular}
+\end{table}
+
+\section{Cấu trúc mã nguồn}
+
+Mã nguồn được tổ chức thành ba phần chính cùng các tệp cấu hình, như Danh sách mã nguồn~\ref{lst:cautruc}.
+
+\begin{lstlisting}[caption={Cấu trúc thư mục mã nguồn},captionpos=b,label=lst:cautruc]
+.
+|- src/             # Zalo Mini App (React + TypeScript + Jotai)
+|- admin/           # Trang quan tri (React + Ant Design)
+|- functions/       # Cloud Functions (Node.js)
+|- app-config.json  # Cau hinh Mini App
+|- firestore.rules  # Quy tac bao mat Firestore
+|- firebase.json    # Cau hinh Firebase CLI
+\end{lstlisting}
+
+\section{Cấu hình biến môi trường}
+
+Các khoá bí mật và cấu hình được đặt trong các tệp môi trường và \textbf{không} đưa vào mã
+nguồn công khai. Phần chạy phía trình duyệt sử dụng tiền tố \texttt{VITE\_}, còn các khoá nhạy
+cảm được đặt trong \texttt{functions/.env} ở phía máy chủ. Danh sách mã nguồn~\ref{lst:env} minh hoạ cấu
+trúc tệp môi trường (các giá trị chỉ là ví dụ mẫu).
+
+\begin{lstlisting}[caption={Cấu trúc tệp môi trường (giá trị mẫu)},captionpos=b,label=lst:env]
+# .env  (Mini App - phia trinh duyet)
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_BYPASS_MSSV=20225413
+
+# functions/.env  (phia may chu)
+GROQ_API_KEY=your_groq_key
+EMAILJS_SERVICE_ID=your_service_id
+\end{lstlisting}
+
+\section{Chạy ở môi trường phát triển}
+
+Danh sách mã nguồn~\ref{lst:dev} trình bày các lệnh chạy thử trên máy cá nhân. Lưu ý Mini App được chạy
+bằng \texttt{zmp start} (không dùng \texttt{vite} trực tiếp do cơ chế đóng gói riêng của
+nền tảng).
+
+\begin{lstlisting}[caption={Lệnh chạy môi trường phát triển},captionpos=b,label=lst:dev]
+# Cai dat phu thuoc
+npm install
+
+# Chay Mini App
+zmp start
+
+# Chay trang quan tri
+cd admin && npm install && npm run dev
+
+# Kiem tra kieu TypeScript (khong xuat ban dich)
+npx tsc --noEmit
+\end{lstlisting}
+
+\section{Triển khai}
+
+Sau khi kiểm thử, hệ thống được triển khai theo Danh sách mã nguồn~\ref{lst:deploy}. Mini App sau khi
+\texttt{zmp deploy} sẽ trải qua quy trình kiểm duyệt của Zalo trước khi đến tay người dùng;
+trang quản trị được phục vụ trên Firebase Hosting; còn Cloud Functions chạy tại khu vực
+\texttt{asia-southeast1}.
+
+\begin{lstlisting}[caption={Lệnh triển khai},captionpos=b,label=lst:deploy]
+# Trien khai Mini App len nen tang Zalo
+zmp deploy
+
+# Trien khai Cloud Functions, rules, indexes va trang quan tri
+firebase deploy --only functions,firestore:rules,firestore:indexes,hosting
+\end{lstlisting}
+
+\section{Khởi tạo và phân quyền}
+
+Tài khoản đăng nhập lần đầu mặc định mang vai trò sinh viên. Việc nâng quyền lên giảng viên
+hoặc quản trị viên chỉ được thực hiện ở phía máy chủ (thông qua hàm Cloud Function tương ứng
+hoặc mã mời giảng viên), nhằm ngăn việc tự nâng quyền từ phía thiết bị. Sau khi được nâng
+quyền, người dùng có thể truy cập các chức năng tương ứng với vai trò như đã đặc tả ở
+mục~\ref{sec:dac-ta}.
+
+\end{document}

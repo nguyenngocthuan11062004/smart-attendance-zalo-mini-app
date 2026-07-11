@@ -1,0 +1,39 @@
+@startuml kientruc
+!pragma layout smetana
+skinparam dpi 200
+skinparam defaultFontName "DejaVu Sans"
+skinparam shadowing false
+skinparam componentStyle rectangle
+top to bottom direction
+
+actor "Sinh viên,\nGiảng viên" as users
+actor "Phòng đào tạo" as admin
+
+package "Tầng giao diện (Client)" {
+  [Zalo Mini App\n(React, TypeScript, Jotai)] as miniapp
+  [Trang quản trị web\n(React, Ant Design)] as adminweb
+}
+
+package "Tầng xử lý (Backend)" {
+  [Cloud Functions\n(ký QR, điểm tin cậy,\nchống gian lận, phân quyền)] as cf
+}
+
+package "Tầng lưu trữ (Storage)" {
+  database "Firestore" as fs
+  database "Firebase Storage" as storage
+}
+
+cloud "Nền tảng Zalo" as zalo
+cloud "Dịch vụ ngoài\n(Groq AI, EmailJS,\nMicrosoft OAuth)" as ext
+
+users --> miniapp
+admin --> adminweb
+miniapp ..> zalo : SDK
+miniapp --> cf
+adminweb --> cf
+miniapp --> fs
+adminweb --> fs
+cf --> fs
+cf --> storage
+cf ..> ext
+@enduml
