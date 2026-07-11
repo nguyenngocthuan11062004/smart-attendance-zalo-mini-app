@@ -68,8 +68,8 @@ lịch sử điểm danh), Bảng~\ref{tab:uc-absence} (gửi đơn xin nghỉ),
 \textbf{Tác nhân} & Sinh viên \\ \hline
 \textbf{Mô tả} & Sinh viên thực hiện điểm danh qua bốn bước: quét mã QR, xác minh khuôn mặt, xác minh ngang hàng và hoàn tất. \\ \hline
 \textbf{Tiền điều kiện} & Đã đăng nhập, đã đăng ký khuôn mặt, đang ở trong lớp và phiên điểm danh đang mở. \\ \hline
-\textbf{Luồng chính} & 1. Sinh viên quét mã QR động của giảng viên; hệ thống kiểm tra chữ ký HMAC và thời gian. \newline 2. Ứng dụng tự động chụp và so khớp khuôn mặt (đạt khi độ tin cậy $\geq$ 0,7). \newline 3. Sinh viên trao đổi mã QR với tối thiểu ba bạn xung quanh. \newline 4. Hệ thống tổng hợp kết quả, tính điểm tin cậy và lưu bản ghi điểm danh. \\ \hline
-\textbf{Luồng ngoại lệ} & Mã QR hết hạn/sai chữ ký: từ chối. Khuôn mặt không khớp hoặc số lượt ngang hàng $<$ 3: kết quả chuyển trạng thái ``cần xem xét''. \\ \hline
+\textbf{Luồng chính} & 1. Sinh viên quét mã QR động của giảng viên; hệ thống kiểm tra chữ ký HMAC và thời gian. \newline 2. Ứng dụng tự động chụp và so khớp khuôn mặt (đạt khi độ tin cậy $\geq$ 0,7). \newline 3. Sinh viên tự quét mã QR của ít nhất một bạn xung quanh (chỉ lượt tự quét mới được tính). \newline 4. Hệ thống tổng hợp kết quả, tính điểm tin cậy và lưu bản ghi điểm danh. \\ \hline
+\textbf{Luồng ngoại lệ} & Mã QR hết hạn/sai chữ ký: từ chối. Khuôn mặt không khớp hoặc số lượt ngang hàng $<$ 1: kết quả chuyển trạng thái ``cần xem xét''. \\ \hline
 \textbf{Hậu điều kiện} & Bản ghi điểm danh được lưu kèm điểm tin cậy (present/review/absent). \\ \hline
 \end{tabular}
 \end{table}

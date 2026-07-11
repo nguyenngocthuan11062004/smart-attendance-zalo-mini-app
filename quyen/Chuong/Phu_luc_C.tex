@@ -115,7 +115,7 @@ export function computeTrustPolicy(peerCount, faceVerification, config) {
   const faceAttempted = !!faceVerification && !faceSkipped;
 
   const facePass = !faceReq || faceOk || faceSkipped || !faceAttempted;
-  const peerPass = !peerReq || peerCount >= 3;
+  const peerPass = !peerReq || peerCount >= 1;
 
   if (facePass && peerPass) return "present";
   if (facePass || peerPass) return "review";

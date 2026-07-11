@@ -296,8 +296,8 @@ Quy trình điểm danh của sinh viên gồm bốn bước tuần tự:
   \item \textbf{Xác minh khuôn mặt.} Ứng dụng tự động chụp và so khớp khuôn mặt với ảnh
   đã đăng ký; kết quả đạt nếu độ tin cậy không nhỏ hơn ngưỡng 0{,}7.
 
-  \item \textbf{Xác minh ngang hàng.} Sinh viên hiển thị mã QR cá nhân và quét mã của các
-  bạn xung quanh; yêu cầu tối thiểu ba lượt xác minh.
+  \item \textbf{Xác minh ngang hàng.} Sinh viên hiển thị mã QR cá nhân và tự quét mã của
+  các bạn xung quanh; chỉ lượt do chính sinh viên quét mới được tính, yêu cầu tối thiểu một lượt xác minh.
 
   \item \textbf{Hoàn tất.} Hệ thống tổng hợp kết quả và tính điểm tin cậy.
 \end{enumerate}
@@ -324,7 +324,7 @@ tin cậy được trình bày hình thức trong Thuật toán~\ref{algo:trust}
 \KwIn{Cờ yêu cầu khuôn mặt $faceReq$, cờ yêu cầu ngang hàng $peerReq$, kết quả khuôn mặt $face$, số lượt ngang hàng $peerCount$}
 \KwOut{Điểm tin cậy thuộc \{present, review, absent\}}
 $facePass \leftarrow (\lnot faceReq) \lor face.matched$\;
-$peerPass \leftarrow (\lnot peerReq) \lor (peerCount \geq 3)$\;
+$peerPass \leftarrow (\lnot peerReq) \lor (peerCount \geq 1)$\;
 \eIf{$facePass$ \textbf{và} $peerPass$}{
   \Return present\;
 }{
@@ -395,7 +395,7 @@ $S \leftarrow \emptyset$\;
 \ForEach{sinh viên $s$ trong $A$}{
   \lIf{tỷ lệ xác minh cùng một nhóm bạn $\geq 80\%$}{thêm \textit{always\_same\_peers}}
   \lIf{khoảng cách giữa hai lượt xác minh $< 30$ giây}{thêm \textit{rapid\_verification}}
-  \lIf{số lượt ngang hàng $< 3$ ở quá nửa số phiên}{thêm \textit{low\_peer\_count}}
+  \lIf{số lượt ngang hàng $\leq 1$ ở quá nửa số phiên}{thêm \textit{low\_peer\_count}}
   \lIf{khuôn mặt không khớp hoặc độ tin cậy $< 0{,}3$}{thêm \textit{face\_mismatch}}
 }
 \Return $S$\;
@@ -588,7 +588,7 @@ biên dịch TypeScript (\texttt{tsc -{}-noEmit}) nhằm phát hiện sớm các
 khi chạy.
 
 Môi trường kiểm thử sử dụng bốn điện thoại thông minh cài sẵn Zalo: một máy đóng vai giảng
-viên và ba máy đóng vai sinh viên (để mô phỏng bước xác minh ngang hàng vốn cần tối thiểu ba
+viên và ba máy đóng vai sinh viên (đủ để mô phỏng bước xác minh ngang hàng, vốn chỉ cần tối thiểu một
 lượt), cùng kết nối Internet qua Wi-Fi hoặc mạng di động. Ngoài ra, ứng dụng còn cung cấp một
 chế độ giả lập dữ liệu (mock mode) cho phép kiểm thử riêng lẻ từng bước trong luồng điểm danh
 mà không phụ thuộc vào dữ liệu thật.
@@ -646,7 +646,7 @@ Bảng~\ref{tab:test-sample}.
 TC-05 & Ràng buộc định dạng MSSV & MSSV không đủ 8 số hoặc không bắt đầu bằng ``20'' bị từ chối \\ \hline
 TC-18 & Mã QR hiển thị và xoay 30 giây & Mã QR tự làm mới sau mỗi 30 giây \\ \hline
 TC-23 & Xác minh khuôn mặt tự động & So khớp đạt khi độ tin cậy không nhỏ hơn 0{,}7 \\ \hline
-TC-24 & Trao đổi mã QR ngang hàng & Yêu cầu tối thiểu ba lượt xác minh hợp lệ \\ \hline
+TC-24 & Tự quét mã QR ngang hàng & Yêu cầu tối thiểu một lượt tự quét hợp lệ \\ \hline
 TC-30 & Tính điểm tin cậy & Trả về present/review/absent đúng quy tắc \\ \hline
 TC-56 & Mã QR hết hạn & Mã quá 90 giây bị từ chối \\ \hline
 TC-57 & Tự quét mã của chính mình & Hệ thống chặn việc tự xác minh ngang hàng \\ \hline
