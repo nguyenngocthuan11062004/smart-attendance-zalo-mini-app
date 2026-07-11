@@ -26,8 +26,8 @@
 \contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Zalo Mini App với PWA và ứng dụng gốc}}{22}{table.caption.38}%
 \addvspace {10\p@ }
 \contentsline {table}{\numberline {4.1}{\ignorespaces Các collection chính của cơ sở dữ liệu}}{29}{table.caption.40}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Cấu trúc collection \texttt {sessions}}}{30}{table.caption.41}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Cấu trúc collection \texttt {attendance}}}{30}{table.caption.42}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Cấu trúc collection \texttt {sessions}}}{29}{table.caption.41}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Cấu trúc collection \texttt {attendance}}}{29}{table.caption.42}%
 \contentsline {table}{\numberline {4.4}{\ignorespaces Cấu trúc collection \texttt {users}}}{30}{table.caption.43}%
 \contentsline {table}{\numberline {4.5}{\ignorespaces Cấu trúc collection \texttt {classes}}}{30}{table.caption.44}%
 \contentsline {table}{\numberline {4.6}{\ignorespaces Ma trận phân quyền theo vai trò}}{32}{table.caption.47}%

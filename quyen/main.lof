@@ -8,11 +8,11 @@
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {3.1}{\ignorespaces Quy trình xây dựng và phát hành một Zalo Mini App}}{22}{figure.caption.37}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Kiến trúc tổng thể ba tầng của hệ thống}}{29}{figure.caption.39}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Sơ đồ thực thể --- liên kết của cơ sở dữ liệu}}{31}{figure.caption.45}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Kiến trúc tổng thể ba tầng của hệ thống}}{28}{figure.caption.39}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Sơ đồ thực thể --- liên kết của cơ sở dữ liệu}}{30}{figure.caption.45}%
 \contentsline {figure}{\numberline {4.3}{\ignorespaces Lược đồ trạng thái của phiên và bản ghi điểm danh}}{31}{figure.caption.46}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Lược đồ tuần tự sinh và xác minh mã QR HMAC}}{34}{figure.caption.48}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Lược đồ hoạt động của quy trình điểm danh}}{35}{figure.caption.49}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Lược đồ tuần tự sinh và xác minh mã QR HMAC}}{33}{figure.caption.48}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Lược đồ hoạt động của quy trình điểm danh}}{34}{figure.caption.49}%
 \contentsline {figure}{\numberline {4.6}{\ignorespaces Lược đồ tuần tự quy trình điểm danh bốn bước}}{36}{figure.caption.50}%
 \contentsline {figure}{\numberline {4.7}{\ignorespaces Lược đồ tuần tự đăng ký khuôn mặt}}{37}{figure.caption.51}%
 \contentsline {figure}{\numberline {4.8}{\ignorespaces Lược đồ tuần tự ghép nối Cổng máy chiếu}}{39}{figure.caption.53}%

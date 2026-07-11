@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex main"] 1783746374.08036 "main.aux" "main.bbl" "main" 1783746375.9193 0
+["bibtex main"] 1783777677.55777 "main.aux" "main.bbl" "main" 1783777679.39631 0
   "./Danh_sach_tai_lieu_tham_khao.bib" 1782361551.21614 5926 815cfcf931bc1b39e34bb84f89b9b5fb ""
-  "./main-blx.bib" 1783746375.79865 343 27af2fa4d0370999ebe8f3266686c889 ""
+  "./main-blx.bib" 1783777679.27146 343 27af2fa4d0370999ebe8f3266686c889 ""
   "/usr/share/texlive/texmf-dist/bibtex/bst/biblatex/biblatex.bst" 1678141846 65484 b7949c47a88ed6dca66ebc7a04577312 ""
-  "main.aux" 1783746375.79465 45134 203ab6e8655ebc61c321408306e5d6cf "pdflatex"
+  "main.aux" 1783777679.26746 45134 2a3924da728d13ce0aa697f0a6e40d60 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1783746374.10422 "main.tex" "main.pdf" "main" 1783746375.91959 0
+["pdflatex"] 1783777677.57869 "main.tex" "main.pdf" "main" 1783777679.39653 0
   "/etc/texmf/web2c/texmf.cnf" 1780289002.126 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/vntex/t5.enc" 1136849721 7824 21ade6c3c7fd67cb4ace8dbc91c53118 ""
@@ -235,7 +235,7 @@
   "Chuong/1_Gioi_thieu.tex" 1783746339.5412 12469 f36eacfe792f81457f58e491de914429 ""
   "Chuong/2_Khao_sat.tex" 1783746341.52823 16087 cb7ba0d0baf5bf0fd43dec920abfa938 ""
   "Chuong/3_Cong_nghe.tex" 1782362201.77175 25495 84d53072b45e080cda78b43561b9cc3c ""
-  "Chuong/4_Ket_qua_thuc_nghiem.tex" 1783746350.64534 44122 b719657bd1ddf65e2244f71793f046af ""
+  "Chuong/4_Ket_qua_thuc_nghiem.tex" 1783777593.89735 44118 e5f678d8ebd85306dfe635506c5283a2 ""
   "Chuong/5_Giai_phap_dong_gop.tex" 1783746355.14139 12368 3a759da328700e9a0de44849841f16de ""
   "Chuong/6_Ket_luan.tex" 1783746357.56142 6527 043ee31cce544f997aa63ac968b93b4a ""
   "Chuong/Ghi_chu_AI.tex" 1782468454.93903 2396 b360f0de199c4607de93d823f84f66c3 ""
@@ -249,7 +249,7 @@
   "figures/class_layer.png" 1780889036.43839 64942 2e4b9f57cef8b3e1fac8eaa5d6c713fe ""
   "figures/deployment.png" 1780889770.8642 68178 309451cb9d5b0a496b7c59f76aabcf52 ""
   "figures/erd.png" 1780886336.55032 188613 de364152a3c16bf86ad536b9259d62b2 ""
-  "figures/kientruc.png" 1780886336.63832 134396 0c95979b61a8259bce4df2ba1bfdd981 ""
+  "figures/kientruc.png" 1783777589.06517 134585 d11513a1043250ddfd14c89b076626c3 ""
   "figures/mini_absence.png" 1781074731.82775 89908 226339c530dcbe4ab473b6291e6870ab ""
   "figures/mini_classes.png" 1781074731.61775 69699 2c3c7e38c46cd4525c19bfb3ea6caaf9 ""
   "figures/mini_home.png" 1781074731.53976 816244 ef4969212ac64dd4dfb229da4bc6df3a ""
@@ -271,14 +271,14 @@
   "figures/uc_sv.png" 1781081838.80075 86808 887b27298051e957198ae193b86ea45e ""
   "figures/usecase.png" 1780885764.34441 220308 e48db8b238e7c9f4ca4e87a4e2c07d56 ""
   "lstlisting.tex" 1782357208.43924 924 bb2ff161693071f0cb896b18cd1de10e ""
-  "main.aux" 1783746375.79465 45134 203ab6e8655ebc61c321408306e5d6cf "pdflatex"
-  "main.bbl" 1783746374.10063 14834 b8264b2466200272024ce822f9e67a8b "bibtex main"
-  "main.lof" 1783746375.80021 3006 cf0e5493c59d8b8dad5455b1b2c1c39d "pdflatex"
-  "main.lot" 1783746375.80021 5041 67fc540c7f2313269737fe3ca1a1b446 "pdflatex"
-  "main.out" 1783746375.79665 18862 7b8eead86be38bda0da673a145c0ae92 "pdflatex"
-  "main.run.xml" 1783746375.80021 2637 a724afb591f3e703f19547e1f92756a5 "pdflatex"
+  "main.aux" 1783777679.26746 45134 2a3924da728d13ce0aa697f0a6e40d60 "pdflatex"
+  "main.bbl" 1783777677.5764 14834 b8264b2466200272024ce822f9e67a8b "bibtex main"
+  "main.lof" 1783777679.27282 3006 07547001084ae824ae89f752751c4c67 "pdflatex"
+  "main.lot" 1783777679.27282 5041 714ac342b7283269177f4aafaf342962 "pdflatex"
+  "main.out" 1783777679.26946 18862 7b8eead86be38bda0da673a145c0ae92 "pdflatex"
+  "main.run.xml" 1783777679.27282 2637 a724afb591f3e703f19547e1f92756a5 "pdflatex"
   "main.tex" 1782468446.44679 10822 76fcd0c8800da52839dc37487cfcdfaf ""
-  "main.toc" 1783746375.80021 8489 2e7662714bb592a956ee55315ce1e678 "pdflatex"
+  "main.toc" 1783777679.27282 8489 42e122f1c4a1b66e6016c1da43538f4d "pdflatex"
   (generated)
   "main-blx.bib"
   "main.aux"

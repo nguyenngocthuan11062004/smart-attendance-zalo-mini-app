@@ -4,7 +4,7 @@ skinparam dpi 200
 skinparam defaultFontName "DejaVu Sans"
 skinparam shadowing false
 skinparam componentStyle rectangle
-top to bottom direction
+left to right direction
 
 actor "Sinh viên,\nGiảng viên" as users
 actor "Phòng đào tạo" as admin
@@ -19,8 +19,8 @@ package "Tầng xử lý (Backend)" {
 }
 
 package "Tầng lưu trữ (Storage)" {
-  database "Firestore" as fs
   database "Firebase Storage" as storage
+  database "Firestore" as fs
 }
 
 cloud "Nền tảng Zalo" as zalo
@@ -28,12 +28,12 @@ cloud "Dịch vụ ngoài\n(Groq AI, EmailJS,\nMicrosoft OAuth)" as ext
 
 users --> miniapp
 admin --> adminweb
-miniapp ..> zalo : SDK
 miniapp --> cf
 adminweb --> cf
 miniapp --> fs
 adminweb --> fs
 cf --> fs
 cf --> storage
+miniapp ..> zalo : SDK
 cf ..> ext
 @enduml

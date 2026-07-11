@@ -43,11 +43,11 @@
 \contentsline {section}{\numberline {3.6}Mã QR và ứng dụng trong điểm danh}{26}{section.3.6}%
 \contentsline {chapter}{\numberline {4}PHÂN TÍCH THIẾT KẾ, TRIỂN KHAI VÀ ĐÁNH GIÁ HỆ THỐNG}{28}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Thiết kế kiến trúc}{28}{section.4.1}%
-\contentsline {section}{\numberline {4.2}Thiết kế chi tiết}{29}{section.4.2}%
+\contentsline {section}{\numberline {4.2}Thiết kế chi tiết}{28}{section.4.2}%
 \contentsline {subsection}{\numberline {4.2.1}Thiết kế cơ sở dữ liệu Firestore}{29}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}Thiết kế luồng xác thực và phân quyền}{32}{subsection.4.2.2}%
-\contentsline {subsection}{\numberline {4.2.3}Thuật toán mã QR HMAC xoay 30 giây}{33}{subsection.4.2.3}%
-\contentsline {subsection}{\numberline {4.2.4}Thiết kế giao diện và bộ nhận diện}{34}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.2}Thiết kế luồng xác thực và phân quyền}{31}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Thuật toán mã QR HMAC xoay 30 giây}{32}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Thiết kế giao diện và bộ nhận diện}{33}{subsection.4.2.4}%
 \contentsline {subsection}{\numberline {4.2.5}Luồng điểm danh bốn bước cho sinh viên}{34}{subsection.4.2.5}%
 \contentsline {subsection}{\numberline {4.2.6}Hệ thống chống gian lận nhiều lớp}{37}{subsection.4.2.6}%
 \contentsline {subsection}{\numberline {4.2.7}Tính năng Cổng máy chiếu (Teacher Display)}{38}{subsection.4.2.7}%
